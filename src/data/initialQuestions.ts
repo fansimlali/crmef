@@ -1,8 +1,12 @@
 import type { Question } from '../types';
 
 export const INITIAL_QUESTIONS: Question[] = [
+  // ==========================================
+  // أسئلة الابتدائي الأساسية
+  // ==========================================
   {
     id: "ma1",
+    cycles: ["primary"],
     subject: "ma",
     topic: "قابلية القسمة",
     question: "أي الأعداد التالية يقبل القسمة على 9؟",
@@ -12,6 +16,7 @@ export const INITIAL_QUESTIONS: Question[] = [
   },
   {
     id: "ma2",
+    cycles: ["primary"],
     subject: "ma",
     topic: "الكسور",
     question: "ما ناتج 2/3 + 1/4 ؟",
@@ -21,6 +26,7 @@ export const INITIAL_QUESTIONS: Question[] = [
   },
   {
     id: "ma3",
+    cycles: ["primary"],
     subject: "ma",
     topic: "الهندسة",
     question: "مثلث قائم طولا ضلعيه القائمين 6 سم و8 سم. ما طول وتره؟",
@@ -30,6 +36,7 @@ export const INITIAL_QUESTIONS: Question[] = [
   },
   {
     id: "ma4",
+    cycles: ["primary"],
     subject: "ma",
     topic: "التناسبية",
     question: "ثمن 5 كراسات 35 درهما. ما ثمن 8 كراسات بالسعر نفسه؟",
@@ -39,6 +46,7 @@ export const INITIAL_QUESTIONS: Question[] = [
   },
   {
     id: "fr1",
+    cycles: ["primary"],
     subject: "fr",
     topic: "Conjugaison",
     question: "Hier, nous ____ au marché. (aller, passé composé)",
@@ -48,6 +56,7 @@ export const INITIAL_QUESTIONS: Question[] = [
   },
   {
     id: "fr2",
+    cycles: ["primary"],
     subject: "fr",
     topic: "Orthographe",
     question: "Il ____ lavé les mains.",
@@ -57,6 +66,7 @@ export const INITIAL_QUESTIONS: Question[] = [
   },
   {
     id: "fr3",
+    cycles: ["primary"],
     subject: "fr",
     topic: "Grammaire",
     question: "Dans « Le chat mange la souris », « la souris » est :",
@@ -66,6 +76,7 @@ export const INITIAL_QUESTIONS: Question[] = [
   },
   {
     id: "ar1",
+    cycles: ["primary"],
     subject: "ar",
     topic: "النحو",
     question: "في جملة «إنَّ العلمَ نورٌ» إعراب كلمة «العلمَ»:",
@@ -75,6 +86,7 @@ export const INITIAL_QUESTIONS: Question[] = [
   },
   {
     id: "ar2",
+    cycles: ["primary"],
     subject: "ar",
     topic: "الصرف",
     question: "اسم الفاعل من الفعل «كتب» هو:",
@@ -84,6 +96,7 @@ export const INITIAL_QUESTIONS: Question[] = [
   },
   {
     id: "ar3",
+    cycles: ["primary"],
     subject: "ar",
     topic: "الإملاء",
     question: "أي كلمة كتبت همزتها كتابة صحيحة؟",
@@ -93,15 +106,17 @@ export const INITIAL_QUESTIONS: Question[] = [
   },
   {
     id: "sc1",
+    cycles: ["primary"],
     subject: "sc",
     topic: "الأرض والكون",
     question: "سبب تعاقب الليل والنهار هو:",
-    "options": ["دوران الأرض حول نفسها", "دوران الأرض حول الشمس", "ميلان محور الأرض فقط", "دوران القمر حول الأرض"],
+    options: ["دوران الأرض حول نفسها", "دوران الأرض حول الشمس", "ميلان محور الأرض فقط", "دوران القمر حول الأرض"],
     correct_answer: "دوران الأرض حول نفسها",
     explanation: "الأرض تدور حول محورها دورة كل 24 ساعة."
   },
   {
     id: "sc2",
+    cycles: ["primary"],
     subject: "sc",
     topic: "جسم الإنسان",
     question: "أين يتم امتصاص معظم الغذاء المهضوم؟",
@@ -111,6 +126,7 @@ export const INITIAL_QUESTIONS: Question[] = [
   },
   {
     id: "sc3",
+    cycles: ["primary"],
     subject: "sc",
     topic: "الكهرباء",
     question: "مصباحان مركبان على التوازي، احترق أحدهما. ماذا يحدث للآخر؟",
@@ -120,6 +136,7 @@ export const INITIAL_QUESTIONS: Question[] = [
   },
   {
     id: "dma1",
+    cycles: ["primary"],
     subject: "dma",
     topic: "بناء المفهوم",
     question: "ما ترتيب بناء المفهوم الرياضي عند متعلم الابتدائي؟",
@@ -129,6 +146,7 @@ export const INITIAL_QUESTIONS: Question[] = [
   },
   {
     id: "dma2",
+    cycles: ["primary"],
     subject: "dma",
     topic: "تحليل الأخطاء",
     question: "كتب متعلم 0,5 < 0,12 «لأن 12 أكبر من 5». ما مصدر خطئه؟",
@@ -138,6 +156,7 @@ export const INITIAL_QUESTIONS: Question[] = [
   },
   {
     id: "dfr1",
+    cycles: ["primary"],
     subject: "dfr",
     topic: "Grammaire",
     question: "La démarche inductive en grammaire consiste à :",
@@ -147,6 +166,7 @@ export const INITIAL_QUESTIONS: Question[] = [
   },
   {
     id: "dfr2",
+    cycles: ["primary"],
     subject: "dfr",
     topic: "Remédiation",
     question: "Pour traiter la confusion « ces / ses », l’activité la plus adaptée est :",
@@ -156,6 +176,7 @@ export const INITIAL_QUESTIONS: Question[] = [
   },
   {
     id: "dar1",
+    cycles: ["primary"],
     subject: "dar",
     topic: "القواعد",
     question: "المقاربة المعتمدة في درس القواعد بالابتدائي:",
@@ -165,6 +186,7 @@ export const INITIAL_QUESTIONS: Question[] = [
   },
   {
     id: "dar2",
+    cycles: ["primary"],
     subject: "dar",
     topic: "القراءة",
     question: "تأتي القراءة الجهرية في درس القراءة:",
@@ -174,6 +196,7 @@ export const INITIAL_QUESTIONS: Question[] = [
   },
   {
     id: "dsc1",
+    cycles: ["primary"],
     subject: "dsc",
     topic: "الاستقصاء",
     question: "ما ترتيب مراحل مقاربة الاستقصاء؟",
@@ -183,6 +206,7 @@ export const INITIAL_QUESTIONS: Question[] = [
   },
   {
     id: "dsc2",
+    cycles: ["primary"],
     subject: "dsc",
     topic: "التمثلات",
     question: "أي مما يلي تمثل خاطئ شائع لدى المتعلمين؟",
@@ -190,40 +214,142 @@ export const INITIAL_QUESTIONS: Question[] = [
     correct_answer: "الفصول تنتج عن قرب الأرض من الشمس",
     explanation: "سبب الفصول هو ميلان محور الأرض."
   },
+
+  // ==========================================
+  // علوم التربية (مشتركة لجميع الأسلاك)
+  // ==========================================
   {
     id: "edu1",
+    cycles: ["primary", "secondary_prep", "secondary_qual"],
     subject: "edu",
     topic: "نظريات التعلم",
-    question: "من صاحب مفهوم «منطقة النمو القريبة»؟",
+    question: "من صاحب مفهوم «منطقة النمو القريبة» (Zone Proximale de Développement)؟",
     options: ["فيجوتسكي", "بياجي", "سكينر", "بلوم"],
     correct_answer: "فيجوتسكي",
-    explanation: "فيجوتسكي: الفرق بين ما يفعله المتعلم وحده وبمساعدة."
+    explanation: "فيجوتسكي: الفارق بين ما ينجزه المتعلم بمفرده وما ينجزه بتوجيه ودعم الراشد أو الأقران."
   },
   {
     id: "edu2",
+    cycles: ["primary", "secondary_prep", "secondary_qual"],
     subject: "edu",
-    topic: "التقويم",
-    question: "التقويم الذي يُنجز قبل التعلم الجديد لكشف المكتسبات والتمثلات:",
-    options: ["التشخيصي", "التكويني", "الإجمالي", "الإشهادي"],
-    correct_answer: "التشخيصي",
-    explanation: "التشخيصي قبل، والتكويني أثناء، والإجمالي بعد."
+    topic: "التقويم التربوي",
+    question: "التقويم الذي يُنجز قبل انطلاق التعلم الجديد لكشف المكتسبات والتمثلات وتشخيص الصعوبات يسمى:",
+    options: ["التقويم التشخيصي", "التقويم التكويني", "التقويم الإجمالي", "التقويم الإشهادي"],
+    correct_answer: "التقويم التشخيصي",
+    explanation: "التشخيصي في البداية لتحديد المنطلق، التكويني لمواكبة التعلمات، والإجمالي لقياس الحصيلة النهائية."
   },
   {
     id: "edu3",
+    cycles: ["primary", "secondary_prep", "secondary_qual"],
     subject: "edu",
-    topic: "تصنيف بلوم",
-    question: "يتدرج التصنيف المعرفي الأصلي لبلوم من:",
-    options: ["المعرفة إلى التقويم", "التقويم إلى المعرفة", "الفهم إلى التذكر", "التطبيق إلى التحليل فقط"],
-    correct_answer: "المعرفة إلى التقويم",
-    explanation: "معرفة، فهم، تطبيق، تحليل، تركيب، تقويم."
+    topic: "الصنافات التربوية",
+    question: "يتدرج التصنيف المعرفي الأصلي لبلوم (Bloom Taxonomy) من المستويات الدنيا إلى العليا كالتالي:",
+    options: ["المعرفة، الفهم، التطبيق، التحليل، التركيب، التقويم", "التقويم، التركيب، التحليل، التطبيق، الفهم، المعرفة", "الفهم، التذكر، التحليل، التقويم فقط", "المعرفة، التحليل، التطبيق فقط"],
+    correct_answer: "المعرفة، الفهم، التطبيق، التحليل، التركيب، التقويم",
+    explanation: "التدرج الهرمي ينطلق من استرجاع المعرفة البسيطة وصولاً إلى أعلى درجات التفكير النقدي والتقويم."
   },
   {
     id: "edu4",
+    cycles: ["primary", "secondary_prep", "secondary_qual"],
     subject: "edu",
-    topic: "الإصلاح التربوي",
-    question: "ركيزتا مدرسة الريادة:",
-    options: ["التعلم وفق المستوى الملائم والتدريس الصريح", "الاستقصاء والمشروع", "التعلم الذاتي والتقويم الإشهادي", "اللغات والرقمنة"],
-    correct_answer: "التعلم وفق المستوى الملائم والتدريس الصريح",
-    explanation: "TaRL والتدريس الصريح."
+    topic: "مستجدات المنظومة وإصلاح التربية",
+    question: "يقوم نموذج «مؤسسات الريادة» بالمغرب أساساً على مقاربتين بيداغوجيتين مركزيتين هما:",
+    options: ["التعليم الصريح (Explicit Teaching) والتدريس وفق المستوى المناسب (TaRL)", "التعلم الذاتي غير الموجه والبيداغوجيا الفارقية فقط", "بيداغوجيا المشروع والتقويم الإشهادي السنوي", "التعلم عن بعد والبرمجة الرقمية فقط"],
+    correct_answer: "التعليم الصريح (Explicit Teaching) والتدريس وفق المستوى المناسب (TaRL)",
+    explanation: "يرتكز النموذج الوطني لمؤسسات الريادة على التدريس الصريح لتفادي الهدر المعرفي ودعم TaRL لمعالجة التعثرات الأساسية."
+  },
+  {
+    id: "edu5",
+    cycles: ["primary", "secondary_prep", "secondary_qual"],
+    subject: "edu",
+    topic: "الديداكتيك والبيداغوجيا",
+    question: "المثلث الديداكتيكي يربط بين ثلاثة أقطاب رئيسية هي:",
+    options: ["المدرس، والمتعلم، والمعرفة", "المدرس، والإدارة، والأسرة", "المنهاج، والكتاب المدرسي، والامتحان", "القسم، والسبورة، والزمن المدرسي"],
+    correct_answer: "المدرس، والمتعلم، والمعرفة",
+    explanation: "الأقطاب الثلاثة للمثلث الديداكتيكي هي: القطب البيداغوجي (المدرس-المتعلم)، القطب الإبستيمولوجي (المدرس-المعرفة)، والقطب السيكولوجي (المتعلم-المعرفة)."
+  },
+
+  // ==========================================
+  // أسئلة الثانوي التأهيلي والإعدادي (نماذج تخصص وديداكتيك)
+  // ==========================================
+  {
+    id: "sec_philo_1",
+    cycles: ["secondary_qual"],
+    subject: "sec_philo",
+    topic: "مجزوءة الوضع البشري",
+    question: "يرى ديكارت أن أساس هوية الشخص وثباتها يقوم على:",
+    options: ["الفكر والوعي المقترن بالشك (الكوجيطو)", "الذاكرة والشعور الحسي المقترن بالزمن", "الإرادة ورغبة الحياة المستمرة", "التفاعل الاجتماعي والمظهر الخارجي"],
+    correct_answer: "الفكر والوعي المقترن بالشك (الكوجيطو)",
+    explanation: "يقيم ديكارت هوية الشخص على جوهر التفكير (أنا أفكر إذن أنا موجود)، بينما أسسها جون لوك على الذاكرة وشوبنهاور على الإرادة."
+  },
+  {
+    id: "sec_d_philo_1",
+    cycles: ["secondary_qual"],
+    subject: "sec_d_philo",
+    topic: "الكفايات الفلسفية",
+    question: "الكفايات الثلاث الموجهة لتدريس الفلسفة بالتعليم الثانوي التأهيلي وفق التوجيهات التربوية الرسمية هي:",
+    options: ["الأشكلة، المفهمة، والمحاجة", "الحفظ، الشرح، والتلخيص", "القراءة، الترجمة، والكتابة", "السرد، الوصف، والتحليل اللغوي"],
+    correct_answer: "الأشكلة، المفهمة، والمحاجة",
+    explanation: "الديداكتيك الفلسفي في المنهاج المغربي يقوم على تفكيك الإشكال (الأشكلة)، بناء المفهوم (المفهمة)، وبناء الاستدلال والدفاع عن الأطروحة (المحاجة)."
+  },
+  {
+    id: "sec_math_1",
+    cycles: ["secondary_prep", "secondary_qual"],
+    subject: "sec_math",
+    topic: "التحليل الرياضي (Analyse)",
+    question: "ما هي نهاية الدالة f(x) = (sin x) / x عندما يؤول x إلى 0؟",
+    options: ["1", "0", "غير معرفة", "+∞"],
+    correct_answer: "1",
+    explanation: "lim (sin x / x) عندما x -> 0 تساوي 1، وهي نهاية اعتيادية مشهورة ومبرهنة باستخدام تعريف العدد المشتق لدالة الجيب عند الصفر."
+  },
+  {
+    id: "sec_d_math_1",
+    cycles: ["secondary_prep", "secondary_qual"],
+    subject: "sec_d_math",
+    topic: "النقل الديداكتيكي (Transposition Didactique)",
+    question: "يُقصد بـ «النقل الديداكتيكي» عند إيف شيفالار (Yves Chevallard):",
+    options: ["تحويل المعرفة العالمة (Savoir savant) إلى معرفة قابلة للتدريس (Savoir à enseigner)", "نقل التلميذ من مستوى دراسي إلى آخر", "تبسيط المفاهيم بحذف القواعد المعقدة", "استعمال الوسائل الرقمية في تدريس الرياضيات"],
+    correct_answer: "تحويل المعرفة العالمة (Savoir savant) إلى معرفة قابلة للتدريس (Savoir à enseigner)",
+    explanation: "النقل الديداكتيكي هو المسار الذي تقطعه المعرفة العالمة لتتحول إلى معرفة مدرسة تتناسب مع الخصوصيات السيكولوجية للمتعلمين والمستوى الدراسي."
+  },
+  {
+    id: "sec_physics_1",
+    cycles: ["secondary_prep", "secondary_qual"],
+    subject: "sec_physics",
+    topic: "الميكانيك وقوانين نيوتن",
+    question: "وفق القانون الثاني لنيوتن، في معلم غاليلي، يتناسب التسارع الذي يكتسبه جسم صلب طرداً مع:",
+    options: ["مجموع القوى الخارجية المطبقة عليه وعكساً مع كتلته", "كتلته فقط بغض النظر عن القوى", "سرعته البدئية مقسومة على الزمن", "طاقته الحركية فقط"],
+    correct_answer: "مجموع القوى الخارجية المطبقة عليه وعكساً مع كتلته",
+    explanation: "العلاقة الأساسية للتحريك: Σ F_ext = m * a، وبالتالي المتجهة a = (Σ F_ext) / m."
+  },
+  {
+    id: "sec_svt_1",
+    cycles: ["secondary_prep", "secondary_qual"],
+    subject: "sec_svt",
+    topic: "علم الوراثة والتعبير الجيني",
+    question: "تتم عملية الترجمة (Traduction) في الخلية حقيقية النواة على مستوى:",
+    options: ["السيتوبلازم (الهيولى) بواسطة الريبوزومات", "النواة داخل النوية", "الغشاء السيتوبلازمي مباشرة", "داخل الميتوكندري فقط"],
+    correct_answer: "السيتوبلازم (الهيولى) بواسطة الريبوزومات",
+    explanation: "عملية النسخ (Transcription) تجري في النواة لإنتاج ARNm، بينما تتم الترجمة في السيتوبلازم عبر الريبوزومات لتركيب البروتين."
+  },
+  {
+    id: "sec_ar_1",
+    cycles: ["secondary_prep", "secondary_qual"],
+    subject: "sec_ar",
+    topic: "البلاغة والنقد",
+    question: "في علم البلاغة، الفرق الجوهري بين الاستعارة والتشبيه البليغ هو:",
+    options: ["حذف أحد طرفي التشبيه الأساسيين (المشبه أو المشبه به)", "وجود أداة التشبيه دائماً في الاستعارة", "حذف وجه الشبه فقط دون المشبه به", "عدم وجود علاقة المشابهة بين اللفظين"],
+    correct_answer: "حذف أحد طرفي التشبيه الأساسيين (المشبه أو المشبه به)",
+    explanation: "الاستعارة هي في الأصل تشبيه حُذف أحد طرفيه (المشبه في الاستعارة التصريحية، أو المشبه به مع ترك قرينة تدل عليه في المكنية)."
+  },
+  {
+    id: "sec_fr_1",
+    cycles: ["secondary_prep", "secondary_qual"],
+    subject: "sec_fr",
+    topic: "Littérature et Narratologie",
+    question: "La focalisation interne dans un récit signifie que :",
+    options: ["Les événements sont perçus et racontés à travers le regard et la conscience d’un personnage précis", "Le narrateur en sait plus que tous les personnages (narrateur omniscient)", "Le narrateur est un témoin neutre extérieur qui en sait moins que les personnages", "L'histoire est racontée uniquement sous forme de dialogues"],
+    correct_answer: "Les événements sont perçus et racontés à travers le regard et la conscience d’un personnage précis",
+    explanation: "Focalisation interne = Narrateur = Personnage (vision avec). La focalisation zéro correspond au narrateur omniscient, et la focalisation externe correspond à une vision du dehors."
   }
 ];

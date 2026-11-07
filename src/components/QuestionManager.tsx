@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { Question, SubjectKey } from '../types';
-import { SUBJECT_NAMES, SUBJECT_WEIGHTS } from '../types';
+import { SUBJECT_NAMES } from '../types';
 import { 
   Upload, 
   PlusCircle, 
@@ -164,6 +164,17 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
     }
   };
 
+  // تصدير بنك الأسئلة بالكامل
+  const handleExportAll = () => {
+    const blob = new Blob([JSON.stringify(questions, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `crmef_all_questions_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // نموذج قالب جاهز للصق
   const sampleJsonTemplate = `[
   {
@@ -258,6 +269,14 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
           >
             <ExternalLink className="w-4 h-4" />
             <span>إعداد Supabase & Vercel</span>
+          </button>
+          <button
+            onClick={handleExportAll}
+            title="تصدير جميع أسئلة المنصة في ملف JSON"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all cursor-pointer mr-auto"
+          >
+            <Download className="w-4 h-4 text-emerald-600" />
+            <span>تصدير بنك الأسئلة (JSON)</span>
           </button>
         </div>
 
@@ -389,7 +408,7 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
                 >
                   {(Object.keys(SUBJECT_NAMES) as SubjectKey[]).map((key) => (
                     <option key={key} value={key}>
-                      {SUBJECT_NAMES[key]} (معامل {SUBJECT_WEIGHTS[key]})
+                      {SUBJECT_NAMES[key]}
                     </option>
                   ))}
                 </select>
