@@ -136,9 +136,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMo
 
         {/* رسائل النجاح */}
         {successMsg && (
-          <div className="p-3.5 mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold flex items-start gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-            <span className="leading-relaxed whitespace-pre-line">{successMsg}</span>
+          <div className="space-y-4 mb-4">
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs font-bold flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="leading-relaxed whitespace-pre-line">{successMsg}</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => switchMode('login')}
+              className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+            >
+              <span>الانتقال لتسجيل الدخول</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         )}
 

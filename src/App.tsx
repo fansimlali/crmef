@@ -9,6 +9,7 @@ import { QuestionManager } from './components/QuestionManager';
 import { SummariesViewer } from './components/SummariesViewer';
 import { AuthModal } from './components/AuthModal';
 import { UpgradeModal } from './components/UpgradeModal';
+import { ResetPasswordModal } from './components/ResetPasswordModal';
 import { SubscriptionManager } from './components/SubscriptionManager';
 import type { Question, SubjectKey, ExamRecord, CycleKey } from './types';
 import { getQuestions } from './lib/supabase';
@@ -18,7 +19,7 @@ import { Loader2, ShieldAlert, LogIn } from 'lucide-react';
 // المحتوى الرئيسي للتطبيق (مُغلَّف بـ AuthProvider في الخارج)
 // ─────────────────────────────────────────────────────────────
 function AppContent() {
-  const { user, isAdmin, answeredQuestionIds } = useAuth();
+  const { user, isAdmin, answeredQuestionIds, passwordRecoveryOpen, setPasswordRecoveryOpen } = useAuth();
 
   // التبويب النشط
   const [activeTab, setActiveTab] = useState<'quiz' | 'manager' | 'summaries' | 'subscriptions'>('quiz');
@@ -265,6 +266,16 @@ function AppContent() {
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
         defaultMode={authDefaultMode}
+      />
+
+      {/* نافذة تعيين كلمة المرور الجديدة (عند الضغط على رابط الاستعادة من البريد) */}
+      <ResetPasswordModal
+        isOpen={passwordRecoveryOpen}
+        onClose={() => setPasswordRecoveryOpen(false)}
+        onSuccess={() => {
+          setAuthDefaultMode('login');
+          setAuthModalOpen(true);
+        }}
       />
 
       {/* المحتوى الكامل للمستخدمين المسجلين */}

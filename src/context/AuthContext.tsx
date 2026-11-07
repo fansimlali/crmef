@@ -1,6 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { UserProfile, CycleKey, SubscriptionRequest, SubscriptionStatus } from '../types';
+import { 
+  hashPassword, 
+  generateSecureSessionId, 
+  isValidReceiptUrl,
+  checkLoginRateLimit,
+  recordFailedLogin,
+  resetLoginAttempts
+} from '../lib/security';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -32,11 +40,17 @@ interface AuthContextType {
   // نافذة الترقية
   upgradeModalOpen: boolean;
   setUpgradeModalOpen: (open: boolean) => void;
+  // نافذة استعادة كلمة المرور
+  passwordRecoveryOpen: boolean;
+  setPasswordRecoveryOpen: (open: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const ADMIN_EMAILS = ['admin@crmef.ma', 'admin@admin.com', 'admin@test.com'];
+// قائمة بريد المشرف المعتمد حصراً
+const MASTER_ADMIN_EMAIL = 'admin@crmef.ma';
+const ADMIN_EMAILS = [MASTER_ADMIN_EMAIL];
+
 const LOCAL_USER_KEY = 'crmef_current_user_v2';
 const LOCAL_USERS_DB_KEY = 'crmef_users_db_v2';
 const PROGRESS_KEY_PREFIX = 'crmef_progress_';
@@ -48,6 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [answeredQuestionIds, setAnsweredQuestionIds] = useState<Set<string>>(new Set());
   const [subscriptionRequests, setSubscriptionRequests] = useState<SubscriptionRequest[]>([]);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [passwordRecoveryOpen, setPasswordRecoveryOpen] = useState(false);
 
   // تحميل طلبات الاشتراك المخزنة
   const loadSubscriptions = () => {
@@ -85,6 +100,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [user]);
 
+  // مراقبة أحداث Supabase Auth وتدفق استعادة كلمة المرور
+  useEffect(() => {
+    if (isSupabaseConfigured() && supabase) {
+      const { data: authListener } = supabase.auth.onAuthStateChange(async (event) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setPasswordRecoveryOpen(true);
+        }
+      });
+
+      // التحقق من الرابط إذا كان يحتوي على نوع recovery
+      if (window.location.hash.includes('type=recovery')) {
+        setPasswordRecoveryOpen(true);
+      }
+
+      return () => {
+        authListener?.subscription?.unsubscribe();
+      };
+    }
+  }, []);
+
   // تحميل المستخدم الحالي والجلسة
   useEffect(() => {
     const initAuth = async () => {
@@ -96,9 +131,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const { data } = await supabase.auth.getSession();
           if (data?.session?.user) {
             const u = data.session.user;
-            const role = ADMIN_EMAILS.includes(u.email || '') || u.user_metadata?.role === 'admin'
-              ? 'admin'
-              : 'user';
+            // حماية رتبة المشرف: حصراً للبريد المعتمد
+            const role = ADMIN_EMAILS.includes(u.email || '') ? 'admin' : 'user';
             
             const profile: UserProfile = {
               id: u.id,
@@ -107,7 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               role,
               subscriptionStatus: role === 'admin' ? 'premium' : (u.user_metadata?.subscription_status || 'trial'),
               cycle: u.user_metadata?.cycle || 'primary',
-              sessionId: u.user_metadata?.session_id || `sess_${Date.now()}`
+              sessionId: u.user_metadata?.session_id || generateSecureSessionId()
             };
             setUser(profile);
             loadUserProgress(profile.id);
@@ -171,10 +205,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // تسجيل الدخول
+  // تسجيل الدخول مع حماية Rate Limiting والتحقق الصارم
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    const rateCheck = checkLoginRateLimit();
+    if (rateCheck.locked) {
+      return { 
+        success: false, 
+        error: `تم تجاوز الحد الأقصى للمحاولات الخاطئة. تم قفل الحساب مؤقتاً لحمايته. يرجى الانتظار ${rateCheck.remainingSeconds} ثانية.` 
+      };
+    }
+
     const cleanEmail = email.trim().toLowerCase();
-    const newSessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const newSessionId = generateSecureSessionId();
 
     // 1. محاولة تسجيل الدخول عبر Supabase
     if (isSupabaseConfigured() && supabase) {
@@ -183,10 +225,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: cleanEmail,
           password
         });
-        if (!error && data.user) {
-          const role = ADMIN_EMAILS.includes(cleanEmail) || data.user.user_metadata?.role === 'admin'
-            ? 'admin'
-            : 'user';
+
+        if (error) {
+          if (error.message?.includes('Email not confirmed') || error.message?.includes('not confirmed')) {
+            return { 
+              success: false, 
+              error: 'لم يتم تأكيد بريدك الإلكتروني بعد. يرجى الضغط على رابط التفعيل المرسل إلى بريدك (أو مجلد SPAM).' 
+            };
+          }
+        } else if (data.user) {
+          resetLoginAttempts();
+          // حماية أمنية: دور المشرف فقط للبريد المصرح به
+          const role = ADMIN_EMAILS.includes(cleanEmail) ? 'admin' : 'user';
           const profile: UserProfile = {
             id: data.user.id,
             email: cleanEmail,
@@ -207,7 +257,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    // 2. فحص المستخدمين في التخزين المحلي
+    // 2. حساب المشرف العام المعتمد
+    if (cleanEmail === MASTER_ADMIN_EMAIL) {
+      if (password === 'admin123456') {
+        resetLoginAttempts();
+        const adminProfile: UserProfile = {
+          id: 'admin_local_1',
+          email: MASTER_ADMIN_EMAIL,
+          fullName: 'المشرف العام للمنصة',
+          role: 'admin',
+          subscriptionStatus: 'premium',
+          cycle: 'primary',
+          sessionId: newSessionId
+        };
+        setUser(adminProfile);
+        loadUserProgress(adminProfile.id);
+        localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(adminProfile));
+        localStorage.setItem(`crmef_active_session_${adminProfile.id}`, newSessionId);
+        return { success: true };
+      } else {
+        recordFailedLogin();
+        return { success: false, error: 'كلمة مرور حساب المشرف غير صحيحة' };
+      }
+    }
+
+    // 3. فحص المستخدمين في التخزين المحلي مع مقارنة الهاش SHA-256
     let usersDb: any[] = [];
     try {
       const raw = localStorage.getItem(LOCAL_USERS_DB_KEY);
@@ -216,14 +290,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const existing = usersDb.find(u => u.email === cleanEmail);
     if (existing) {
-      if (existing.password !== password) {
+      const inputHash = await hashPassword(password);
+      // دعم كل من الهاش الجديد وكلمة المرور القديمة قبل التحديث
+      const isPasswordValid = existing.passwordHash 
+        ? existing.passwordHash === inputHash 
+        : existing.password === password;
+
+      if (!isPasswordValid) {
+        recordFailedLogin();
         return { success: false, error: 'كلمة المرور غير صحيحة' };
       }
+
+      resetLoginAttempts();
       const profile: UserProfile = {
         id: existing.id,
         email: existing.email,
         fullName: existing.fullName,
-        role: existing.role,
+        role: existing.role || 'user',
         subscriptionStatus: existing.subscriptionStatus || 'trial',
         cycle: existing.cycle || 'primary',
         sessionId: newSessionId
@@ -235,29 +318,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: true };
     }
 
-    // المشرف العام الافتراضي
-    const isAdmin = cleanEmail === 'admin@crmef.ma' || cleanEmail.startsWith('admin');
-    if (isAdmin && password.length >= 6) {
-      const adminProfile: UserProfile = {
-        id: 'admin_local_1',
-        email: cleanEmail,
-        fullName: 'المشرف العام للمنصة',
-        role: 'admin',
-        subscriptionStatus: 'premium',
-        cycle: 'primary',
-        sessionId: newSessionId
-      };
-      setUser(adminProfile);
-      loadUserProgress(adminProfile.id);
-      localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(adminProfile));
-      localStorage.setItem(`crmef_active_session_${adminProfile.id}`, newSessionId);
-      return { success: true };
-    }
-
+    recordFailedLogin();
     return { success: false, error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' };
   };
 
-  // إنشاء حساب جديد
+  // إنشاء حساب جديد مع فرض تأكيد البريد الإلكتروني حصراً
   const signup = async (
     email: string, 
     password: string, 
@@ -286,16 +351,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, error: 'هذا البريد الإلكتروني مستخدم من قبل، جرب بريداً إلكترونياً آخر.' };
     }
 
-    const newSessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const newSessionId = generateSecureSessionId();
     const role = ADMIN_EMAILS.includes(cleanEmail) ? 'admin' : 'user';
     const subStatus: SubscriptionStatus = role === 'admin' ? 'premium' : 'trial';
 
+    // 1. التسجيل عبر Supabase مع إرسال رابط التأكيد
     if (isSupabaseConfigured() && supabase) {
       try {
         const { data, error } = await supabase.auth.signUp({
           email: cleanEmail,
           password,
           options: {
+            emailRedirectTo: `${window.location.origin}`,
             data: { 
               full_name: fullName, 
               role,
@@ -305,44 +372,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           }
         });
+
         if (error) {
-          // رسالة واضحة عند تكرار البريد الإلكتروني
           if (error.message?.includes('already registered') || error.message?.includes('User already registered')) {
             return { success: false, error: 'هذا البريد الإلكتروني مستخدم من قبل، جرب بريداً إلكترونياً آخر.' };
           }
           console.warn('Supabase signup message:', error.message);
-        } else if (data.user) {
-          const profile: UserProfile = {
-            id: data.user.id,
-            email: cleanEmail,
-            fullName,
-            role,
-            subscriptionStatus: subStatus,
-            cycle,
-            sessionId: newSessionId
-          };
-          // إذا كان البريد غير مؤكد (Supabase يرسل تأكيد)
-          if (!data.session) {
-            // المستخدم أُنشئ لكن لم يؤكد البريد بعد
-            return { success: true, needsEmailConfirmation: true };
-          }
-          setUser(profile);
-          loadUserProgress(profile.id);
-          localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(profile));
-          localStorage.setItem(`crmef_active_session_${profile.id}`, newSessionId);
-          return { success: true };
+          return { success: false, error: error.message };
         }
+
+        // إذا كان المستخدم مسجلاً مسبقاً (تعيده Supabase بدون identities)
+        if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
+          return { success: false, error: 'هذا البريد الإلكتروني مستخدم من قبل، جرب بريداً إلكترونياً آخر.' };
+        }
+
+        // حماية هامة: حتى لو أعادت Supabase جلسة، نقوم بتسجيل الخروج فوراً لفرض تأكيد البريد أولاً!
+        await supabase.auth.signOut();
+        return { success: true, needsEmailConfirmation: true };
+
       } catch (e: any) {
         console.warn('Supabase signup exception:', e);
       }
     }
 
-    // إنشاء الحساب محلياً
+    // 2. إنشاء الحساب محلياً وتشفير كلمة المرور بـ SHA-256
+    const passwordHash = await hashPassword(password);
     const newUserId = `user_${Date.now()}`;
     const newUserRecord = {
       id: newUserId,
       email: cleanEmail,
-      password,
+      passwordHash,
       fullName,
       role,
       subscriptionStatus: subStatus,
@@ -353,20 +412,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     usersDb.push(newUserRecord);
     localStorage.setItem(LOCAL_USERS_DB_KEY, JSON.stringify(usersDb));
 
-    const profile: UserProfile = {
-      id: newUserId,
-      email: cleanEmail,
-      fullName,
-      role,
-      subscriptionStatus: subStatus,
-      cycle,
-      sessionId: newSessionId
-    };
-    setUser(profile);
-    loadUserProgress(profile.id);
-    localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(profile));
-    localStorage.setItem(`crmef_active_session_${profile.id}`, newSessionId);
-    return { success: true };
+    // عند التسجيل محلياً، نطلب أيضاً من المستخدم تسجيل الدخول بعد الإنشاء
+    return { success: true, needsEmailConfirmation: true };
   };
 
   // إعادة تعيين كلمة المرور
@@ -376,14 +423,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, error: 'يرجى إدخال بريد إلكتروني صالح' };
     }
 
-    // إرسال عبر Supabase إذا كان مفعلاً
+    // إرسال عبر Supabase مع توجيه الرابط إلى أصل الموقع الحالي (Production / Vercel)
     if (isSupabaseConfigured() && supabase) {
       try {
         const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-          redirectTo: `${window.location.origin}/reset-password`
+          redirectTo: `${window.location.origin}`
         });
         if (error) {
-          return { success: false, error: 'تعذر إرسال رابط إعادة التعيين. تحقق من البريد الإلكتروني.' };
+          return { success: false, error: 'تعذر إرسال رابط إعادة التعيين. تحقق من صحة البريد الإلكتروني.' };
         }
         return { success: true };
       } catch (e) {
@@ -391,19 +438,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    // وضع محلي: نتحقق من وجود الحساب
+    // في الوضع المحلي نتحقق من وجود الحساب
     try {
       const raw = localStorage.getItem(LOCAL_USERS_DB_KEY);
       const usersDb: any[] = raw ? JSON.parse(raw) : [];
       const exists = usersDb.some((u: any) => u.email === cleanEmail);
-      if (!exists && !ADMIN_EMAILS.includes(cleanEmail)) {
+      if (!exists && cleanEmail !== MASTER_ADMIN_EMAIL) {
         return { success: false, error: 'لا يوجد حساب مسجل بهذا البريد الإلكتروني.' };
       }
     } catch (e) {}
 
-    // في الوضع المحلي لا يمكن إرسال بريد فعلي، نظهر رسالة نجاح
     return { success: true };
   };
+
   // تسجيل الخروج
   const logout = async () => {
     if (isSupabaseConfigured() && supabase) {
@@ -419,7 +466,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem(LOCAL_USER_KEY);
   };
 
-  // تقديم طلب اشتراك برفع صورة الوصل
+  // تقديم طلب اشتراك برفع صورة الوصل مع التحقق الأمني
   const submitSubscriptionRequest = async (
     receiptUrl: string, 
     paymentMethod: string, 
@@ -427,6 +474,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   ): Promise<{ success: boolean; error?: string }> => {
     if (!user) {
       return { success: false, error: 'يجب تسجيل الدخول أولاً لتقديم طلب الاشتراك' };
+    }
+
+    // تحقق أمني من صحة صورة الوصل
+    if (!isValidReceiptUrl(receiptUrl)) {
+      return { success: false, error: 'صيغة صورة الوصل غير صالحة أو غير آمنة.' };
     }
 
     const newReq: SubscriptionRequest = {
@@ -541,7 +593,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         approveSubscription,
         rejectSubscription,
         upgradeModalOpen,
-        setUpgradeModalOpen
+        setUpgradeModalOpen,
+        passwordRecoveryOpen,
+        setPasswordRecoveryOpen
       }}
     >
       {children}
@@ -556,4 +610,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
