@@ -5,110 +5,11 @@ import {
   Search, 
   Eye
 } from 'lucide-react';
-
-interface SummaryArticle {
-  id: string;
-  title: string;
-  category: string;
-  cycle: string;
-  readTime: string;
-  sections: { heading: string; paragraphs: string[] }[];
-}
-
-const SAMPLE_SUMMARIES: SummaryArticle[] = [
-  {
-    id: 'sum_edu_1',
-    title: 'ملخص شامل في نظريات التعلم الكبرى وتطبيقاتها الصفية',
-    category: 'علوم التربية',
-    cycle: 'مشترك لجميع الأسلاك',
-    readTime: '6 دقائق قراءة',
-    sections: [
-      {
-        heading: '1. النظرية البنائية (جان بياجي)',
-        paragraphs: [
-          'يرى بياجي أن المعرفة لا تنقل جاهزة إلى ذهن المتعلم بل يبنيها بنفسه عبر التفاعل النشط مع محيطه.',
-          'الآليات المركزية للتعلم: التمثل (Assimilation) وهو إدماج المعارف الجديدة في البنيات المعرفية القائمة، والملاءمة (Accommodation) وهي تعديل البنيات الذهنية عند مواجهة وضعيات جديدة، وصولاً إلى التوازن (Équilibration).',
-          'التطبيق الصفي: الانطلاق من الوضعيات-المشكلات وإعطاء المتعلم فرصة للاستكشاف وبناء المفاهيم الذاتي.'
-        ]
-      },
-      {
-        heading: '2. النظرية السوسيو-بنائية (فيجوتسكي)',
-        paragraphs: [
-          'يؤكد فيجوتسكي أن التعلم يحدث أولاً في المستوى الاجتماعي التواصلي بين الأفراد، ثم يتحول إلى المستوى الفردي الداخلي.',
-          'المفهوم المركزي: «منطقة النمو القريبة» (ZPD)، وهي الفارق بين ما يستطيع المتعلم إنجازه بمفرده وما ينجزه بدعم المدرس أو بتعاون الأقران (السقالات البيداغوجية - Échafaudage).',
-          'التطبيق الصفي: تشجيع العمل في مجموعات تفاعلية، وتوظيف استراتيجيات التدريس بالقرين والنقاش البناء.'
-        ]
-      },
-      {
-        heading: '3. النظرية الجشطالتية (كوهلر وفيرتهايمر)',
-        paragraphs: [
-          'تقوم على مبدأ أن «الكل أكبر من مجموع الأجزاء». التعلم الحقيقي يحدث عبر «الاستبصار» (Insight) أي الإدراك المفاجئ والشامل للعلاقات المنطقية بين عناصر الموقف التعليمي.',
-          'التطبيق الصفي: تقديم الموضوع التعليمي في كليته المنطقية قبل تفكيكه إلى عناصر تفصيلية.'
-        ]
-      }
-    ]
-  },
-  {
-    id: 'sum_didactics_1',
-    title: 'ملخص المفاهيم المركزية في الديداكتيك والبيداغوجيا',
-    category: 'الديداكتيك العام',
-    cycle: 'مشترك لجميع الأسلاك',
-    readTime: '5 دقائق قراءة',
-    sections: [
-      {
-        heading: '1. النقل الديداكتيكي (Transposition Didactique)',
-        paragraphs: [
-          'مفهوم بلوره الباحث إيف شيفالار (Yves Chevallard)، ويعني المسار والتحولات البيداغوجية التي تخضع لها «المعرفة العالمة» (Savoir savant) لتتحول إلى «معرفة معدة للتدريس» (Savoir à enseigner) في المناهج، ثم إلى «معرفة مدرسة فعلياً» داخل القسم (Savoir enseigné).',
-          'الهدف: تكييف المفاهيم المعقدة مع المستوى العمري والذهني للمتعلمين دون الإخلال بالأمانة العلمية.'
-        ]
-      },
-      {
-        heading: '2. المثلث الديداكتيكي (Triangle Didactique)',
-        paragraphs: [
-          'يربط بين ثلاثة أقطاب رئيسية غير قابلة للاختزال: المدرس، المتعلم، والمعرفة.',
-          'التمفصل بين الأقطاب: العلاقة بين المدرس والمتعلم تمثل المحور البيداغوجي، العلاقة بين المدرس والمعرفة تمثل المحور الإبستيمولوجي، والعلاقة بين المتعلم والمعرفة تمثل المحور السيكولوجي/الديداكتيكي.'
-        ]
-      },
-      {
-        heading: '3. التعاقد الديداكتيكي (Contrat Didactique)',
-        paragraphs: [
-          'صاغه الباحث غي بروسو (Guy Brousseau)، وهو مجموع الالتزامات والتوقعات الضمنية والصريحة المتبادلة بين المدرس والمتعلمين حول ما يُنتظر من كل طرف إنجازه في إطار التعلم.'
-        ]
-      }
-    ]
-  },
-  {
-    id: 'sum_reforms_1',
-    title: 'مستجدات خارطة الطريق 2022-2026 ومؤسسات الريادة',
-    category: 'مستجدات الإصلاح التربوي',
-    cycle: 'ابتدائي وثانوي',
-    readTime: '7 دقائق قراءة',
-    sections: [
-      {
-        heading: '1. المرتكزات الثلاثة لخارطة الطريق',
-        paragraphs: [
-          'تنتظم خارطة الطريق حول ثلاثة محاور استراتيجية متكاملة: التلميذ (تحقيق التحكم في التعلمات الأساس والحد من الهدر المدرسي)، الأستاذ (تكوين أساس ومستمر ذو جودة وتثمين مهنة التدريس)، والمؤسسة (توفير بيئة تربوية ملائمة ومنفتحة ومحفزة).',
-          'الهدف الاستراتيجي: تمكين أكثر من 70% من المتعلمين من التحكم في التعلمات الأساسية بحلول سنة 2026.'
-        ]
-      },
-      {
-        heading: '2. مقاربة التدريس وفق المستوى المناسب (TaRL)',
-        paragraphs: [
-          'تعتمد على تقويم تشخيصي فردي دقيق وتفييء المتعلمين وفق مستواهم الفعلي في التعلم بدلاً من مستواهم الدراسي العمري، بهدف سد التعثرات المتراكمة في القراءة والحساب في وقت وجيز.'
-        ]
-      },
-      {
-        heading: '3. التعليم الصريح (Explicit Teaching)',
-        paragraphs: [
-          'طريقة تدريس مهيكلة ومباشرة تمر بمراحل محددة: النمذجة (Je fais)، الممارسة الموجهة (Nous faisons)، ثم الممارسة المستقلة (Tu fais)، مع التحقق المستمر من الفهم لضمان عدم ترك أي متعلم في حالة التباس.'
-        ]
-      }
-    ]
-  }
-];
+import { SUMMARIES_DATA, type SummaryArticle } from '../data/summariesData';
 
 export const SummariesViewer: React.FC = () => {
-  const [selectedArticle, setSelectedArticle] = useState<SummaryArticle>(SAMPLE_SUMMARIES[0]);
+  const [selectedCycleFilter, setSelectedCycleFilter] = useState<'all' | 'primary' | 'secondary_prep' | 'secondary_qual'>('all');
+  const [selectedArticle, setSelectedArticle] = useState<SummaryArticle>(SUMMARIES_DATA[0]);
   const [search, setSearch] = useState('');
   const [fontSize, setFontSize] = useState<number>(16);
 
@@ -129,12 +30,21 @@ export const SummariesViewer: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const filtered = SAMPLE_SUMMARIES.filter(
-    (a) =>
-      a.title.includes(search) ||
-      a.category.includes(search) ||
-      a.sections.some((s) => s.heading.includes(search))
-  );
+  const filtered = SUMMARIES_DATA.filter((a) => {
+    // تصفية حسب السلك
+    if (selectedCycleFilter === 'primary' && !a.cycle.includes('ابتدائي')) return false;
+    if (selectedCycleFilter === 'secondary_prep' && !a.cycle.includes('إعدادي')) return false;
+    if (selectedCycleFilter === 'secondary_qual' && !a.cycle.includes('تأهيلي')) return false;
+
+    // بحث بالكلمة
+    if (!search.trim()) return true;
+    const term = search.trim().toLowerCase();
+    return (
+      a.title.toLowerCase().includes(term) ||
+      a.category.toLowerCase().includes(term) ||
+      a.sections.some((s) => s.heading.toLowerCase().includes(term) || s.paragraphs.some(p => p.toLowerCase().includes(term)))
+    );
+  });
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 select-none" onContextMenu={(e) => e.preventDefault()}>
@@ -158,18 +68,54 @@ export const SummariesViewer: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* القائمة الجانبية للملخصات */}
         <div className="space-y-3">
+          {/* فلتر الأسلاك */}
+          <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl text-xs font-bold text-slate-600">
+            <button
+              onClick={() => setSelectedCycleFilter('all')}
+              className={`flex-1 py-1.5 rounded-lg transition-all ${
+                selectedCycleFilter === 'all' ? 'bg-white text-emerald-700 shadow-xs' : 'hover:text-slate-900'
+              }`}
+            >
+              الكل ({SUMMARIES_DATA.length})
+            </button>
+            <button
+              onClick={() => setSelectedCycleFilter('primary')}
+              className={`flex-1 py-1.5 rounded-lg transition-all ${
+                selectedCycleFilter === 'primary' ? 'bg-white text-emerald-700 shadow-xs' : 'hover:text-slate-900'
+              }`}
+            >
+              الابتدائي
+            </button>
+            <button
+              onClick={() => setSelectedCycleFilter('secondary_prep')}
+              className={`flex-1 py-1.5 rounded-lg transition-all ${
+                selectedCycleFilter === 'secondary_prep' ? 'bg-white text-emerald-700 shadow-xs' : 'hover:text-slate-900'
+              }`}
+            >
+              الإعدادي
+            </button>
+            <button
+              onClick={() => setSelectedCycleFilter('secondary_qual')}
+              className={`flex-1 py-1.5 rounded-lg transition-all ${
+                selectedCycleFilter === 'secondary_qual' ? 'bg-white text-emerald-700 shadow-xs' : 'hover:text-slate-900'
+              }`}
+            >
+              التأهيلي
+            </button>
+          </div>
+
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute right-3 top-3.5" />
             <input
               type="text"
-              placeholder="ابحث في عناوين ومحاور الملخصات..."
+              placeholder="ابحث عن مادة أو مفهوم..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-white border border-slate-200 rounded-xl pr-9 pl-3 py-2.5 text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-[650px] overflow-y-auto pr-1">
             {filtered.map((item) => {
               const isSelected = selectedArticle.id === item.id;
               return (
