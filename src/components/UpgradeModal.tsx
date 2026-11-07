@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
   X, 
@@ -8,11 +8,17 @@ import {
   AlertCircle, 
   Clock, 
   FileCheck, 
-  Sparkles
+  Sparkles,
+  Building2,
+  Smartphone,
+  Copy,
+  Check
 } from 'lucide-react';
 import { CYCLES } from '../types';
+import QRCode from 'qrcode';
 
 const SUBSCRIPTION_AMOUNT = 50;
+const BENEFICIARY_NAME = 'FADEL SIMLALI';
 
 export const UpgradeModal: React.FC = () => {
   const { 
@@ -24,14 +30,38 @@ export const UpgradeModal: React.FC = () => {
     isPremium 
   } = useAuth();
 
+  const [paymentTab, setPaymentTab] = useState<'bank' | 'agency'>('bank');
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [nameQrUrl, setNameQrUrl] = useState<string>('/name_qr.png');
+  const [copiedName, setCopiedName] = useState(false);
+
+  // توليد QR Code للاسم fadel simlali تلقائياً
+  useEffect(() => {
+    QRCode.toDataURL(BENEFICIARY_NAME, {
+      width: 260,
+      margin: 2,
+      color: {
+        dark: '#0f172a',
+        light: '#ffffff'
+      }
+    })
+      .then((url) => setNameQrUrl(url))
+      .catch(() => setNameQrUrl('/name_qr.png'));
+  }, []);
 
   if (!upgradeModalOpen) return null;
 
   const cycleName = CYCLES.find(c => c.id === user?.cycle)?.name || 'السلك المختار';
+
+  const handleCopyName = () => {
+    navigator.clipboard.writeText(BENEFICIARY_NAME).then(() => {
+      setCopiedName(true);
+      setTimeout(() => setCopiedName(false), 2000);
+    });
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -65,7 +95,11 @@ export const UpgradeModal: React.FC = () => {
     setSubmitting(true);
     setErrorMsg(null);
 
-    const res = await submitSubscriptionRequest(receiptImage, 'bank_transfer', '');
+    const res = await submitSubscriptionRequest(
+      receiptImage, 
+      paymentTab === 'bank' ? 'CIH Bank / Application' : 'Cash Plus / Wafacash', 
+      ''
+    );
     setSubmitting(false);
 
     if (res.success) {
@@ -182,57 +216,148 @@ export const UpgradeModal: React.FC = () => {
                 </div>
               </div>
 
-              {/* بيانات الحساب + QR Code */}
+              {/* بطاقة معلومات الدفع مع التبديل بين الحساب البنكي والوكالات */}
               <div className="border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl overflow-hidden shadow-xs">
-                {/* رأس البطاقة */}
-                <div className="bg-amber-500 px-4 py-3 flex items-center justify-between">
-                  <span className="text-white font-extrabold text-sm flex items-center gap-2">
+                {/* رأس البطاقة ومبلغ الاشتراك */}
+                <div className="bg-amber-500 px-4 py-3 flex items-center justify-between text-white">
+                  <span className="font-extrabold text-sm flex items-center gap-2">
                     <Crown className="w-4 h-4" />
-                    معلومات التحويل البنكي
+                    <span>طريقة الدفع ومسح الرمز (QR)</span>
                   </span>
-                  <span className="bg-white text-amber-700 font-black text-sm px-3 py-1 rounded-full shadow-xs">
-                    {SUBSCRIPTION_AMOUNT} درهم فقط
+                  <span className="bg-white text-amber-700 font-black text-xs sm:text-sm px-3 py-1 rounded-full shadow-xs">
+                    واجب الاشتراك: {SUBSCRIPTION_AMOUNT} درهم
                   </span>
                 </div>
 
-                {/* المحتوى: صورة الـ QR الحقيقية + معلومات الحساب */}
-                <div className="p-5 flex flex-col sm:flex-row items-center gap-6">
-                  {/* صورة QR Code المرفوعة */}
-                  <div className="flex flex-col items-center gap-2 shrink-0">
-                    <div className="bg-white p-2.5 rounded-2xl border-2 border-amber-200 shadow-md">
-                      <img
-                        src="/payment_qr.png"
-                        alt="QR Code الحساب البنكي"
-                        className="w-44 h-44 object-contain rounded-xl"
-                      />
-                    </div>
-                    <span className="text-[11px] text-amber-900 font-extrabold text-center">
-                      امسح الرمز عبر تطبيق البنك للتحويل الفوري
-                    </span>
-                  </div>
+                {/* أزرار التبديل بين الخيارين */}
+                <div className="p-3 bg-amber-100/60 border-b border-amber-200/80 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentTab('bank')}
+                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      paymentTab === 'bank'
+                        ? 'bg-white text-emerald-900 shadow-xs border border-amber-300'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                    }`}
+                  >
+                    <Smartphone className="w-4 h-4 text-emerald-600" />
+                    <span>تطبيق البنك (CIH Bank)</span>
+                  </button>
 
-                  {/* تفاصيل الحساب بدون إظهار أي اسم */}
-                  <div className="flex-1 space-y-3 w-full">
-                    <div className="bg-white p-3.5 rounded-xl border border-amber-200/80 space-y-2 text-xs">
-                      <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-                        <span className="text-slate-500 font-bold">البنك:</span>
-                        <span className="font-extrabold text-slate-800">CIH Bank</span>
-                      </div>
-                      <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-                        <span className="text-slate-500 font-bold">Code SWIFT:</span>
-                        <span className="font-mono font-black text-sky-600 tracking-wider">CIHMMAMC</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-500 font-bold">مبلغ الاشتراك:</span>
-                        <span className="font-black text-emerald-700 text-sm">{SUBSCRIPTION_AMOUNT} درهم</span>
-                      </div>
-                    </div>
-
-                    <div className="text-[11px] text-amber-950 bg-amber-100/80 rounded-xl p-3 leading-relaxed font-semibold border border-amber-200">
-                      📌 قم بمسح رمز <strong>QR</strong> أعلاه مباشرة عبر تطبيق CIH Bank أو تطبيق بنكك لتحويل مبلغ <strong>{SUBSCRIPTION_AMOUNT} درهم</strong>، ثم ارفع صورة الوصل أسفله وسيتم تفعيل حسابك مباشرة بعد التحقق.
-                    </div>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentTab('agency')}
+                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      paymentTab === 'agency'
+                        ? 'bg-white text-emerald-900 shadow-xs border border-amber-300'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                    }`}
+                  >
+                    <Building2 className="w-4 h-4 text-amber-600" />
+                    <span>وكالات كاش بلوس / وفاكاش</span>
+                  </button>
                 </div>
+
+                {/* محتوى التبويب 1: التحويل البنكي الفوري عبر CIH QR */}
+                {paymentTab === 'bank' && (
+                  <div className="p-5 flex flex-col sm:flex-row items-center gap-6 animate-in fade-in">
+                    {/* صورة QR Code البنكي الحقيقي */}
+                    <div className="flex flex-col items-center gap-2 shrink-0">
+                      <div className="bg-white p-2.5 rounded-2xl border-2 border-amber-200 shadow-md">
+                        <img
+                          src="/payment_qr.png"
+                          alt="QR Code الحساب البنكي"
+                          className="w-44 h-44 object-contain rounded-xl"
+                        />
+                      </div>
+                      <span className="text-[11px] text-amber-900 font-extrabold text-center">
+                        امسح الرمز عبر تطبيق CIH Bank للتحويل الفوري
+                      </span>
+                    </div>
+
+                    {/* تفاصيل الحساب البنكي */}
+                    <div className="flex-1 space-y-3 w-full">
+                      <div className="bg-white p-3.5 rounded-xl border border-amber-200/80 space-y-2 text-xs">
+                        <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                          <span className="text-slate-500 font-bold">البنك:</span>
+                          <span className="font-extrabold text-slate-800">CIH Bank</span>
+                        </div>
+                        <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                          <span className="text-slate-500 font-bold">Code SWIFT:</span>
+                          <span className="font-mono font-black text-sky-600 tracking-wider">CIHMMAMC</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-500 font-bold">المبلغ المطلوب:</span>
+                          <span className="font-black text-emerald-700 text-sm">{SUBSCRIPTION_AMOUNT} درهم</span>
+                        </div>
+                      </div>
+
+                      <div className="text-[11px] text-amber-950 bg-amber-100/80 rounded-xl p-3 leading-relaxed font-semibold border border-amber-200">
+                        📱 افتح تطبيق <strong>CIH Mobile</strong>، اختر خدمة التحويل عبر <strong>QR Code</strong>، وامسح الرمز أعلاه لتحويل <strong>{SUBSCRIPTION_AMOUNT} درهم</strong> فورياً، ثم ارفع صورة الوصل أسفله.
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* محتوى التبويب 2: التحويل عبر الوكالات مع QR Code للاسم الصحيح */}
+                {paymentTab === 'agency' && (
+                  <div className="p-5 flex flex-col sm:flex-row items-center gap-6 animate-in fade-in">
+                    {/* رمز QR للاسم fadel simlali */}
+                    <div className="flex flex-col items-center gap-2 shrink-0">
+                      <div className="bg-white p-2.5 rounded-2xl border-2 border-amber-200 shadow-md">
+                        <img
+                          src={nameQrUrl}
+                          alt="QR Code الاسم الصحيح للتحويل"
+                          className="w-44 h-44 object-contain rounded-xl"
+                        />
+                      </div>
+                      <span className="text-[11px] text-amber-900 font-extrabold text-center">
+                        امسح الرمز لقراءة الاسم الصحيح للتحويل
+                      </span>
+                    </div>
+
+                    {/* تفاصيل الاسم للوكالة */}
+                    <div className="flex-1 space-y-3 w-full">
+                      <div>
+                        <div className="text-[11px] text-slate-600 font-bold mb-1">
+                          اسم المستفيد للتحويل (Cash Plus / Wafacash / Barid Cash):
+                        </div>
+                        <div className="bg-white border-2 border-amber-300 rounded-xl p-3 flex items-center justify-between gap-2 shadow-xs">
+                          <div>
+                            <span className="font-mono font-black text-base text-slate-900 tracking-wider select-all block">
+                              {BENEFICIARY_NAME}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-bold">
+                              الحروف اللاتينية الصحيحة لموظف الوكالة
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleCopyName}
+                            title="نسخ الاسم"
+                            className="p-2 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-800 transition-all cursor-pointer shrink-0 flex items-center gap-1 font-bold text-xs"
+                          >
+                            {copiedName ? (
+                              <>
+                                <Check className="w-4 h-4 text-emerald-600" />
+                                <span className="text-emerald-700">تم النسخ</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-4 h-4" />
+                                <span>نسخ</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="text-[11px] text-amber-950 bg-amber-100/80 rounded-xl p-3 leading-relaxed font-semibold border border-amber-200">
+                        🏢 توجه إلى أقرب وكالة (كاش بلوس، وفاكاش، بريد كاش...)، وأرسل حوالة مالية بمبلغ <strong>{SUBSCRIPTION_AMOUNT} درهم</strong> إلى المستفيد: <strong>{BENEFICIARY_NAME}</strong> (يمكن للوكيل مسح الرمز أعلاه للتأكد من كتابة الاسم بدقة). بعد استلام الوصل ارفعه أسفله لتفعيل حسابك مباشرة.
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* نموذج رفع الوصل فقط */}
@@ -272,7 +397,7 @@ export const UpgradeModal: React.FC = () => {
                   ) : (
                     <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 hover:bg-slate-50 hover:border-emerald-500 transition-all cursor-pointer">
                       <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                      <span className="text-xs font-bold text-slate-700">اضغط هنا لرفع صورة الوصل</span>
+                      <span className="text-xs font-bold text-slate-700">اضغط هنا لرفع صورة الوصل (وصل البنك أو وصل الوكالة)</span>
                       <span className="text-[11px] text-slate-400 mt-1">PNG أو JPG حتى 5 ميغابايت</span>
                       <input 
                         type="file" 
