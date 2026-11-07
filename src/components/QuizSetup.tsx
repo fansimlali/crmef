@@ -57,6 +57,8 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
         'sec_islamic', 'sec_d_islamic',
         'sec_hist_geo', 'sec_d_hist_geo',
         'sec_cs', 'sec_d_cs',
+        'sec_pe',
+        'sec_te',
         'edu'
       ];
     }
@@ -73,6 +75,8 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
         'sec_eco', 'sec_d_eco',
         'sec_islamic', 'sec_d_islamic',
         'sec_cs', 'sec_d_cs',
+        'sec_pe',
+        'sec_te',
         'edu'
       ];
     }
