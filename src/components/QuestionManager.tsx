@@ -12,6 +12,7 @@ import {
   FileJson, 
   HelpCircle,
   HardDrive,
+  Download,
   Copy,
   ExternalLink
 } from 'lucide-react';
