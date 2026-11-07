@@ -5616,6 +5616,276 @@ export const INITIAL_QUESTIONS = [
     "explanation": "الصوم ركن من أركان الإسلام."
   },
   {
+    "id": "cma101",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "ما نهاية الدالة (sin x)/x عندما يؤول x إلى 0 ؟",
+    "options": [
+      "1",
+      "0",
+      "ما لا نهاية",
+      "غير معرفة"
+    ],
+    "correct_answer": "1",
+    "explanation": "نهاية اعتيادية مشهورة: lim (sin x)/x = 1 عند x يؤول إلى 0."
+  },
+  {
+    "id": "cma102",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "ما مشتقة الدالة f(x) = ln(3x + 1) على مجال تعريفها؟",
+    "options": [
+      "3/(3x + 1)",
+      "1/(3x + 1)",
+      "3 ln(3x + 1)",
+      "1/(3x)"
+    ],
+    "correct_answer": "3/(3x + 1)",
+    "explanation": "مشتقة ln(u(x)) هي u'(x)/u(x)، وهنا مشتقة 3x + 1 هي 3."
+  },
+  {
+    "id": "cma103",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "ما مشتقة الدالة f(x) = exp(-2x) ؟",
+    "options": [
+      "-2 exp(-2x)",
+      "2 exp(-2x)",
+      "-exp(-2x)",
+      "exp(-2x)"
+    ],
+    "correct_answer": "-2 exp(-2x)",
+    "explanation": "مشتقة exp(u(x)) هي u'(x) exp(u(x))، وبالتالي (-2x)' exp(-2x) = -2 exp(-2x)."
+  },
+  {
+    "id": "cma104",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الجبر والأعداد العقدية",
+    "question": "ما معيار العدد العقدي z = 3 - 4i ؟",
+    "options": [
+      "5",
+      "7",
+      "25",
+      "1"
+    ],
+    "correct_answer": "5",
+    "explanation": "|z| = الجذر التربيعي لـ (3² + (-4)²) = الجذر التربيعي لـ (9 + 16) = الجذر التربيعي لـ 25 = 5."
+  },
+  {
+    "id": "cma105",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الجبر والأعداد العقدية",
+    "question": "ما عمدة العدد العقدي z = -1 + i الجذر التربيعي لـ 3 ؟",
+    "options": [
+      "2π/3",
+      "π/3",
+      "5π/6",
+      "π/6"
+    ],
+    "correct_answer": "2π/3",
+    "explanation": "المعيار 2، و cos(θ) = -1/2 و sin(θ) = (جذر 3)/2، إذن θ = π - π/3 = 2π/3."
+  },
+  {
+    "id": "cma106",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "المتتاليات العددية",
+    "question": "متتالية هندسية حدها الأول u0 = 3 وأساسها q = 2، ما قيمة حدها u4 ؟",
+    "options": [
+      "48",
+      "24",
+      "96",
+      "18"
+    ],
+    "correct_answer": "48",
+    "explanation": "un = u0 × q^n، إذن u4 = 3 × 2⁴ = 3 × 16 = 48."
+  },
+  {
+    "id": "cma107",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "المتتاليات العددية",
+    "question": "إذا كانت متتالية عددية تزايدية ومكبورة بالعدد 5، فإنها:",
+    "options": [
+      "متقاربة ونهايتها أصغر من أو تساوي 5",
+      "متباعدة نحو زائد ما لا نهاية",
+      "متذبذبة وليس لها نهاية",
+      "تؤول دائماً إلى 0"
+    ],
+    "correct_answer": "متقاربة ونهايتها أصغر من أو تساوي 5",
+    "explanation": "كل متتالية تزايدية ومكبورة هي متتالية متقاربة ونهايتها L تفي L <= المكبور."
+  },
+  {
+    "id": "cma108",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الحساب التكاملي",
+    "question": "ما قيمة التكامل من 0 إلى 1 للدالة (2x + 1) dx ؟",
+    "options": [
+      "2",
+      "1",
+      "3",
+      "0.5"
+    ],
+    "correct_answer": "2",
+    "explanation": "الدالة الأصلية هي x² + x. بالتعويض: [1² + 1] - [0 + 0] = 2."
+  },
+  {
+    "id": "cma109",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الهندسة الفضائية",
+    "question": "في الفضاء المنسوب لمعلم متعامد ممنظم، متى يكون مستقيمان متعامدين؟",
+    "options": [
+      "عندما يكون الجداء السلمي لمتجهتي توجيههما منعدماً",
+      "عندما يتقاطعان في نقطتين مختلفتين",
+      "عندما تكون متجهات توجيههما مستقيمية",
+      "عندما ينتميان لنفس المستوى فقط"
+    ],
+    "correct_answer": "عندما يكون الجداء السلمي لمتجهتي توجيههما منعدماً",
+    "explanation": "تعامد مستقيمين في الفضاء يكافئ u . v = 0 حيث u و v متجها توجيههما."
+  },
+  {
+    "id": "cma110",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الهندسة الفضائية",
+    "question": "ما متجهة المنظمية على المستوى المعرف بالمعادلة الديكارتية: 2x - 3y + z - 5 = 0 ؟",
+    "options": [
+      "n(2, -3, 1)",
+      "n(2, 3, 1)",
+      "n(-2, 3, 5)",
+      "n(2, -3, -5)"
+    ],
+    "correct_answer": "n(2, -3, 1)",
+    "explanation": "معاملات x و y و z في المعادلة الديكارتية ax + by + cz + d = 0 تمثل إحداثيات المتجهة المنظمية n(a,b,c)."
+  },
+  {
+    "id": "cma111",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الاحتمالات والتعداد",
+    "question": "كم عدد الطرق لسحب كرتين بالتتابع وبإحلال من كيس يحتوي على 5 كرات مرقمة؟",
+    "options": [
+      "25",
+      "20",
+      "10",
+      "120"
+    ],
+    "correct_answer": "25",
+    "explanation": "السحب بالتتابع وبإحلال هو ترتيب بتكرار: n^p = 5² = 25."
+  },
+  {
+    "id": "cma112",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الاحتمالات والتعداد",
+    "question": "ما قيمة التوليفة C(5, 2) ؟",
+    "options": [
+      "10",
+      "20",
+      "5",
+      "25"
+    ],
+    "correct_answer": "10",
+    "explanation": "C(5, 2) = (5 × 4) / (2 × 1) = 20 / 2 = 10."
+  },
+  {
+    "id": "cma113",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الحسابيات في Z",
+    "question": "إذا كان a يقسم b و a يقسم c، فإن a يقسم بالضرورة:",
+    "options": [
+      "أي تأليفة خطية bu + cv حيث u و v عددان صحيحان نسبيان",
+      "الجداء b × c فقط",
+      "الفرق b - c فقط بشرط b أكبر من c",
+      "خارج قسمة b على c دائماً"
+    ],
+    "correct_answer": "أي تأليفة خطية bu + cv حيث u و v عددان صحيحان نسبيان",
+    "explanation": "من خصائص قابلية القسمة: إذا كان a|b و a|c فإن a يقسم كل تأليفة خطية (bu + cv)."
+  },
+  {
+    "id": "cma114",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الحسابيات في Z",
+    "question": "ما هو القاسم المشترك الأكبر للعددين 36 و 54 ؟",
+    "options": [
+      "18",
+      "9",
+      "6",
+      "12"
+    ],
+    "correct_answer": "18",
+    "explanation": "36 = 18 × 2، و 54 = 18 × 3. أكبر قاسم مشترك هو 18."
+  },
+  {
+    "id": "cma115",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "المعادلات التفاضلية",
+    "question": "ما هو الحل العام للمعادلة التفاضلية y' - 3y = 0 ؟",
+    "options": [
+      "y(x) = k exp(3x)",
+      "y(x) = k exp(-3x)",
+      "y(x) = 3x + k",
+      "y(x) = k ln(3x)"
+    ],
+    "correct_answer": "y(x) = k exp(3x)",
+    "explanation": "المعادلة التفاضلية الخطية y' = ay حلها العام هو y = k exp(ax)، وهنا a = 3."
+  },
+  {
     "id": "cma116",
     "cycles": [
       "secondary_prep"
@@ -6211,6 +6481,1176 @@ export const INITIAL_QUESTIONS = [
     "explanation": "متطابقة هامة a² + 2ab + b²."
   },
   {
+    "id": "cma151",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "ما هي نقطة انعطاف منحنى دالة مرتين قابلة للاشتقاق f ؟",
+    "options": [
+      "نقطة تنعدم فيها المشتقة الثانية وتغير إشارتها",
+      "نقطة تنعدم فيها المشتقة الأولى فقط",
+      "أعلى قمة يبلغها المنحنى",
+      "نقطة تقاطع المنحنى مع محور الأراتيب"
+    ],
+    "correct_answer": "نقطة تنعدم فيها المشتقة الثانية وتغير إشارتها",
+    "explanation": "نقطة الانعطاف توافق تغير تقعر المنحنى من التحدب إلى التقعر، أي انعدام f''(x) وتغير إشارتها."
+  },
+  {
+    "id": "cma152",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "ما نهاية (exp(x) - 1)/x عندما يؤول x إلى 0 ؟",
+    "options": [
+      "1",
+      "0",
+      "e",
+      "زائد ما لا نهاية"
+    ],
+    "correct_answer": "1",
+    "explanation": "تمثل هذه النهاية العدد المشتق للدالة exp(x) عند x = 0، وهو exp'(0) = 1."
+  },
+  {
+    "id": "cma153",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "إذا كانت f دالة متصلة ورتيبة قطعا على المجال [1, 3] مع f(1) = -2 و f(3) = 4، فإن المعادلة f(x) = 0:",
+    "options": [
+      "تقبل حلا وحيدا في المجال ]1, 3[",
+      "لا تقبل أي حل",
+      "تقبل حلين على الأقل",
+      "تقبل ما لا نهاية من الحلول"
+    ],
+    "correct_answer": "تقبل حلا وحيدا في المجال ]1, 3[",
+    "explanation": "حسب مبرهنة القيم الوسيطية، إذا كانت f متصلة ورتيبة قطعا وتغير إشارتها (f(a) × f(b) < 0) فإن الحل وحيد."
+  },
+  {
+    "id": "cma154",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الحساب التكاملي",
+    "question": "ما هي صيغة المكاملة بالأجزاء لتكامل u(x) v'(x) dx ؟",
+    "options": [
+      "[u(x) v(x)] - تكامل u'(x) v(x) dx",
+      "[u'(x) v'(x)] - تكامل u(x) v(x) dx",
+      "[u(x) + v(x)] + تكامل u'(x) dx",
+      "u(x) v(x) مقسوما على 2"
+    ],
+    "correct_answer": "[u(x) v(x)] - تكامل u'(x) v(x) dx",
+    "explanation": "قاعدة المكاملة بالأجزاء تشتق من قاعدة مشتقة الجداء: ∫ u v' = [u v] - ∫ u' v."
+  },
+  {
+    "id": "cma155",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الجبر والأعداد العقدية",
+    "question": "ما مرافق العدد العقدي z = 2 + 5i ؟",
+    "options": [
+      "2 - 5i",
+      "-2 + 5i",
+      "-2 - 5i",
+      "5 + 2i"
+    ],
+    "correct_answer": "2 - 5i",
+    "explanation": "مرافق z = a + ib هو z-bar = a - ib بتغيير إشارة الجزء التخيلي فقط."
+  },
+  {
+    "id": "cma156",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الجبر والأعداد العقدية",
+    "question": "ما حل المعادلة z² + 1 = 0 في مجموعة الأعداد العقدية C ؟",
+    "options": [
+      "i و -i",
+      "1 و -1",
+      "0 و 1",
+      "لا حل لها في C"
+    ],
+    "correct_answer": "i و -i",
+    "explanation": "z² = -1 = i²، إذن الحلان هما i و -i."
+  },
+  {
+    "id": "cma157",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "المتتاليات العددية",
+    "question": "ما مجموع الحدود العشرة الأولى لمتتالية حسابية حدها الأول u1 = 1 وأساسها r = 2 ؟",
+    "options": [
+      "100",
+      "90",
+      "110",
+      "50"
+    ],
+    "correct_answer": "100",
+    "explanation": "u10 = 1 + 9 × 2 = 19. المجموع S = 10 × (1 + 19) / 2 = 10 × 10 = 100 (مجموع الأعداد الفردية الأولى n²)."
+  },
+  {
+    "id": "cma158",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الاحتمالات والتعداد",
+    "question": "إذا كان A و B حدثين مستقلين، فإن احتمال تقاطعهما P(A ∩ B) يساوي:",
+    "options": [
+      "P(A) × P(B)",
+      "P(A) + P(B)",
+      "P(A) / P(B)",
+      "P(A) - P(B)"
+    ],
+    "correct_answer": "P(A) × P(B)",
+    "explanation": "استقلال حدثين رياضياً يُعرّف بتحقق: P(A ∩ B) = P(A) × P(B)."
+  },
+  {
+    "id": "cma159",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الاحتمالات والتعداد",
+    "question": "ما هو الأمل الرياضي E(X) لمتغير عشوائي يتبع قانوناً ثنائياً B(n, p) ؟",
+    "options": [
+      "n × p",
+      "n × p × (1 - p)",
+      "جذر (n × p)",
+      "p / n"
+    ],
+    "correct_answer": "n × p",
+    "explanation": "في التوزيع الثنائي B(n, p)، الأمل الرياضي E(X) = np والتغاير V(X) = np(1-p)."
+  },
+  {
+    "id": "cma160",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الهندسة الفضائية",
+    "question": "ما مسافة النقطة A(1, 2, -1) عن المستوى (P) ذي المعادلة: 2x - 2y + z + 5 = 0 ؟",
+    "options": [
+      "2/3",
+      "4/3",
+      "2",
+      "6/9"
+    ],
+    "correct_answer": "4/3",
+    "explanation": "d = |2(1) - 2(2) + 1(-1) + 5| / جذر(2² + (-2)² + 1²) = |2 - 4 - 1 + 5| / 3 = |2| / 3 ... لحظة: 2 - 4 = -2، -2 - 1 = -3، -3 + 5 = 2. d = 2/3."
+  },
+  {
+    "id": "cma161",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الحسابيات في Z",
+    "question": "حسب مبرهنة بيزو (Bézout)، العددان a و b أوليان فيما بينهما إذا وفقط إذا:",
+    "options": [
+      "وجد عددان نسبيان u و v بحيث au + bv = 1",
+      "كان a و b عددين فرديين معاً",
+      "كان a يقسم b أو b يقسم a",
+      "كان مجموعهما عدداً أولياً"
+    ],
+    "correct_answer": "وجد عددان نسبيان u و v بحيث au + bv = 1",
+    "explanation": "مبرهنة بيزو: pgcd(a,b) = 1 يكافئ وجود u و v في Z بحيث au + bv = 1."
+  },
+  {
+    "id": "cma162",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "المعادلات والمتراجحات",
+    "question": "ما حل المتراجحة ln(x) < 0 في مجموعة الأعداد الحقيقية؟",
+    "options": [
+      "]0, 1[",
+      "]-ما لا نهاية, 0[",
+      "]1, +ما لا نهاية[",
+      "[0, 1]"
+    ],
+    "correct_answer": "]0, 1[",
+    "explanation": "الدالة اللوغاريتمية معرفة قطعا على ]0, +∞[، وتنعدم عند 1 وتكون سالبة قطعا على المجال ]0, 1[."
+  },
+  {
+    "id": "cma163",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "ما نوع المقارب لمنحنى دالة f إذا كانت نهاية f(x) عندما يؤول x إلى زائد ما لا نهاية تساوي 3 ؟",
+    "options": [
+      "مقارب أفقي معادلته y = 3",
+      "مقارب عمودي معادلته x = 3",
+      "مقارب مائل معادلته y = 3x",
+      "فرع شلجمي اتجاهه محور الأراتيب"
+    ],
+    "correct_answer": "مقارب أفقي معادلته y = 3",
+    "explanation": "إذا كانت lim f(x) = L عند x → ±∞، فإن المستقيم ذو المعادلة y = L مقارب أفقي للمنحنى بجوار تلك الما لا نهاية."
+  },
+  {
+    "id": "cma164",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "ما نوع المقارب إذا كانت نهاية f(x) عندما يؤول x إلى 2 تساوي زائد ما لا نهاية؟",
+    "options": [
+      "مقارب عمودي معادلته x = 2",
+      "مقارب أفقي معادلته y = 2",
+      "مقارب مائل معادلته y = x + 2",
+      "نقطة توقف للمنحنى"
+    ],
+    "correct_answer": "مقارب عمودي معادلته x = 2",
+    "explanation": "إذا كانت lim f(x) = ±∞ عند x → a، فإن المستقيم ذو المعادلة x = a مقارب عمودي للمنحنى."
+  },
+  {
+    "id": "cma165",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الجبر والمصفوفات",
+    "question": "ما هو محدد (Déterminant) المصفوفة 2x2 المكونة من الأسطر [3, 2] و [1, 4] ؟",
+    "options": [
+      "10",
+      "14",
+      "12",
+      "8"
+    ],
+    "correct_answer": "10",
+    "explanation": "المحدد = (3 × 4) - (2 × 1) = 12 - 2 = 10."
+  },
+  {
+    "id": "cma166",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الهندسة والتحويلات",
+    "question": "التحاكي (Homothétie) الذي مركزه أصل المعلم ونسبته k = -2 هو تحويل هندسي:",
+    "options": [
+      "يضاعف الأطوال مرتين ويعكس الاتجاه ويضرب المساحات في 4",
+      "يحافظ على المسافات بدقة",
+      "يغير قياسات الزوايا",
+      "يحول الدوائر إلى مربعات"
+    ],
+    "correct_answer": "يضاعف الأطوال مرتين ويعكس الاتجاه ويضرب المساحات في 4",
+    "explanation": "التحاكي بنسبة k يضرب الأطوال في |k| = 2، والمساحات في k² = 4، ونظراً لسالبية k يعكس الاتجاه."
+  },
+  {
+    "id": "cma167",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "المعادلات التفاضلية",
+    "question": "ما الحل العام للمعادلة التفاضلية y'' + 4y = 0 ؟",
+    "options": [
+      "y(x) = A cos(2x) + B sin(2x)",
+      "y(x) = A exp(2x) + B exp(-2x)",
+      "y(x) = (Ax + B) exp(2x)",
+      "y(x) = A cos(4x)"
+    ],
+    "correct_answer": "y(x) = A cos(2x) + B sin(2x)",
+    "explanation": "المعادلة المميزة r² + 4 = 0 حلها عقديا r = ± 2i، إذن الحل العام تذبذبي توافقي: A cos(2x) + B sin(2x)."
+  },
+  {
+    "id": "cma168",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "ما هي الدالة الأصلية للدالة f(x) = 1/(x ln x) على المجال ]1, +ما لا نهاية[ ؟",
+    "options": [
+      "F(x) = ln(ln x) + C",
+      "F(x) = (ln x)² + C",
+      "F(x) = 1/(ln x) + C",
+      "F(x) = x ln x + C"
+    ],
+    "correct_answer": "F(x) = ln(ln x) + C",
+    "explanation": "تكتب الدالة على شكل u'(x)/u(x) حيث u(x) = ln x و u'(x) = 1/x، ودالتها الأصلية ln|u(x)| = ln(ln x)."
+  },
+  {
+    "id": "cma169",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الاحتمالات والتعداد",
+    "question": "في تجربة إلقاء نرد متوازن ذي ستة أوجه، ما احتمال الحصول على عدد زوجي أو يقبل القسمة على 3؟",
+    "options": [
+      "2/3",
+      "1/2",
+      "5/6",
+      "1/3"
+    ],
+    "correct_answer": "2/3",
+    "explanation": "الأعداد الزوجية {2, 4, 6} ومضاعفات 3 هي {3, 6}. الاتحاد هو {2, 3, 4, 6} وعدده 4 عناصر، الاحتمال 4/6 = 2/3."
+  },
+  {
+    "id": "cma170",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الجبر والأعداد العقدية",
+    "question": "ما الشكل الأسي للعدد العقدي z = 1 + i ؟",
+    "options": [
+      "الجذر التربيعي لـ 2 exp(i π/4)",
+      "2 exp(i π/4)",
+      "الجذر التربيعي لـ 2 exp(i π/2)",
+      "exp(i π/4)"
+    ],
+    "correct_answer": "الجذر التربيعي لـ 2 exp(i π/4)",
+    "explanation": "المعيار r = جذر(1² + 1²) = جذر 2، والعمدة θ = π/4، إذن z = جذر 2 × exp(i π/4)."
+  },
+  {
+    "id": "cma171",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "ما قيمة نهاية x ln(x) عندما يؤول x إلى 0 عن اليمين؟",
+    "options": [
+      "0",
+      "-ما لا نهاية",
+      "1",
+      "غير منتهية"
+    ],
+    "correct_answer": "0",
+    "explanation": "نهاية اعتيادية بالتزايد المقارن: lim x ln(x) = 0 عند x → 0⁺."
+  },
+  {
+    "id": "cma172",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "ما قيمة نهاية exp(x)/x² عندما يؤول x إلى زائد ما لا نهاية؟",
+    "options": [
+      "زائد ما لا نهاية",
+      "0",
+      "1",
+      "e"
+    ],
+    "correct_answer": "زائد ما لا نهاية",
+    "explanation": "بالتزايد المقارن، الدالة الأسية تهيمن على قوى x عند +∞: lim exp(x)/xⁿ = +∞."
+  },
+  {
+    "id": "cma173",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "المتتاليات العددية",
+    "question": "ما نهاية المتتالية vn = (1/3)^n عندما يؤول n إلى زائد ما لا نهاية؟",
+    "options": [
+      "0",
+      "زائد ما لا نهاية",
+      "1/3",
+      "1"
+    ],
+    "correct_answer": "0",
+    "explanation": "إذا كان أساس المتتالية الهندسية q يحقق |q| < 1، فإن نهايتها تساوي 0 دائماً."
+  },
+  {
+    "id": "cma174",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الهندسة الفضائية",
+    "question": "الجداء المتجهي لمتجهتين مستقيميتين u و v في الفضاء يساوي:",
+    "options": [
+      "المتجهة المنعدمة",
+      "العدد الحقيقي 0",
+      "1",
+      "متجهة عمودية عليهما"
+    ],
+    "correct_answer": "المتجهة المنعدمة",
+    "explanation": "الجداء المتجهي لمتجهتين مستقيميتين ينعدم متجهاتياً: u ∧ v = 0."
+  },
+  {
+    "id": "cma175",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الحسابيات في Z",
+    "question": "ما هو باقي قسمة العدد 2²⁰²⁶ على 3 ؟",
+    "options": [
+      "1",
+      "2",
+      "0",
+      "-1"
+    ],
+    "correct_answer": "1",
+    "explanation": "2 ≡ -1 [3]، إذن 2²⁰²⁶ ≡ (-1)²⁰²⁶ ≡ 1 [3] لأن الأس زوجي."
+  },
+  {
+    "id": "cma176",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "ما هي مشتقة دالة الظل f(x) = tan(x) ؟",
+    "options": [
+      "1 + tan²(x) أو 1/cos²(x)",
+      "-1/cos²(x)",
+      "tan²(x)",
+      "sin(x)/cos(x)"
+    ],
+    "correct_answer": "1 + tan²(x) أو 1/cos²(x)",
+    "explanation": "مشتقة tan(x) هي 1 + tan²(x) وتساوي أيضاً 1/cos²(x)."
+  },
+  {
+    "id": "cma177",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "ما الدالة العكسية لدالة f(x) = exp(x) المعرفة من R نحو ]0, +ما لا نهاية[ ؟",
+    "options": [
+      "f⁻¹(x) = ln(x)",
+      "f⁻¹(x) = exp(-x)",
+      "f⁻¹(x) = 1/exp(x)",
+      "f⁻¹(x) = -ln(x)"
+    ],
+    "correct_answer": "f⁻¹(x) = ln(x)",
+    "explanation": "الدالة اللوغاريتمية النيبيرية هي الدالة العكسية المباشرة للدالة الأسية النيبيرية."
+  },
+  {
+    "id": "cma178",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الحساب التكاملي",
+    "question": "ما قيمة التكامل من 0 إلى π/2 للدالة cos(x) dx ؟",
+    "options": [
+      "1",
+      "0",
+      "π/2",
+      "-1"
+    ],
+    "correct_answer": "1",
+    "explanation": "الدالة الأصلية هي sin(x): [sin(π/2) - sin(0)] = 1 - 0 = 1."
+  },
+  {
+    "id": "cma179",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الجبر والأعداد العقدية",
+    "question": "صيغة دي موافر (Moivre) للأعداد العقدية تنص على أن [cos(θ) + i sin(θ)]ⁿ تساوي:",
+    "options": [
+      "cos(nθ) + i sin(nθ)",
+      "n cos(θ) + i n sin(θ)",
+      "cosⁿ(θ) + i sinⁿ(θ)",
+      "cos(θ/n) + i sin(θ/n)"
+    ],
+    "correct_answer": "cos(nθ) + i sin(nθ)",
+    "explanation": "مبرهنة دي موافر: رفْع العدد العقدي المثلثي للأس n يضرب العمدة في n."
+  },
+  {
+    "id": "cma180",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الاحتمالات والتعداد",
+    "question": "ما هو احتمال الحصول على وجهين على الأقل عند رمي قطعة نقدية متوازنة 3 مرات؟",
+    "options": [
+      "1/2",
+      "3/8",
+      "1/4",
+      "7/8"
+    ],
+    "correct_answer": "1/2",
+    "explanation": "إجمالي الحالات 8. الحالات التي بها وجهان أو ثلاثة: {FPP, PFP, PPF, PPP} وعددهم 4، الاحتمال 4/8 = 1/2."
+  },
+  {
+    "id": "cma181",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الهندسة والتحويلات",
+    "question": "الدوران الذي مركزه O وزاويته π/2 يحول النقطة M ذات اللحق z إلى النقطة M' ذات اللحق z' بحيث:",
+    "options": [
+      "z' = i z",
+      "z' = -i z",
+      "z' = -z",
+      "z' = z + i"
+    ],
+    "correct_answer": "z' = i z",
+    "explanation": "الكتابة العقدية للدوران: z' - ω = exp(iθ)(z - ω). بما أن ω = 0 و θ = π/2 فإن exp(iπ/2) = i، إذن z' = iz."
+  },
+  {
+    "id": "cma182",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "متى تقبل دالة f مماساً أفقياً عند النقطة ذات الأفصول a ؟",
+    "options": [
+      "عندما تكون f'(a) = 0",
+      "عندما تكون f(a) = 0",
+      "عندما تؤول مشتقتها إلى ما لا نهاية",
+      "عندما تنعدم المشتقة الثانية فقط"
+    ],
+    "correct_answer": "عندما تكون f'(a) = 0",
+    "explanation": "معامل موجه المماس هو العدد المشتق f'(a). وإذا كان f'(a) = 0 فإن المماس أفقي يوازي محور الأفاصيل."
+  },
+  {
+    "id": "cma183",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "ما هي معادلة المماس لمنحنى الدالة f عند النقطة ذات الأفصول x0 ؟",
+    "options": [
+      "y = f'(x0)(x - x0) + f(x0)",
+      "y = f(x0)(x - x0) + f'(x0)",
+      "y = f'(x0) x + f(x0)",
+      "y = f''(x0)(x - x0)"
+    ],
+    "correct_answer": "y = f'(x0)(x - x0) + f(x0)",
+    "explanation": "المعادلة الكلاسيكية للمماس: y = f'(x0)(x - x0) + f(x0)."
+  },
+  {
+    "id": "cma184",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "المتتاليات العددية",
+    "question": "إذا كانت المتتالية un معرفة بـ u(n+1) = (un + 4)/2 مع u0 = 1، فإن نهايتها L تساوي:",
+    "options": [
+      "4",
+      "2",
+      "1",
+      "زائد ما لا نهاية"
+    ],
+    "correct_answer": "4",
+    "explanation": "النهاية تحقق L = (L + 4)/2، ومنه 2L = L + 4، إذن L = 4."
+  },
+  {
+    "id": "cma185",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الحساب التكاملي",
+    "question": "ما القيمة المتوسطة لدالة f على المجال [a, b] ؟",
+    "options": [
+      "(1 / (b - a)) مضروبة في تكامل f(x) dx من a إلى b",
+      "تكامل f(x) dx مقسوما على 2",
+      "f(b) - f(a) مقسوما على (b - a)",
+      "جذر حاصل ضرب f(a) في f(b)"
+    ],
+    "correct_answer": "(1 / (b - a)) مضروبة في تكامل f(x) dx من a إلى b",
+    "explanation": "القيمة المتوسطة μ للدالة هي مساحة الحيز مقسومة على طول المجال: μ = (1/(b - a)) ∫ f(x) dx."
+  },
+  {
+    "id": "cma186",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الهندسة الفضائية",
+    "question": "معادلة الفلكة (Sphère) التي مركزها Ω(1, 0, -2) وشعاعها R = 3 هي:",
+    "options": [
+      "(x - 1)² + y² + (z + 2)² = 9",
+      "(x + 1)² + y² + (z - 2)² = 9",
+      "(x - 1)² + y² + (z + 2)² = 3",
+      "(x - 1)² + (y - 2)² + z² = 9"
+    ],
+    "correct_answer": "(x - 1)² + y² + (z + 2)² = 9",
+    "explanation": "معادلة الفلكة: (x - a)² + (y - b)² + (z - c)² = R²."
+  },
+  {
+    "id": "cma187",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الحسابيات في Z",
+    "question": "حسب مبرهنة فيرما الصغرى، إذا كان p عدداً أولياً و a لا يقسمه p، فإن:",
+    "options": [
+      "a^(p - 1) ≡ 1 [p]",
+      "a^p ≡ 1 [p]",
+      "a^(p - 1) ≡ 0 [p]",
+      "a^(p + 1) ≡ 1 [p]"
+    ],
+    "correct_answer": "a^(p - 1) ≡ 1 [p]",
+    "explanation": "مبرهنة فيرما الصغرى: لكل عدد أولي p و a غير مضاعف لـ p، يتحقق a^(p-1) ≡ 1 [p]."
+  },
+  {
+    "id": "cma188",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الجبر والأعداد العقدية",
+    "question": "الجذور النونية للوحدة (Racines n-ièmes de l'unité) تشكل في المستوى العقدي:",
+    "options": [
+      "رؤوس مضلع منتظم ذي n ضلعاً محاط بالدائرة المثلثية",
+      "نقطاً مستقيمية على محور الأفاصيل",
+      "دائرة مركزها النقطة 1",
+      "مثلثاً قائم الزاوية دائماً"
+    ],
+    "correct_answer": "رؤوس مضلع منتظم ذي n ضلعاً محاط بالدائرة المثلثية",
+    "explanation": "صور الجذور النونية للوحدة exp(2ikπ/n) تتوزع بانتظام على دائرة الوحدة لتشكل مضلعاً منتظماً متناظراً."
+  },
+  {
+    "id": "cma189",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "الدالة f(x) = x³ - 3x تقبل قيمة دنيا محلية عند النقطة ذات الأفصول:",
+    "options": [
+      "1",
+      "-1",
+      "0",
+      "3"
+    ],
+    "correct_answer": "1",
+    "explanation": "f'(x) = 3x² - 3 = 3(x - 1)(x + 1). المشتقة تنعدم وتغير إشارتها من سالب إلى موجب عند x = 1، إذن هناك قيمة دنيا محلية."
+  },
+  {
+    "id": "cma190",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "ما هو مجال تعريف الدالة f(x) = الجذر التربيعي لـ (4 - x²) ؟",
+    "options": [
+      "[-2, 2]",
+      "]-ما لا نهاية, -2] اتحاد [2, +ما لا نهاية[",
+      "[0, 2]",
+      "R"
+    ],
+    "correct_answer": "[-2, 2]",
+    "explanation": "يجب أن يكون ما بداخل الجذر موجباً: 4 - x² >= 0 يكافئ x² <= 4 أي x ينتمي للمجال [-2, 2]."
+  },
+  {
+    "id": "cma191",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "دالة f فردية ومعرفة على R، إذا كان تكاملها من -a إلى a موجوداً، فإن قيمته تساوي دائماً:",
+    "options": [
+      "0",
+      "2 مضروبة في تكامل من 0 إلى a",
+      "f(a) - f(-a)",
+      "1"
+    ],
+    "correct_answer": "0",
+    "explanation": "تكامل دالة فردية على مجال متماثل بالنسبة للصفر [-a, a] ينعدم دائماً."
+  },
+  {
+    "id": "cma192",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "إذا كانت f دالة زوجية متصلة على R، فإن تكاملها من -a إلى a يساوي:",
+    "options": [
+      "2 مضروبة في تكامل من 0 إلى a",
+      "0",
+      "f(a)",
+      "-2 تكامل من 0 إلى a"
+    ],
+    "correct_answer": "2 مضروبة في تكامل من 0 إلى a",
+    "explanation": "لتماثل المنحنى بالنسبة لمحور الأراتيب، تتضاعف المساحة: ∫ من -a إلى a تساوي 2 ∫ من 0 إلى a."
+  },
+  {
+    "id": "cma193",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الاحتمالات والتعداد",
+    "question": "صيغة الاحتمال الكلي لحدث B بتجزيء منتهي {A1, A2, ..., An} للفضاء تنص على أن P(B) تساوي:",
+    "options": [
+      "مجموع P(Ai) × P(B/Ai)",
+      "جداء احتمالات P(Ai)",
+      "أكبر احتمال بين P(Ai)",
+      "1 - مجموع P(Ai)"
+    ],
+    "correct_answer": "مجموع P(Ai) × P(B/Ai)",
+    "explanation": "صيغة الاحتمالات الكلية: P(B) = ∑ P(Ai) P(B|Ai)."
+  },
+  {
+    "id": "cma194",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الهندسة والتحويلات",
+    "question": "الإزاحة ذات المتجهة u التي لحقها b تحول النقطة ذات اللحق z إلى النقطة ذات اللحق z' بحيث:",
+    "options": [
+      "z' = z + b",
+      "z' = b z",
+      "z' = z - b",
+      "z' = -z + b"
+    ],
+    "correct_answer": "z' = z + b",
+    "explanation": "الكتابة العقدية للإزاحة هي جمع متجهي مباشر: z' = z + b."
+  },
+  {
+    "id": "cma195",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "المتتاليات العددية",
+    "question": "إذا كانت المتتالية wn = cos(n) / n² لكل n >= 1، فإن نهايتها عند زائد ما لا نهاية هي:",
+    "options": [
+      "0",
+      "1",
+      "غير موجودة لتذبذب cos",
+      "ما لا نهاية"
+    ],
+    "correct_answer": "0",
+    "explanation": "باستعمال مبرهنة الحصر: |cos(n)/n²| <= 1/n²، وبما أن 1/n² تؤول إلى 0، فإن النهاية 0."
+  },
+  {
+    "id": "cma196",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الجبر والمصفوفات",
+    "question": "تكون مصفوفة مربعة A قابلة للقلب (Inversible) إذا وفقط إذا كان:",
+    "options": [
+      "محددها غير منعدم (det(A) != 0)",
+      "محددها يساوي 0",
+      "جميع عناصر قطرها أصفار",
+      "كانت مصفوفة غير متماثلة"
+    ],
+    "correct_answer": "محددها غير منعدم (det(A) != 0)",
+    "explanation": "المصفوفة تكون قابلة للقلب إذا وفقط إذا كان محددها يختلف عن الصفر."
+  },
+  {
+    "id": "cma197",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "ما هو مشتق مقلوب دالة: (1/g(x))' ؟",
+    "options": [
+      "-g'(x) / g(x)²",
+      "g'(x) / g(x)²",
+      "-1 / g(x)²",
+      "1 / g'(x)"
+    ],
+    "correct_answer": "-g'(x) / g(x)²",
+    "explanation": "قاعدة اشتقاق المقلوب: (1/g)' = -g'/g²."
+  },
+  {
+    "id": "cma198",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "ما مشتقة دالة الجداء: (f × g)' ؟",
+    "options": [
+      "f' g + f g'",
+      "f' g'",
+      "f' g - f g'",
+      "(f' + g') / 2"
+    ],
+    "correct_answer": "f' g + f g'",
+    "explanation": "قاعدة مشتقة الجداء: (uv)' = u'v + uv'."
+  },
+  {
+    "id": "cma199",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "الحساب التكاملي",
+    "question": "ما هو حجم المجسم المتولد عن دوران منحنى دالة f حول محور الأفاصيل بين a و b ؟",
+    "options": [
+      "π مضروبة في تكامل f(x)² dx من a إلى b",
+      "2π مضروبة في تكامل f(x) dx",
+      "تكامل f(x)³ dx",
+      "π² مضروبة في (b - a)"
+    ],
+    "correct_answer": "π مضروبة في تكامل f(x)² dx من a إلى b",
+    "explanation": "حجم مجسم الدوران هو V = π ∫ [f(x)]² dx."
+  },
+  {
+    "id": "cma200",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_math",
+    "topic": "التحليل ودراسة الدوال",
+    "question": "ما هي مبرهنة رول (Rolle) في التحليل الرياضي؟",
+    "options": [
+      "إذا كانت f متصلة على [a,b] وقابلة للاشتقاق على ]a,b[ مع f(a) = f(b)، فإنه يوجد c في ]a,b[ بحيث f'(c) = 0",
+      "كل دالة متصلة تقبل دالة أصلية",
+      "كل متتالية متقاربة هي متتالية مكبورة",
+      "المشتقة الأولى لدالة تزايدية تكون دائماً سالبة"
+    ],
+    "correct_answer": "إذا كانت f متصلة على [a,b] وقابلة للاشتقاق على ]a,b[ مع f(a) = f(b)، فإنه يوجد c في ]a,b[ بحيث f'(c) = 0",
+    "explanation": "مبرهنة رول تضمن وجود نقطة مماس أفقي c على الأقل بين a و b متى تساوت قيمتا الطرفين."
+  },
+  {
+    "id": "cpc101",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الميكانيك وقوانين نيوتن",
+    "question": "ما هو التعبير الرياضي للقانون الثاني لنيوتن في معلم غاليلي لجسم صلب كتلته m ثابتة؟",
+    "options": [
+      "مجموع القوى الخارجية = m × a (جداء الكتلة في متجه التسارع)",
+      "مجموع القوى الخارجية = m × v",
+      "مجموع القوى الخارجية = 0 دائماً",
+      "الشغل = نصف الكتلة في مربع السرعة"
+    ],
+    "correct_answer": "مجموع القوى الخارجية = m × a (جداء الكتلة في متجه التسارع)",
+    "explanation": "القانون الثاني لنيوتن (المبدأ الأساسي للتحريك): ∑ F_ext = m a_G."
+  },
+  {
+    "id": "cpc102",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الميكانيك وقوانين نيوتن",
+    "question": "في حركة السقوط الحر الرأسي بدون سرعة بدئية وبإهمال دافعة أرخميدس واحتكاك الهواء، ما طبيعة حركة مركز القصور؟",
+    "options": [
+      "حركة مستقيمية متغيرة بانتظام بتسارع ثابت a = g",
+      "حركة مستقيمية منتظمة بسرعة ثابتة",
+      "حركة دائرية منتظمة",
+      "حركة جيبية متذبذبة"
+    ],
+    "correct_answer": "حركة مستقيمية متغيرة بانتظام بتسارع ثابت a = g",
+    "explanation": "في السقوط الحر يكون الجسم خاضعاً لوزنه فقط: P = mg = ma، ومنه a = g ثابتة، فالحركة مستقيمية متسارعة بانتظام."
+  },
+  {
+    "id": "cpc103",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكهرباء وثنائي القطب RC",
+    "question": "ما هو تعبير ثابتة الزمن τ لثنائي القطب RC المتوالي؟",
+    "options": [
+      "τ = R × C",
+      "τ = R / C",
+      "τ = C / R",
+      "τ = 1 / (R × C)"
+    ],
+    "correct_answer": "τ = R × C",
+    "explanation": "ثابتة الزمن لدارة RC هي جداء المقاومة في السعة: τ = RC ووحدتها الثانية (s)."
+  },
+  {
+    "id": "cpc104",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكهرباء وثنائي القطب RC",
+    "question": "ما هي الطاقة الكهرسكونية E_e المخزونة في مكثف سعته C وتحت توتر U_C ؟",
+    "options": [
+      "E_e = (1/2) C U_C²",
+      "E_e = C U_C",
+      "E_e = (1/2) C² U_C",
+      "E_e = R C U_C²"
+    ],
+    "correct_answer": "E_e = (1/2) C U_C²",
+    "explanation": "الطاقة المخزونة في المكثف تعطى بالعلاقة: E_e = (1/2) C U_C² = Q² / (2C)."
+  },
+  {
+    "id": "cpc105",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكهرباء وثنائي القطب RL",
+    "question": "ما هو التوتر بين مربطي وشيعة معامل تحريضها L ومقاومتها الداخلية r يمر بها تيار i(t) ؟",
+    "options": [
+      "u_L = L (di/dt) + r i",
+      "u_L = L i + r (di/dt)",
+      "u_L = L (di/dt)",
+      "u_L = (L/r) i"
+    ],
+    "correct_answer": "u_L = L (di/dt) + r i",
+    "explanation": "التوتر بين مربطي وشيعة حقيقية في الاصطلاح مستقبل: u_L = L(di/dt) + ri."
+  },
+  {
+    "id": "cpc106",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الموجات الميكانيكية والضوئية",
+    "question": "ما هي العلاقة بين سرعة انتشار الموجة v، وطول الموجة λ، والتردد N ؟",
+    "options": [
+      "λ = v / N = v × T",
+      "λ = v × N",
+      "v = λ × N²",
+      "N = v × λ"
+    ],
+    "correct_answer": "λ = v / N = v × T",
+    "explanation": "طول الموجة λ هو المسافة المقطوعة خلال دور زمني T واحد: λ = v T = v / N."
+  },
+  {
+    "id": "cpc107",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الموجات الميكانيكية والضوئية",
+    "question": "ظاهرة حيود الضوء (Diffraction) بواسطة شق عرضه a تبرز الخاصية:",
+    "options": [
+      "الموجية للضوء",
+      "الجسيمية للضوء",
+      "الكهرضغطية للضوء",
+      "المغناطيسية الساكنة"
+    ],
+    "correct_answer": "الموجية للضوء",
+    "explanation": "الحيود خاصية مميزة لانتشار الموجات وتثبت الطبيعة الموجية للضوء."
+  },
+  {
+    "id": "cpc108",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "التحولات النووية",
+    "question": "ما هو الدقائق المنبعثة أثناء التفتت الإشعاعي من النوع ألفا (α) ؟",
+    "options": [
+      "نواة الهيليوم 4 (He 2,4)",
+      "إلكترون سالب الشحنة",
+      "بوزيترون موجب الشحنة",
+      "فوتون كهرومغناطيسي عالي الطاقة"
+    ],
+    "correct_answer": "نواة الهيليوم 4 (He 2,4)",
+    "explanation": "جسيمة ألفا هي نواة هيليوم تتكون من بروتونين ونيوترونين: He(2, 4)."
+  },
+  {
+    "id": "cpc109",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "التحولات النووية",
+    "question": "ما هو قانون التناقص الإشعاعي لعدد النوى المتبقية N(t) بدلالة N0 وثابتة النشاط الإشعاعي λ ؟",
+    "options": [
+      "N(t) = N0 exp(-λ t)",
+      "N(t) = N0 exp(λ t)",
+      "N(t) = N0 - λ t",
+      "N(t) = N0 / (1 + λ t)"
+    ],
+    "correct_answer": "N(t) = N0 exp(-λ t)",
+    "explanation": "قانون التناقص الإشعاعي أسي: N(t) = N0 exp(-λt)."
+  },
+  {
+    "id": "cpc110",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "التحولات النووية",
+    "question": "ما العلاقة بين عمر النصف t_{1/2} وثابتة النشاط الإشعاعي λ ؟",
+    "options": [
+      "t_{1/2} = ln(2) / λ",
+      "t_{1/2} = λ / ln(2)",
+      "t_{1/2} = 2 / λ",
+      "t_{1/2} = ln(λ) / 2"
+    ],
+    "correct_answer": "t_{1/2} = ln(2) / λ",
+    "explanation": "عند t = t_{1/2} يكون N = N0/2، ومنه exp(-λ t_{1/2}) = 1/2، إذن t_{1/2} = ln(2)/λ."
+  },
+  {
+    "id": "cpc111",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكيمياء وتفاعلات حمض-قاعدة",
+    "question": "كيف يُعرّف الـ pH لمحلول مائي ممدد بدلالة تركيز أيونات الأوكسونيوم [H3O+] ؟",
+    "options": [
+      "pH = -log[H3O+]",
+      "pH = log[H3O+]",
+      "pH = -ln[H3O+]",
+      "pH = 14 + log[H3O+]"
+    ],
+    "correct_answer": "pH = -log[H3O+]",
+    "explanation": "العلاقة التي وضعها سورنسن: pH = -log[H3O+] حيث التركيز بـ mol/L."
+  },
+  {
+    "id": "cpc112",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكيمياء وتفاعلات حمض-قاعدة",
+    "question": "ما هو الجداء الأيوني للماء Ke عند درجة الحرارة 25°C ؟",
+    "options": [
+      "10⁻¹⁴",
+      "10⁻⁷",
+      "10⁻¹",
+      "10⁻¹²"
+    ],
+    "correct_answer": "10⁻¹⁴",
+    "explanation": "التحلل البروتوني الذاتي للماء يعطي Ke = [H3O+][OH-] = 10⁻¹⁴ عند 25°C."
+  },
+  {
+    "id": "cpc113",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكيمياء والأكسدة-اختزال",
+    "question": "في تفاعل أكسدة-اختزال، ماذا يحدث للمختزِل (Réducteur)؟",
+    "options": [
+      "يفقد إلكتروناً أو أكثر ويحدث له تأكسد",
+      "يكتسب إلكتروناً أو أكثر ويحدث له اختزال",
+      "يفقد بروتوناً موجباً H+",
+      "يكتسب أيون هيدروكسيد"
+    ],
+    "correct_answer": "يفقد إلكتروناً أو أكثر ويحدث له تأكسد",
+    "explanation": "المختزِل نوع كيميائي قادر على فقدان إلكترونات خلال تفاعل كيميائي، وتسمى العملية تأكسداً."
+  },
+  {
+    "id": "cpc114",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكيمياء والتحولات السريعة والبطيئة",
+    "question": "ما هو العامل الحركي (Facteur cinétique) الذي يؤدي دائماً إلى زيادة سرعة التفاعل الكيميائي؟",
+    "options": [
+      "ارتفاع درجة الحرارة وزيادة التراكيز البدئية للمتفاعلات",
+      "إضافة الماء المثلج لخليط التفاعل",
+      "تقليل مساحة التماس بين المتفاعلات الصلبة",
+      "خفض الضغط في التفاعلات الغازية"
+    ],
+    "correct_answer": "ارتفاع درجة الحرارة وزيادة التراكيز البدئية للمتفاعلات",
+    "explanation": "ارتفاع الحرارة والتراكيز يزيد من وتيرة التصادمات الفعالة بين الجزيئات مما يرفع السرعة الحركية للتفاعل."
+  },
+  {
+    "id": "cpc115",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الميكانيك والطاقة",
+    "question": "مبرهنة الطاقة الحركية تنص على أن التغير في الطاقة الحركية لجسم صلب بين موضعين يساوي:",
+    "options": [
+      "المجموع الجبري لأشغال جميع القوى الخارجية المطبقة على الجسم بين هذين الموضعين",
+      "مجموع طاقات الوضع الثقالية فقط",
+      "طاقة الحركة النهائية مقسومة على الابتدائية",
+      "طاقة الكتلة حسب علاقة أينشتاين"
+    ],
+    "correct_answer": "المجموع الجبري لأشغال جميع القوى الخارجية المطبقة على الجسم بين هذين الموضعين",
+    "explanation": "مبرهنة الطاقة الحركية: ΔEc = Ec(B) - Ec(A) = ∑ W_{A→B}(F_ext)."
+  },
+  {
     "id": "cpc116",
     "cycles": [
       "secondary_prep"
@@ -6804,6 +8244,906 @@ export const INITIAL_QUESTIONS = [
     ],
     "correct_answer": "الأوم",
     "explanation": "المقاومة تقاس بالأوم ورمزها أوميغا."
+  },
+  {
+    "id": "cpc151",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الميكانيك وحركة الكواكب",
+    "question": "القانون الأول لكبلر ينص على أن مسارات الكواكب حول الشمس هي:",
+    "options": [
+      "إهليلجية تمثل الشمس إحدى بؤرتيه",
+      "دوائر تقع الشمس في مركزها تماماً",
+      "خطوط مستقيمة متوازية",
+      "قطوع مكافئة مفتوحة"
+    ],
+    "correct_answer": "إهليلجية تمثل الشمس إحدى بؤرتيه",
+    "explanation": "قانون المدارات لكبلر: كواكب المنظومة الشمسية تتحرك وفق مدارات إهليلجية تشغل الشمس إحدى بؤرتيها."
+  },
+  {
+    "id": "cpc152",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الميكانيك وحركة الكواكب",
+    "question": "القانون الثالث لكبلر يربط بين دور مدار الكوكب T ونصف المحور الكبير a بالعلاقة:",
+    "options": [
+      "T² / a³ = ثابتة",
+      "T³ / a² = ثابتة",
+      "T / a = ثابتة",
+      "T² × a³ = ثابتة"
+    ],
+    "correct_answer": "T² / a³ = ثابتة",
+    "explanation": "قانون الأدوار لكبلر: مربع الدور المداري يتناسب طردياً مع مكعب نصف المحور الكبير (T²/a³ = k)."
+  },
+  {
+    "id": "cpc153",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الميكانيك والتذبذبات",
+    "question": "ما هو الدور الخاص T0 لنواس مرن (جسم-نابض) كتلته m وصلابته K باحتكاك مهمل؟",
+    "options": [
+      "T0 = 2π الجذر التربيعي لـ (m / K)",
+      "T0 = 2π الجذر التربيعي لـ (K / m)",
+      "T0 = 2π (m / K)",
+      "T0 = (1 / 2π) الجذر التربيعي لـ (m / K)"
+    ],
+    "correct_answer": "T0 = 2π الجذر التربيعي لـ (m / K)",
+    "explanation": "الدور الخاص للنواس المرن: T0 = 2π √(m/K)."
+  },
+  {
+    "id": "cpc154",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الميكانيك والتذبذبات",
+    "question": "في نظام التذبذبات الميكانيكية الحرة بدون احتكاك، ما الخاصية التي تميز الطاقة الميكانيكية Em ؟",
+    "options": [
+      "تنحفظ وتبقى قيمتها ثابتة مع تحول متبادل بين الطاقة الحركية وطاقة الوضع",
+      "تتناقص تدريجياً وتتحول كلياً إلى حرارة",
+      "تتزايد مع مرور الزمن",
+      "تساوي صفراً في جميع اللحظات"
+    ],
+    "correct_answer": "تنحفظ وتبقى قيمتها ثابتة مع تحول متبادل بين الطاقة الحركية وطاقة الوضع",
+    "explanation": "في غياب قوى الاحتكاك المبددة للطاقة، تكون الطاقة الميكانيكية ثابتة: Em = Ec + Ep = Cste."
+  },
+  {
+    "id": "cpc155",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكهرباء والدارة RLC",
+    "question": "ما هي الظاهرة التي تحدث في دارة RLC متوالية عندما تنعدم المقاومة الكلية للدارة (R = 0) ؟",
+    "options": [
+      "تذبذبات كهربائية جيبية حرة غير مخمدة بدور خاص T0 = 2π √(LC)",
+      "خمود أسي فوري بدون أي تذبذب",
+      "توقف فوري لمرور التيار",
+      "تولد تيار مستمر ثابت القيمة"
+    ],
+    "correct_answer": "تذبذبات كهربائية جيبية حرة غير مخمدة بدور خاص T0 = 2π √(LC)",
+    "explanation": "عند انعدام المقاومة، تكون الدارة مثالية LC وتحدث تذبذبات جيبية متواصلة بدور خاص T0 = 2π√(LC)."
+  },
+  {
+    "id": "cpc156",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكهرباء والتضمين",
+    "question": "لتفادي ظاهرة فوق التضمين (Surmodulation) في تضمين الوسع (AM)، يجب أن تكون نسبة التضمين m محققة لـ:",
+    "options": [
+      "m أصغر من 1 (m < 1)",
+      "m أكبر من 1",
+      "m تساوي 10",
+      "m تساوي صفراً"
+    ],
+    "correct_answer": "m أصغر من 1 (m < 1)",
+    "explanation": "شرط جودة التضمين هو m = S_max / U0 < 1 وتردد الموجة الحاملة FP أكبر بكثير من تردد الإشارة fS."
+  },
+  {
+    "id": "cpc157",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الموجات والضوء",
+    "question": "معامل انكسار وسط شفاف n يُعرّف بالنسبة بين سرعة الضوء في الفراغ c وسرعته v في هذا الوسط بالعلاقة:",
+    "options": [
+      "n = c / v",
+      "n = v / c",
+      "n = c × v",
+      "n = c² / v"
+    ],
+    "correct_answer": "n = c / v",
+    "explanation": "معامل الانكسار المطلق لوسط شفاف هو n = c/v وهو دائماً أكبر من أو يساوي 1."
+  },
+  {
+    "id": "cpc158",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الموجات والضوء",
+    "question": "ظاهرة تبدد الضوء الأبيض (Dispersion) بواسطة موشور ترجع إلى كون:",
+    "options": [
+      "معامل انكسار الزجاج يتغير بتغير طول موجة الإشعاع الأحادي اللون المار عبره",
+      "الزجاج يمتص كل الألوان ما عدا البنفسجي",
+      "الضوء الأبيض يفقد طاقته عند دخول الموشور",
+      "سرعة الضوء ثابتة تماماً في جميع الأوساط"
+    ],
+    "correct_answer": "معامل انكسار الزجاج يتغير بتغير طول موجة الإشعاع الأحادي اللون المار عبره",
+    "explanation": "الوسط المبدد هو وسط تتعلق فيه سرعة انتشار الموجة الضوئية بترددها، ومنه اختلاف زاوية الانحراف للألوان."
+  },
+  {
+    "id": "cpc159",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "التحولات النووية",
+    "question": "ما هو التفتت بيتا ناقص (β⁻) من منظور التفاعل النووي الدقيق داخل النواة؟",
+    "options": [
+      "تحول نيوترون إلى بروتون مع انبعاث إلكترون وضديد نيوترينو",
+      "تحول بروتون إلى نيوترون مع انبعاث بوزيترون",
+      "انشطار النواة إلى نواتين خفيفتين",
+      "التقاط إلكتروني من مدارات الذرة"
+    ],
+    "correct_answer": "تحول نيوترون إلى بروتون مع انبعاث إلكترون وضديد نيوترينو",
+    "explanation": "في التفتت β⁻: يتحول نيوترون n(0,1) إلى بروتون p(1,1) وإلكترون e(-1,0) وضديد نيوترينو."
+  },
+  {
+    "id": "cpc160",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "التحولات النووية",
+    "question": "طاقة الربط لنواة (Énergie de liaison) تعبر عن:",
+    "options": [
+      "الطاقة الواجب منحها للنواة في حالة سكون لفصل نوياتها مع بقائها ساكنة",
+      "طاقة الحركة التي تتحرك بها النواة في الفراغ",
+      "الطاقة المنبعثة عند تكوين الذرة من إلكتروناتها",
+      "طاقة التجاذب الكهرسكوني بين الإلكترونات"
+    ],
+    "correct_answer": "الطاقة الواجب منحها للنواة في حالة سكون لفصل نوياتها مع بقائها ساكنة",
+    "explanation": "طاقة الربط E_l = Δm × c² حيث Δm هو النقص الكتلي للنواة (كتلة النويات منفصلة ناقص كتلة النواة)."
+  },
+  {
+    "id": "cpc161",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "التحولات النووية",
+    "question": "تكون نواة أكثر استقراراً كلما كانت:",
+    "options": [
+      "طاقة الربط بالنسبة للنوية (E_l / A) أكبر",
+      "كتلتها الإجمالية أكبر من 200 وحدة كتلة ذرية",
+      "عدد بروتوناتها مساوياً لصفر",
+      "عمر نصفها أصغر من ميكرو ثانية"
+    ],
+    "correct_answer": "طاقة الربط بالنسبة للنوية (E_l / A) أكبر",
+    "explanation": "معيار استقرار النوى هو طاقة الربط لكل نوية E_l/A (تبلغ أقصاها حوالي 8.8 MeV للحديد 56)."
+  },
+  {
+    "id": "cpc162",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكيمياء والتوازن الكيميائي",
+    "question": "تفاعل كيميائي تكون نسبة تقدمه النهائي τ = x_f / x_max = 1 هو تفاعل:",
+    "options": [
+      "كلي وتام",
+      "محدود وغير تام ويصل لحالة توازن",
+      "مستحيل الحدوث تلقائياً",
+      "بطيء جداً ويتوقف في البداية"
+    ],
+    "correct_answer": "كلي وتام",
+    "explanation": "إذا كانت τ = 1 فإن التقدم النهائي يطابق التقدم الأقصى، مما يعني استهلاك المتفاعل المحد كلياً (تفاعل تام)."
+  },
+  {
+    "id": "cpc163",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكيمياء وثابتة التوازن",
+    "question": "ثابتة التوازن K المقرونة بمعادلة تفاعل كيميائي في حالة توازن تتعلق فقط بـ:",
+    "options": [
+      "درجة الحرارة",
+      "التراكيز البدئية للمتفاعلات",
+      "حجم الإناء الذي يحتوي الخليط",
+      "الضغط الجوي دائماً"
+    ],
+    "correct_answer": "درجة الحرارة",
+    "explanation": "ثابتة التوازن K تميز التفاعل الكيميائي وتتعلق حصرياً بدرجة الحرارة ولا ترتبط بالتركيب البدئي للمجموعة."
+  },
+  {
+    "id": "cpc164",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكيمياء ومعيار التطور التلقائي",
+    "question": "إذا كان خارج التفاعل في الحالة البدئية Qr,i أصغر من ثابتة التوازن K (Qr,i < K)، فإن المجموعة الكيميائية تتطور:",
+    "options": [
+      "تلقائياً في المنحى المباشر (1) لإنتاج النواتج",
+      "تلقائياً في المنحى غير المباشر (2) المعاكس",
+      "تكون في حالة توازن ديناميكي ولا تتطور",
+      "تتطور في المنحيين معاً بنفس السرعة فوراً"
+    ],
+    "correct_answer": "تلقائياً في المنحى المباشر (1) لإنتاج النواتج",
+    "explanation": "حسب معيار التطور التلقائي: عندما يكون Qr < K تتطور المجموعة نحو اليمين لزيادة النواتج حتى يصل Qr = K."
+  },
+  {
+    "id": "cpc165",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكيمياء وتفاعلات الأسترة والحلمأة",
+    "question": "تفاعل الأسترة بين حمض كربوكسيلي وكحول أولي يتميز بكونه:",
+    "options": [
+      "بطيئاً ومحدوداً ولاتحرياً (Athermique) ومردوده يقارب 67%",
+      "سريعاً جداً وانفجارياً",
+      "تاماً وكلياً ويستهلك كل الحمض دائماً",
+      "ناشراً لحرارة هائلة"
+    ],
+    "correct_answer": "بطيئاً ومحدوداً ولاتحرياً (Athermique) ومردوده يقارب 67%",
+    "explanation": "تفاعل الأسترة-حلمأة تفاعل عكوس محدود بطيء وغير ناشر أو ماص للحرارة، مردوده 67% مع كحول أولي متساوي المولات."
+  },
+  {
+    "id": "cpc166",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكيمياء والحفز",
+    "question": "ما هو دور «الحفاز» (Catalyseur) في تفاعل كيميائي؟",
+    "options": [
+      "يزيد من سرعة الوصول إلى حالة التوازن دون أن يغير من تركيب خليط التوازن ولا يظهر في المعادلة الحصيلة",
+      "يزيد من كمية الناتج النهائي الأقصى",
+      "يغير من قيمة ثابتة التوازن K للتفاعل",
+      "يبطئ التفاعلات السريعة لتفادي الانفجار"
+    ],
+    "correct_answer": "يزيد من سرعة الوصول إلى حالة التوازن دون أن يغير من تركيب خليط التوازن ولا يظهر في المعادلة الحصيلة",
+    "explanation": "الحفاز يخفض طاقة التنشيط فيسرع التفاعل دون المساس بالحالة النهائية للتوازن أو الثابتة K."
+  },
+  {
+    "id": "cpc167",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكهرباء والأعمدة الكهروكيميائية",
+    "question": "في عمود دانييل (Pile Daniell)، ما هو التفاعل الذي يحدث عند القطب السالب (الأنود)؟",
+    "options": [
+      "أكسدة فلز الخارصين: Zn → Zn²⁺ + 2e⁻",
+      "اختزال أيونات النحاس: Cu²⁺ + 2e⁻ → Cu",
+      "أكسدة النحاس إلى أيونات النحاس",
+      "تفكك حمض الكبريتيك إلى غاز الهيدروجين"
+    ],
+    "correct_answer": "أكسدة فلز الخارصين: Zn → Zn²⁺ + 2e⁻",
+    "explanation": "الأنود هو القطب السالب في العمود الكهروكيميائي ويحدث عنده دائماً تفاعل الأكسدة (فقدان الإلكترونات)."
+  },
+  {
+    "id": "cpc168",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكهرباء والأعمدة الكهروكيميائية",
+    "question": "ما هو الدور الأساسي للقنطرة الأيونية (Pont salin) في العمود الكهروكيميائي؟",
+    "options": [
+      "ضمان الحياد الكهربائي للمحلولين في نصفي العمود وإغلاق الدارة الكهربائية",
+      "توليد الطاقة الكهربائية مباشرة من الأملاح",
+      "منع انتقال الإلكترونات في السلك الخارجي",
+      "تبريد العمود أثناء الاشتغال"
+    ],
+    "correct_answer": "ضمان الحياد الكهربائي للمحلولين في نصفي العمود وإغلاق الدارة الكهربائية",
+    "explanation": "القنطرة الأيونية تسمح بهجرة الأنيونات والكاتيونات للحفاظ على التعادل الكهربائي في الكأسين واستمرار مرور التيار."
+  },
+  {
+    "id": "cpc169",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الميكانيك وحركة قذيفة",
+    "question": "في حركة قذيفة في مجال الثقالة المنتظم وبإهمال الهواء، ما شكل مسار القذيفة عندما تكون زاوية القذف α محصورة بين 0 و 90 درجة؟",
+    "options": [
+      "شلجمي (Parabolique) في المستوى الرأسي لحركة القذيفة",
+      "دائري نصف قطره المسافة الأفقية",
+      "مستقيمي عمودي على سطح الأرض",
+      "جيبي يتذبذب صعوداً وهبوطاً"
+    ],
+    "correct_answer": "شلجمي (Parabolique) في المستوى الرأسي لحركة القذيفة",
+    "explanation": "معادلة المسار تكتب على شكل y = -g/(2 v0² cos²α) x² + tanα x، وهي معادلة شلجم تقع قمته في الأعلى."
+  },
+  {
+    "id": "cpc170",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الميكانيك وحركة قذيفة",
+    "question": "للحصول على أقصى مدى أفقي ممكن لقذيفة بنفس السرعة البدئية v0، ما هي زاوية القذف المثلى؟",
+    "options": [
+      "45 درجة",
+      "30 درجة",
+      "60 درجة",
+      "90 درجة"
+    ],
+    "correct_answer": "45 درجة",
+    "explanation": "المدى يتناسب مع sin(2α)، ويبلغ أقصاه عندما يكون 2α = 90° أي α = 45°."
+  },
+  {
+    "id": "cpc171",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الميكانيك ودوران جسم صلب",
+    "question": "عزم القوة M_Δ(F) بالنسبة لمحور دوران ثابت Δ يُعرّف بـ:",
+    "options": [
+      "الجداء الجبري للشدة F في المسافة العمودية d الفاصلة بين خط تأثير القوة والمحور",
+      "حاصل قسمة F على d",
+      "مربع الشدة في المسافة d",
+      "الكتلة في تسارع الدوران"
+    ],
+    "correct_answer": "الجداء الجبري للشدة F في المسافة العمودية d الفاصلة بين خط تأثير القوة والمحور",
+    "explanation": "عزم القوة: M_Δ(F) = ± F × d ويقاس بالنيوتن متر (N.m)."
+  },
+  {
+    "id": "cpc172",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الميكانيك ودوران جسم صلب",
+    "question": "العلاقة الأساسية للتحريك في حالة الدوران حول محور ثابت Δ تنص على أن مجموع عزوم القوى الخارجية يساوي:",
+    "options": [
+      "J_Δ × θ'' (جداء عزم القصور في التسارع الزاوي)",
+      "J_Δ × θ' (جداء عزم القصور في السرعة الزاوية)",
+      "m × a_G",
+      "نصف عزم القصور في مربع السرعة الزاوية"
+    ],
+    "correct_answer": "J_Δ × θ'' (جداء عزم القصور في التسارع الزاوي)",
+    "explanation": "العلاقة الأساسية للتحريك في الدوران: ∑ M_Δ(F_ext) = J_Δ × θ''."
+  },
+  {
+    "id": "cpc173",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكهرباء والتحريض الكهرومغناطيسي",
+    "question": "قانون فاراداي (Faraday) ينص على أن القوة الكهرحركية التحريضية e المتولدة في دارة تساوي:",
+    "options": [
+      "e = - dΦ / dt (المشتقة الزمنية لتدفق المجال المغناطيسي مسبوقة بإشارة ناقص)",
+      "e = dΦ / dt",
+      "e = Φ × t",
+      "e = B × I × L"
+    ],
+    "correct_answer": "e = - dΦ / dt (المشتقة الزمنية لتدفق المجال المغناطيسي مسبوقة بإشارة ناقص)",
+    "explanation": "قانون فاراداي-لينز: e = -dΦ/dt، حيث تعبر إشارة الناقص عن قانون لينز (التيار التحريضي يعاكس السبب الذي أحدثه)."
+  },
+  {
+    "id": "cpc174",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكهرباء والتضمين",
+    "question": "ما هي المراحل الثلاث الأساسية لدارة كشف الغلاف (Détection d'enveloppe) لإزالة تضمين الوسع؟",
+    "options": [
+      "تقويم ثنائي القطب (الصمام)، ثم مرشح ممرر للترددات المنخفضة RC، ثم مكثف لحذف المركبة المستمرة",
+      "مضخم صوتي، ومحول جهد، وبطارية",
+      "موشور عاكس، وشق ضوئي، وعدسة مجمعة",
+      "مكثف هوائي، ومقاومة حرارية، وجرس كهربائي"
+    ],
+    "correct_answer": "تقويم ثنائي القطب (الصمام)، ثم مرشح ممرر للترددات المنخفضة RC، ثم مكثف لحذف المركبة المستمرة",
+    "explanation": "كشف الغلاف يتطلب حذف النوبات السالبة بصمام ثنائي، ثم ترشيح التردد الحامل بدارة RC، ثم حذف المركبة المستمرة بمكثف."
+  },
+  {
+    "id": "cpc175",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الموجات والموجات فوق الصوتية",
+    "question": "الموجات فوق الصوتية هي موجات ميكانيكية طولية ترددها:",
+    "options": [
+      "أكبر من 20 كيلوهرتز (f > 20 kHz) وغير مسموعة للأذن البشرية",
+      "محصور بين 20 هرتز و 20 كيلوهرتز",
+      "أقل من 20 هرتز",
+      "كهرومغناطيسية تنتشر في الفراغ بسرعة الضوء"
+    ],
+    "correct_answer": "أكبر من 20 كيلوهرتز (f > 20 kHz) وغير مسموعة للأذن البشرية",
+    "explanation": "المجال فوق الصوتي يتجاوز عتبة السمع البشري (20 kHz) وتتطلب وسطاً مادياً للانتشار بتضاغط وتمدد طولي."
+  },
+  {
+    "id": "cpc176",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكيمياء والموصلية والمواصلة",
+    "question": "قانون كولروش (Kohlrausch) يعبر عن الموصلية σ لمحلول إلكتروليتي ممدد بالعلاقة:",
+    "options": [
+      "σ = مجموع λ_i × [X_i] (مجموع جداءات الموصلية المولية الأيونية في تراكيز الأيونات)",
+      "σ = G × (S / L)",
+      "σ = [X_i] / λ_i",
+      "σ = R × I"
+    ],
+    "correct_answer": "σ = مجموع λ_i × [X_i] (مجموع جداءات الموصلية المولية الأيونية في تراكيز الأيونات)",
+    "explanation": "قانون كولروش: σ = ∑ λ_i [X_i]، ويعتمد على إسهام كل أيون في نقل التيار الكهربائي."
+  },
+  {
+    "id": "cpc177",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكيمياء والمعايرة المباشرة",
+    "question": "عند نقطة التكافؤ (Équivalence) في معايرة حمض-قاعدة، ما الخاصية التي تتحقق دائماً؟",
+    "options": [
+      "تختفي المتفاعلات المعايِرة والمعايَرة بنسب المعاملات الستوكيومترية تماماً",
+      "يصبح pH المحلول مساوياً لـ 7 دائماً",
+      "يتغير لون المحلول إلى الأسود القاتم",
+      "ينفد الماء الموجود في البيشر كلياً"
+    ],
+    "correct_answer": "تختفي المتفاعلات المعايِرة والمعايَرة بنسب المعاملات الستوكيومترية تماماً",
+    "explanation": "التكافؤ هو الحالة التي تختفي فيها كميات مادة المتفاعلين معاً: n_A/a = n_B/b (الخليط ستوكيومتري)."
+  },
+  {
+    "id": "cpc178",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكيمياء والكواشف الملونة",
+    "question": "يكون الكاشف الملون ملائماً لمعايرة حمض-قاعدة إذا كانت:",
+    "options": [
+      "منطقة انعطافه تحتوي على قيمة الـ pH عند التكافؤ",
+      "منطقة انعطافه تساوي الصفر دائماً",
+      "لونه يتغير فقط عند درجة غليان الماء",
+      "كتلته المولية أكبر من 500 g/mol"
+    ],
+    "correct_answer": "منطقة انعطافه تحتوي على قيمة الـ pH عند التكافؤ",
+    "explanation": "معيار اختيار الكاشف الملون هو أن يقع pH التكافؤ (pH_E) داخل منطقة انعطاف الكاشف (Zone de virage)."
+  },
+  {
+    "id": "cpc179",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكيمياء والتحليل الكهربائي",
+    "question": "التحليل الكهربائي (Électrolyse) هو تحول كيميائي:",
+    "options": [
+      "قسري غير تلقائي يتم بفعل تيار كهربائي يفرضه مولد خارجي",
+      "تلقائي يولد طاقة كهربائية ومستمر تلقائياً",
+      "يحدث فقط في الغازات النبيلة",
+      "لا يرافقه أي انتقال للإلكترونات"
+    ],
+    "correct_answer": "قسري غير تلقائي يتم بفعل تيار كهربائي يفرضه مولد خارجي",
+    "explanation": "التحليل الكهربائي تفاعل قسري مفروض ينعكس فيه منحى التطور التلقائي بواسطة طاقة كهربائية خارجية."
+  },
+  {
+    "id": "cpc180",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "التحولات النووية والانشطار",
+    "question": "الانشطار النووي (Fission nucléaire) هو تفاعل نووي حراري يتم فيه:",
+    "options": [
+      "انقسام نواة ثقيلة شطورة إلى نواتين أخف تحت قذف بنيوترون بطيء",
+      "التحام نواتين خفيفتين لتكوين نواة أثقل",
+      "تفكك تلقائي دون أي قذف خارجي",
+      "انبعاث أشعة إكس من الطبقات الإلكترونية"
+    ],
+    "correct_answer": "انقسام نواة ثقيلة شطورة إلى نواتين أخف تحت قذف بنيوترون بطيء",
+    "explanation": "الانشطار هو قذف نواة ثقيلة (كاليورانيوم 235) بنيوترون حراري فتنشطر لنواتين مع تحرير طاقة هائلة ونيوترونات جديدة."
+  },
+  {
+    "id": "cpc181",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "التحولات النووية والاندماج",
+    "question": "الاندماج النووي (Fusion nucléaire) هو تفاعل يتم فيه:",
+    "options": [
+      "التحام نواتين خفيفتين لتكوين نواة أكثر استقراراً مع تحرير طاقة كبيرة",
+      "انقسام نواة البلوتونيوم إلى ذرات هيدروجين",
+      "فقدان النواة لشحنتها الكهربائية كلياً",
+      "انبعاث جسيمات ألفا فقط"
+    ],
+    "correct_answer": "التحام نواتين خفيفتين لتكوين نواة أكثر استقراراً مع تحرير طاقة كبيرة",
+    "explanation": "الاندماج (مثل اندماج الدوتريوم والتريتيوم لإنتاج الهيليوم) يحرر طاقة لكل نوية أكبر من طاقة الانشطار ويحدث في قلب النجوم."
+  },
+  {
+    "id": "cpc182",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الميكانيك والسرعة والتسارع",
+    "question": "في أساس فريني (Repère de Frenet) لحركة منحنية، مركبة التسارع المماسي a_t تساوي:",
+    "options": [
+      "a_t = dv / dt (المشتقة الزمنية للسرعة البديهية)",
+      "a_t = v² / ρ",
+      "a_t = 0 دائماً",
+      "a_t = g cos(θ)"
+    ],
+    "correct_answer": "a_t = dv / dt (المشتقة الزمنية للسرعة البديهية)",
+    "explanation": "في معلم فريني: التسارع الكلي a = a_t u + a_n n، حيث a_t = dv/dt و a_n = v²/ρ (التسارع المنظمي)."
+  },
+  {
+    "id": "cpc183",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الميكانيك والسرعة والتسارع",
+    "question": "في حركة دائرية منتظمة، كيف يكون شعاع التسارع؟",
+    "options": [
+      "انجذابي مركزي (Centripète) موجه نحو مركز الدائرة ومنظمي فقط (a = v² / R)",
+      "مماسي للمسار في نفس منحى السرعة",
+      "منعدم لأن السرعة البديهية ثابتة",
+      "موجه نحو خارج الدائرة بشكل طارد"
+    ],
+    "correct_answer": "انجذابي مركزي (Centripète) موجه نحو مركز الدائرة ومنظمي فقط (a = v² / R)",
+    "explanation": "في الحركة الدائرية المنتظمة، dv/dt = 0 فتختفي المركبة المماسية، ويبقى التسارع المنظمي فقط موجهاً نحو المركز."
+  },
+  {
+    "id": "cpc184",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكهرباء والطاقة في الوشيعة",
+    "question": "ما هي الطاقة المغناطيسية E_m المخزونة في وشيعة معامل تحريضها L يمر بها تيار شدته I ؟",
+    "options": [
+      "E_m = (1/2) L I²",
+      "E_m = L I",
+      "E_m = (1/2) L² I",
+      "E_m = L I²"
+    ],
+    "correct_answer": "E_m = (1/2) L I²",
+    "explanation": "الطاقة المغناطيسية للوشيعة تعطى بالعلاقة الكلاسيكية: E_m = (1/2) L I²."
+  },
+  {
+    "id": "cpc185",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الميكانيك والاحتكاك المائع",
+    "question": "أثناء سقوط كرة في سائل لزج بقوة احتكاك مائع f = -k v، ما الخاصية التي تميز السرعة الحدية v_lim ؟",
+    "options": [
+      "تصبح السرعة ثابتة وينعدم تسارع حركة الكرة (a = 0)",
+      "تتزايد السرعة إلى ما لا نهاية",
+      "تنعدم السرعة وتتوقف الكرة فوراً في السائل",
+      "تتذبذب السرعة صعوداً وهبوطاً"
+    ],
+    "correct_answer": "تصبح السرعة ثابتة وينعدم تسارع حركة الكرة (a = 0)",
+    "explanation": "عند الوصول للسرعة الحدية، تتعادل قوة الثقالة مع مجموع دافعة أرخميدس والاحتكاك فيصبح التسارع a = 0 وتستقر السرعة."
+  },
+  {
+    "id": "cpc186",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكيمياء وزمن نصف التفاعل",
+    "question": "زمن نصف التفاعل t_{1/2} لتفاعل كيميائي هو المدة الزمنية اللازمة لـ:",
+    "options": [
+      "بلوغ تقدم التفاعل نصف قيمته النهائية (x = x_f / 2)",
+      "انتهاء التفاعل كلياً واختفاء المتفاعلات",
+      "تضاعف درجة حرارة خليط التفاعل",
+      "استهلاك نصف كتلة المذيب المستخدم"
+    ],
+    "correct_answer": "بلوغ تقدم التفاعل نصف قيمته النهائية (x = x_f / 2)",
+    "explanation": "حسب التعريف الحركي: t_{1/2} هي اللحظة التي يصل فيها تقدم التفاعل نصف تقدمه النهائي."
+  },
+  {
+    "id": "cpc187",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكيمياء وحمض كربوكسيلي ومشتقاته",
+    "question": "للحصول على مردود تام وسريع لتفاعل الأسترة دون تكون الماء، يُستحسن استبدال الحمض الكربوكسيلي بـ:",
+    "options": [
+      "أندريد الحمض (Anhydride d'acide) أو كلورور الأسيل",
+      "كحول ثانوي آخر",
+      "ألكان خطي",
+      "قاعدة قوية مثل هيدروكسيد الصوديوم"
+    ],
+    "correct_answer": "أندريد الحمض (Anhydride d'acide) أو كلورور الأسيل",
+    "explanation": "مشتقات الأحماض الكربوكسيلية (أندريدات وكلورورات الأسيل) أكثر تفاعلية وتجعل تصنيع الإستر سريعاً وكلياً (تاماً)."
+  },
+  {
+    "id": "cpc188",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكيمياء وتصبن الإستر",
+    "question": "تفاعل تصبن الإستر (Saponification) مع محلول أيونات الهيدروكسيد HO⁻ يتميز بكونه:",
+    "options": [
+      "تفاعلاً بطيئاً وتاماً ينتج عنه الكحول وأيون الكربوكسيلات (الصابون)",
+      "تفاعلاً عكوساً ومحدوداً مردوده 5%",
+      "تفاعلاً ينتج عنه غاز الأكسجين النقي",
+      "تفاعلاً لا يمكن أن يحدث في المختبر"
+    ],
+    "correct_answer": "تفاعلاً بطيئاً وتاماً ينتج عنه الكحول وأيون الكربوكسيلات (الصابون)",
+    "explanation": "التصبن هو الحلمأة القلوية للإستر بواسطة قاعدة قوية HO⁻، وهو تفاعل كلي وتام يصنع الصابون."
+  },
+  {
+    "id": "cpc189",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الميكانيك وكمية الحركة",
+    "question": "في نظام معزول ميكانيكياً (مجموع القوى الخارجية منعدم)، ما الكمية الفيزيائية التي تنحفظ؟",
+    "options": [
+      "متجهة كمية الحركة الإجمالية للنظام (p = ∑ m_i v_i = متجهة ثابتة)",
+      "الطاقة الحرارية فقط",
+      "سرعة كل جسم على حدة",
+      "حجم النظام وأبعاده الهندسية"
+    ],
+    "correct_answer": "متجهة كمية الحركة الإجمالية للنظام (p = ∑ m_i v_i = متجهة ثابتة)",
+    "explanation": "مبدأ انحفاظ كمية الحركة: إذا كانت ∑ F_ext = 0 فإن dp/dt = 0 وبالتالي p = Cste."
+  },
+  {
+    "id": "cpc190",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكهرباء وتضمين التردد",
+    "question": "في التضمين الترددي (FM)، ما المعلمة الفيزيائية للإشارة الحاملة التي تتغير وفق الإشارة المضمنة؟",
+    "options": [
+      "تردد الموجة الحاملة مع بقاء وسعها ثابتاً",
+      "وسع الموجة الحاملة فقط",
+      "سرعة انتشار الموجة في الهواء",
+      "طبيعة الموجة من كهرومغناطيسية إلى صوتية"
+    ],
+    "correct_answer": "تردد الموجة الحاملة مع بقاء وسعها ثابتاً",
+    "explanation": "في التضمين FM، يتغير التردد اللحظي للموجة الحاملة تناسبياً مع إشارة المعلومات مع الحفاظ على وسع ثابت."
+  },
+  {
+    "id": "cpc191",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الموجات وتأثير دوبلر",
+    "question": "تأثير دوبلر (Effet Doppler) يتمثل في:",
+    "options": [
+      "تغير التردد المدرك لموجة بسبب الحركة النسبية بين المنبع والملاحظ",
+      "انكسار الضوء عند عبوره وسطين شفافين",
+      "امتصاص الصوت داخل الأجسام المسامية",
+      "تغير سرعة الضوء بتغير شدة الإضاءة"
+    ],
+    "correct_answer": "تغير التردد المدرك لموجة بسبب الحركة النسبية بين المنبع والملاحظ",
+    "explanation": "عند اقتراب المنبع الصوتي يزداد التردد المدرك (صوت حاد)، وعند ابتعاده ينخفض التردد (صوت غليظ)."
+  },
+  {
+    "id": "cpc192",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الميكانيك وقوة لورنتز",
+    "question": "القوة المغناطيسية المطبقة على شحنة q تتحرك بسرعة v في مجال مغناطيسي B تعطى بـ:",
+    "options": [
+      "F = q (v ∧ B) (الجداء المتجهي للسرعة والمجال)",
+      "F = q E + B",
+      "F = m v B",
+      "F = q v / B"
+    ],
+    "correct_answer": "F = q (v ∧ B) (الجداء المتجهي للسرعة والمجال)",
+    "explanation": "قوة لورنتز المغناطيسية: F_mag = q(v ∧ B)، وهي دائماً عمودية على مستوي المتجهتين v و B."
+  },
+  {
+    "id": "cpc193",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الميكانيك وحركة شحنة في مجال مغناطيسي",
+    "question": "حركة دقيقة مشحونة تدخل عمودياً على مجال مغناطيسي منتظم B بسرعة v0 تكون:",
+    "options": [
+      "دائرية منتظمة في مستوى عمودي على B",
+      "مستقيمية متسارعة بانتظام",
+      "شلجمية مفتوحة نحو القطب الشمالي",
+      "حلزونية بنصف قطر متزايد باستمرار"
+    ],
+    "correct_answer": "دائرية منتظمة في مستوى عمودي على B",
+    "explanation": "قوة لورنتز عمودية على السرعة فلا تنجز شغلاً (الطاقة الحركية ثابتة) والتسارع انجذابي مركزي خالص."
+  },
+  {
+    "id": "cpc194",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكيمياء والمحاليل المنظمة",
+    "question": "المحلول المنظم (Solution tampon) هو محلول يتميز بكون:",
+    "options": [
+      "قيمة الـ pH فيه تتغير قليلاً جداً عند إضافة كميات محدودة من حمض أو قاعدة أو عند التخفيف المعتدل",
+      "قيمة الـ pH فيه تساوي 0 دائماً",
+      "يغلي عند درجات حرارة منخفضة جداً",
+      "لا يحتوي على أي جزيئات ماء"
+    ],
+    "correct_answer": "قيمة الـ pH فيه تتغير قليلاً جداً عند إضافة كميات محدودة من حمض أو قاعدة أو عند التخفيف المعتدل",
+    "explanation": "المحلول المنظم يتكون من حمض ضعيف وقاعدته المرافقة بتراكيز متقاربة، مما يقاوم تغيرات الـ pH."
+  },
+  {
+    "id": "cpc195",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكيمياء وثابتة الحمضية pKa",
+    "question": "العلاقة التي تربط الـ pH بثابتة الحمضية pKa للمزدوجة حمض/قاعدة (AH / A⁻) هي:",
+    "options": [
+      "pH = pKa + log([A⁻] / [AH])",
+      "pH = pKa - log([A⁻] / [AH])",
+      "pH = pKa × log([AH] / [A⁻])",
+      "pKa = pH + log([A⁻] / [AH])"
+    ],
+    "correct_answer": "pH = pKa + log([A⁻] / [AH])",
+    "explanation": "علاقة هندرسون-هاسلباخ الشهيرة: pH = pKa + log([Base]/[Acide])."
+  },
+  {
+    "id": "cpc196",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكيمياء ومخطط الهيمنة",
+    "question": "في محلول مائي، عندما يكون pH أكبر قطعا من pKa للمزدوجة حمض/قاعدة، فإن:",
+    "options": [
+      "النوع القاعدي A⁻ هو المهيمن في المحلول ([A⁻] > [AH])",
+      "النوع الحمضي AH هو المهيمن",
+      "النوعان متساويان في التركيز",
+      "المحلول يتحول إلى راسب فوري"
+    ],
+    "correct_answer": "النوع القاعدي A⁻ هو المهيمن في المحلول ([A⁻] > [AH])",
+    "explanation": "حسب علاقة pH = pKa + log([A⁻]/[AH]): إذا كان pH > pKa فإن log > 0 وبالتالي تركيز القاعدة أكبر من تركيز الحمض."
+  },
+  {
+    "id": "cpc197",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "التحولات النووية ومخطط سيغري",
+    "question": "في مخطط سيغري (Segrè) الممثل لـ N بدلالة Z، النوى المستقرة الخفيفة (Z < 20) تتموضع حول المنصف الأول:",
+    "options": [
+      "N = Z (عدد النيوترونات يساوي عدد البروتونات)",
+      "N = 2 Z",
+      "Z = 2 N",
+      "N = 0"
+    ],
+    "correct_answer": "N = Z (عدد النيوترونات يساوي عدد البروتونات)",
+    "explanation": "بالنسبة للنوى الخفيفة، يتحقق الاستقرار التام عندما يتساوى عدد النيوترونات مع عدد البروتونات (N/Z = 1)."
+  },
+  {
+    "id": "cpc198",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الميكانيك وقوة الثقالة الكونية",
+    "question": "قانون التجاذب الكوني لنيوتن بين جسمين نقطيين كتلتيهما m1 و m2 تفصلهما مسافة r هو:",
+    "options": [
+      "F = G × (m1 × m2) / r²",
+      "F = G × (m1 + m2) / r",
+      "F = G × (m1 × m2) / r",
+      "F = G × r² / (m1 × m2)"
+    ],
+    "correct_answer": "F = G × (m1 × m2) / r²",
+    "explanation": "قوة التجاذب الثقالي الكوني تتناسب طردياً مع جداء الكتلتين وعكسياً مع مربع المسافة الفاصلة بينهما."
+  },
+  {
+    "id": "cpc199",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الكهرباء والتذبذبات القسرية والرنين",
+    "question": "في دارة RLC متوالية خاضعة لتوتر متناوب جيبي، تحدث ظاهرة الرنين الكهربائي (Résonance) عندما:",
+    "options": [
+      "يساوي تردد المولد التردد الخاص للدارة النظري (N = N0) ويكون التوتر والتيار على توافق في الطور",
+      "تنعدم شدة التيار كلياً في الدارة",
+      "تصبح ممانعة الدارة لا نهائية",
+      "يصبح التوتر والتيار على تعامد في الطور"
+    ],
+    "correct_answer": "يساوي تردد المولد التردد الخاص للدارة النظري (N = N0) ويكون التوتر والتيار على توافق في الطور",
+    "explanation": "عند الرنين الكهربائي: Lω = 1/(Cω)، وتصبح الممانعة دنوية Z = R، وتأخذ شدة التيار قيمتها القصوى ويكون cos φ = 1."
+  },
+  {
+    "id": "cpc200",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_physics",
+    "topic": "الفيزياء الذرية والميكانيك الكمي",
+    "question": "علاقة بلانك-أينشتاين لطاقة فوتون ضوئي تردده ν وطول موجته في الفراغ λ هي:",
+    "options": [
+      "E = h × ν = (h × c) / λ",
+      "E = h / ν",
+      "E = h × λ",
+      "E = (1/2) h ν²"
+    ],
+    "correct_answer": "E = h × ν = (h × c) / λ",
+    "explanation": "طاقة الفوتون تتناسب طردياً مع تردده ν بواسطة ثابتة بلانك h: E = hν = hc/λ."
   },
   {
     "id": "cpe116",
@@ -7996,6 +10336,276 @@ export const INITIAL_QUESTIONS = [
     "explanation": "العملة المغربية هي الدرهم."
   },
   {
+    "id": "csv101",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "البيولوجيا الخلوية والوراثة",
+    "question": "ما هو الحمض النووي الحامل للمعلومة الوراثية لدى جميع الكائنات الحية الخلوية؟",
+    "options": [
+      "الحمض النووي ريبوزي منقوص الأكسجين (ADN)",
+      "الحمض النووي الريبوزي الرسول (ARNm)",
+      "الأدينوزين ثلاثي الفوسفات (ATP)",
+      "الكولاجين السكري"
+    ],
+    "correct_answer": "الحمض النووي ريبوزي منقوص الأكسجين (ADN)",
+    "explanation": "جزيئة ADN المكونة من لولب مضاعف هي الدعامة الجزيئية للخبر الوراثي في الخلية."
+  },
+  {
+    "id": "csv102",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "البيولوجيا الخلوية والوراثة",
+    "question": "وفق قاعدة التكامل البنيوي لإرغاف (Chargaff)، ما هي الروابط الهيدروجينية التي تربط القواعد الأزوتية في لولب ADN؟",
+    "options": [
+      "رابطتان هيدروجينيتان بين A و T، وثلاث روابط هيدروجينية بين C و G",
+      "ثلاث روابط بين A و T، ورابطتان بين C و G",
+      "رابطة واحدة تساهمية بين جميع القواعد",
+      "أربع روابط ببتيدية بين A و C"
+    ],
+    "correct_answer": "رابطتان هيدروجينيتان بين A و T، وثلاث روابط هيدروجينية بين C و G",
+    "explanation": "الارتباط النوعي بين القواعد النيتروجينية: A ترتبط بـ T برابطتي هيدروجين، و C ترتبط بـ G بثلاث روابط هيدروجين."
+  },
+  {
+    "id": "csv103",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "البيولوجيا الخلوية والوراثة",
+    "question": "أثناء أي طور من دورة الخلية تحدث مضاعفة الـ ADN (النسخ الذاتي نصف المحافظ)؟",
+    "options": [
+      "طور التركيب (S) من مرحلة السكون (Interphase)",
+      "طور الانفصال في الانقسام غير المباشر",
+      "طور النمو الأول (G1)",
+      "الطور النهائي للانقسام الاختزالي"
+    ],
+    "correct_answer": "طور التركيب (S) من مرحلة السكون (Interphase)",
+    "explanation": "تتضاعف كمية الـ ADN من Q إلى 2Q خلال الطور التركيبي S من مرحلة السكون بواسطة أنزيم ADN بوليميراز."
+  },
+  {
+    "id": "csv104",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "تعبير الخبر الوراثي",
+    "question": "ما هي العملية البيولوجية التي يتم خلالها تصنيع جزيئة ARNm انطلاقاً من اللولب الناسخ للـ ADN؟",
+    "options": [
+      "الاستنساخ (Transcription)",
+      "الترجمة (Traduction)",
+      "التضاعف نصف المحافظ",
+      "الفسفرة التأكسدية"
+    ],
+    "correct_answer": "الاستنساخ (Transcription)",
+    "explanation": "الاستنساخ يتم داخل النواة بواسطة أنزيم ARN بوليميراز لإنتاج نسخة رسولية ARNm من المورثة."
+  },
+  {
+    "id": "csv105",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "تعبير الخبر الوراثي",
+    "question": "أين تتم عملية «الترجمة» لتركيب السلسلة الببتيدية البروتينية داخل الخلية؟",
+    "options": [
+      "في السيتوبلازم على مستوى الريبوزومات",
+      "داخل النوية في النواة فقط",
+      "داخل تجويف الليزوزومات",
+      "في الغشاء السيتوبلازمي الخارجي"
+    ],
+    "correct_answer": "في السيتوبلازم على مستوى الريبوزومات",
+    "explanation": "تتم ترجمة شفرات الـ ARNm إلى أحماض أمينية في السيتوبلازم بمساعدة الريبوزومات وجزيئات ARN الناقل (ARNt)."
+  },
+  {
+    "id": "csv106",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "تعبير الخبر الوراثي",
+    "question": "ما هي وحدة الشفرة الوراثية (Codon) على جزيئة ARNm التي تشفر حمضاً أمينياً واحداً؟",
+    "options": [
+      "ثلاثية من النوكليوتيدات (Triplets de nucléotides)",
+      "نوكليوتيد واحد مفرد",
+      "زوج من القواعد النيتروجينية",
+      "سلسلة من 20 قاعدة أزوتية"
+    ],
+    "correct_answer": "ثلاثية من النوكليوتيدات (Triplets de nucléotides)",
+    "explanation": "الشفرة الوراثية ثلاثية؛ فكل وحدة رمزية مكونة من 3 نوكليوتيدات تشفر حمضاً أمينياً محدداً أو إشارة توقف."
+  },
+  {
+    "id": "csv107",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "الانقسام الاختزالي والتوالد الجنسي",
+    "question": "ما هي الظاهرة الوراثية المسؤولة عن التخليط البيصبغي (Brassage interchromosomique)؟",
+    "options": [
+      "الافتراق المستقل والعشوائي للصبغيات المتماثلة خلال الطور الانفصالي الأول من الانقسام الاختزالي",
+      "تبادل قطع صبغية بين الصبغيات غير المتماثلة في مرحلة السكون",
+      "التحام نواتي المشيجين الذكري والأنثوي",
+      "مضاعفة الجسيم المركزي"
+    ],
+    "correct_answer": "الافتراق المستقل والعشوائي للصبغيات المتماثلة خلال الطور الانفصالي الأول من الانقسام الاختزالي",
+    "explanation": "التخليط البيصبغي ينجم عن التوزيع العشوائي والمستقل للصبغيات المتماثلة خلال الانفصالي الأول (Ana I)."
+  },
+  {
+    "id": "csv108",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "الانقسام الاختزالي والتوالد الجنسي",
+    "question": "ظاهرة العبور الصبغي (Crossing-over) المسؤولة عن التخليط الصبغي الداخلي (Brassage intrachromosomique) تحدث خلال:",
+    "options": [
+      "الطور التمهيدي الأول (Prophase I) عند تشكل الرباعيات الصبغية",
+      "الطور النهائي الثاني",
+      "الطور الاستوائي للانقسام غير المباشر",
+      "مرحلة السكون G2"
+    ],
+    "correct_answer": "الطور التمهيدي الأول (Prophase I) عند تشكل الرباعيات الصبغية",
+    "explanation": "يحدث العبور الصبغي في الطور التمهيدي الأول بنقاط التصالب (Chiasmas) بين الصبيغيات غير الشقيقة للصبغيين المتماثلين."
+  },
+  {
+    "id": "csv109",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "جيولوجيا وتكتونية الصفائح",
+    "question": "ما هو المحرك الأساسي لحركة الصفائح الصخرية التكتونية في الغلاف الصخري للأرض؟",
+    "options": [
+      "تيارات الحمل الحراري (Courants de convection) في الأستنوسفير والجاذبية الأرضية",
+      "دوران الأرض حول الشمس والرياح السطحية",
+      "حركات المد والجزر المحيطية",
+      "المجال المغناطيسي الشمسي"
+    ],
+    "correct_answer": "تيارات الحمل الحراري (Courants de convection) في الأستنوسفير والجاذبية الأرضية",
+    "explanation": "الحرارة الباطنية للأرض تولد تيارات صاعدة وهابطة في الوشاح (الأستنوسفير)، مما يحرك الصفائح الصخرية الطافية فوقها."
+  },
+  {
+    "id": "csv110",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "جيولوجيا وتكتونية الصفائح",
+    "question": "ظاهرة «الطمر» (Subduction) التكتونية تتمثل في:",
+    "options": [
+      "انغراز غلاف صخري محيطي أكثر كثافة تحت غلاف صخري قاري أو محيطي أقل كثافة",
+      "تباعد صفيحتين على مستوى الذروة المحيطية",
+      "اصطدام كتلتين قاريتين بعد انغلاق المحيط",
+      "انزلاق أفقي لصدع تحويلي دون تقارب أو تباعد"
+    ],
+    "correct_answer": "انغراز غلاف صخري محيطي أكثر كثافة تحت غلاف صخري قاري أو محيطي أقل كثافة",
+    "explanation": "الطمر هو هبوط الصفيحة المحيطية الباردة والكثيفة في الوشاح، ويرافقه نشاط زلزالي وبركاني أنديزيتي نشط."
+  },
+  {
+    "id": "csv111",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "علم المناعة",
+    "question": "أي الخلايا اللمفاوية التالية مسؤولة عن إفراز مضادات الأجسام النوعية (Immunoglobulines) في الاستجابة الخلطية؟",
+    "options": [
+      "البلزميات (Plasmocytes) الناتجة عن تمايز اللمفاويات B",
+      "الخلايا اللمفاوية القاتلة LTc",
+      "الخلايا البلعمية الكبيرة غير النوعية",
+      "الكريات الحمراء عديمة النواة"
+    ],
+    "correct_answer": "البلزميات (Plasmocytes) الناتجة عن تمايز اللمفاويات B",
+    "explanation": "تتمايز اللمفاويات B بعد تنشيطها إلى خلايا بلزمية مفرزة لمضادات الأجسام وخلايا ذاكرة."
+  },
+  {
+    "id": "csv112",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "علم المناعة",
+    "question": "الخلايا اللمفاوية التائية القاتلة (LTc / CD8+) تمارس وظيفتها المناعية الخلوية من خلال:",
+    "options": [
+      "إفراز سمين البيرفورين (Perforine) والكرانزيم لإحداث ثقوب وموت مبرمج للخلية الهدف المعفنة",
+      "بلعمة الجراثيم وهضمها داخل فجوات بلعمية مباشرة",
+      "إفراز جزيئات الهيستامين المسببة للحساسية",
+      "إنتاج هرمون الأنسولين المنظم للدم"
+    ],
+    "correct_answer": "إفراز سمين البيرفورين (Perforine) والكرانزيم لإحداث ثقوب وموت مبرمج للخلية الهدف المعفنة",
+    "explanation": "تتعرف LTc نوعياً على مركب (CMH I - ببتيد مستضادي) وتفرز البيرفورين لإحداث صدمة أسموزية وقتل الخلية المعفنة."
+  },
+  {
+    "id": "csv113",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "التنفس الخلوي والتخمر",
+    "question": "أثناء انحلال الغلوكوز (Glycolyse) في الجبلة الشفافة، يتحول جزيء غلوكوز واحد C6H12O6 إلى:",
+    "options": [
+      "جزيئين من حمض البيروفيك (Pyruvate) مع إنتاج 2 ATP و 2 NADH,H+",
+      "جزيئين من الكحول الإيثيلي وغاز CO2 مباشرة",
+      "6 جزيئات من غاز ثنائي أكسيد الكربون وماء",
+      "حمض دهني ثلاثي الغليسريد"
+    ],
+    "correct_answer": "جزيئين من حمض البيروفيك (Pyruvate) مع إنتاج 2 ATP و 2 NADH,H+",
+    "explanation": "انحلال الغلوكوز مرحلة مشتركة لاهوائية في السيتوبلازم تنتج جزيئين من البيروفات وحصيلة طاقية صافية 2 ATP."
+  },
+  {
+    "id": "csv114",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "التنفس الخلوي والتخمر",
+    "question": "ما هي الحصيلة الطاقية النظرية الإجمالية لهدم جزيء غلوكوز واحد عبر التنفس الخلوي الهوائي التام؟",
+    "options": [
+      "36 إلى 38 جزيء ATP",
+      "جزيئان فقط من ATP (2 ATP)",
+      "4 جزيئات ATP",
+      "100 جزيء ATP"
+    ],
+    "correct_answer": "36 إلى 38 جزيء ATP",
+    "explanation": "التنفس الخلوي التام يهدم الغلوكوز كلياً عبر دورة كريبس والسلسلة التنفسية منتجاً 36 إلى 38 ATP."
+  },
+  {
+    "id": "csv115",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "البيئة وعلم البيئة",
+    "question": "ماذا يقصد بـ «الحميلة البيئية» (Écosystème) في علم البيئة؟",
+    "options": [
+      "مجموع الكائنات الحية (العشيرة الأحيائية) متفاعلة مع وسط عيشها الفيزيوكيميائي (المحيا)",
+      "مجموعة النباتات الحرجية في غابة استوائية فقط",
+      "المناخ العام لمنطقة جغرافية معينة",
+      "نوع واحد من الحيوانات المهددة بالانقراض"
+    ],
+    "correct_answer": "مجموع الكائنات الحية (العشيرة الأحيائية) متفاعلة مع وسط عيشها الفيزيوكيميائي (المحيا)",
+    "explanation": "الحميلة البيئية هي الوحدة الوظيفية الأساسية وتتألف من المحيا (Biotope) والعشيرة الأحيائية (Biocénose)."
+  },
+  {
     "id": "csv116",
     "cycles": [
       "secondary_prep"
@@ -8589,6 +11199,906 @@ export const INITIAL_QUESTIONS = [
     ],
     "correct_answer": "حركة الصفائح التكتونية",
     "explanation": "احتكاك الصفائح وانكسارها يحرر الطاقة."
+  },
+  {
+    "id": "csv151",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "البيولوجيا الخلوية والوراثة",
+    "question": "ما هي الطفرة الجينية النقطية من نوع «استبدال صامت» (Substitution silencieuse)؟",
+    "options": [
+      "استبدال قاعدة أزوتية بأخرى دون أن يتغير الحمض الأميني الناتج نظراً لتكرارية الشفرة الوراثية",
+      "استبدال قاعدة يؤدي إلى ظهور كودون توقف مبكر يوقف تركيب البروتين",
+      "حذف قاعدة أزوتية يؤدي إلى إزاحة إطار القراءة كاملاً",
+      "إضافة زوج من القواعد يضاعف حجم الصبغي"
+    ],
+    "correct_answer": "استبدال قاعدة أزوتية بأخرى دون أن يتغير الحمض الأميني الناتج نظراً لتكرارية الشفرة الوراثية",
+    "explanation": "نظراً لأن عدة كودونات قد تشفر نفس الحمض الأميني (انحلال الشفرة الوراثية)، فالطفرة الصامتة لا تغير متتالية الأحماض الأمينية."
+  },
+  {
+    "id": "csv152",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "القوانين الإحصائية لماندل",
+    "question": "في حالة الهجونة الأحادية مع سيادة تامة، ما هي النسب المظهرية المتوقعة للجيل F2 الناتج عن إخصاب ذاتي لأفراد F1 الهجناء؟",
+    "options": [
+      "3/4 للمظهر السائد و 1/4 للمظهر المتنحي (نسبة 3:1)",
+      "1/2 مظهر سائد و 1/2 مظهر متنحي (نسبة 1:1)",
+      "9/16 و 3/16 و 3/16 و 1/16",
+      "جميع أفراد الجيل بمظهر وسيط 100%"
+    ],
+    "correct_answer": "3/4 للمظهر السائد و 1/4 للمظهر المتنحي (نسبة 3:1)",
+    "explanation": "حسب القانون الثاني لماندل (قانون نقاوة الأمشاج)، يعطي التزاوج F1 × F1 نسب: 75% مظهر سائد و 25% مظهر متنحٍ."
+  },
+  {
+    "id": "csv153",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "القوانين الإحصائية لماندل",
+    "question": "في حالة الهجونة الثنائية لمورثتين مستقلتين مع سيادة تامة، ما هي النسب المظهرية الأربع في الجيل F2؟",
+    "options": [
+      "9/16 و 3/16 و 3/16 و 1/16",
+      "1/4 و 1/4 و 1/4 و 1/4 بالتساوي",
+      "3/4 و 1/4 فقط",
+      "1/2 و 1/2 فقط"
+    ],
+    "correct_answer": "9/16 و 3/16 و 3/16 و 1/16",
+    "explanation": "القانون الثالث لماندل (الافتراق المستقل للأزواج الحليلية) يعطي في F2 نسب 9:3:3:1 عند استقلال المورثتين."
+  },
+  {
+    "id": "csv154",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "القوانين الإحصائية لماندل",
+    "question": "ما هو الهدف الوراثي من إجراء «تزاوج اختباري» (Test-cross / Back-cross)؟",
+    "options": [
+      "معرفة النمط الوراثي لفرد يحمل مظهراً ساداً (هل هو نقي السلالة أم هجين) عبر تزاوج مع متنحٍ متماثل الزيجوت",
+      "الحصول على طفرات وراثية جديدة في المختبر",
+      "استنساخ الكائنات الحية تجارياً",
+      "القضاء على الحليلات السائدة المشوهة"
+    ],
+    "correct_answer": "معرفة النمط الوراثي لفرد يحمل مظهراً ساداً (هل هو نقي السلالة أم هجين) عبر تزاوج مع متنحٍ متماثل الزيجوت",
+    "explanation": "التزاوج الاختباري مع متنحٍ يظهر أنماط ونسب الأمشاج التي ينتجها الفرد المختبر، لأن المتنحي ينتج حليلاً واحداً فقط."
+  },
+  {
+    "id": "csv155",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "الوراثة البشرية ووراثة الساكنة",
+    "question": "قانون هاردي-واينبرغ (Hardy-Weinberg) لساكنة نظرية مثالية ينص على أن ترددات الحليلات والأنماط الوراثية:",
+    "options": [
+      "تبقى ثابتة ومستقرة من جيل إلى جيل في غياب الطفرات والهجرة والانتقاء الطبيعي والحيود الوراثي",
+      "تتضاعف كل عشر سنوات بصورة أسية",
+      "تتلاشى تدريجياً حتى اختفاء الحليل المتنحي",
+      "تتغير عشوائياً بدون أي معادلة رياضية"
+    ],
+    "correct_answer": "تبقى ثابتة ومستقرة من جيل إلى جيل في غياب الطفرات والهجرة والانتقاء الطبيعي والحيود الوراثي",
+    "explanation": "توازن هاردي-واينبرغ: p² + 2pq + q² = 1 و p + q = 1، وتبقى الترددات الحليلية مستقرة في ساكنة لامتناهية عشوائية التزاوج."
+  },
+  {
+    "id": "csv156",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "الوراثة البشرية",
+    "question": "عند دراسة شجرة نسب وراثية، إذا كان مرض وراثي متنحٍ ومحمول على الصبغي الجنسي X، فإن:",
+    "options": [
+      "الأم المصابة تنجب حتماً جميع أبنائها الذكور مصابين بالمرض",
+      "الآباء المصابون ينقلون المرض لجميع أبنائهم الذكور حتماً",
+      "المرض يصيب الإناث فقط ولا يصيب الذكور",
+      "لا يظهر المرض إلا في سن الشيخوخة"
+    ],
+    "correct_answer": "الأم المصابة تنجب حتماً جميع أبنائها الذكور مصابين بالمرض",
+    "explanation": "الأم المصابة نمطها X_d X_d، تمنح حتماً صبغي X_d لابنها الذكر الذي يرث Y من أبيه، فيكون نمطه X_d Y مصاباً حتماً."
+  },
+  {
+    "id": "csv157",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "الهندسة الوراثية وتطبيقاتها",
+    "question": "ما هو الأنزيم المستخدم في الهندسة الوراثية لقطع الـ ADN في مواقع نوعية محددة؟",
+    "options": [
+      "أنزيمات الفصل أو القطع (Enzymes de restriction)",
+      "أنزيم ADN ليغاز الرابط",
+      "أنزيم الأميلاز اللعابي",
+      "أنزيم الببسين الهضمي"
+    ],
+    "correct_answer": "أنزيمات الفصل أو القطع (Enzymes de restriction)",
+    "explanation": "أنزيمات القطع تقطع الـ ADN عند متتاليات قراءات محددة متناظرة (Palindromes) لتوليد أطراف موحدة لاصقة."
+  },
+  {
+    "id": "csv158",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "جيولوجيا السلاسل الجبلية",
+    "question": "سلاسل الاصطدام الجبلية (مثل جبال الهيمالايا وجبال الألب) تتميز بوجود مؤشرات جيولوجية تدل على:",
+    "options": [
+      "انغلاق مجال محيطي سابق كوجود الأفيوليت (بقايا الغلاف الصخري المحيطي) ورواسب محيطية وفوالق معكوسة وتراكبات ضخمة",
+      "غياب تام لأي تشوهات تكتونية تكتلية",
+      "براكين بازلتية هادئة تسيل كالماء",
+      "أحافير حيوانات قطبية فقط"
+    ],
+    "correct_answer": "انغلاق مجال محيطي سابق كوجود الأفيوليت (بقايا الغلاف الصخري المحيطي) ورواسب محيطية وفوالق معكوسة وتراكبات ضخمة",
+    "explanation": "مركب الأفيوليت (Ophiolite) والسدائم التكتونية تمثل الشاهد الدامغ على انغلاق بحر قديم واصطدام كتلتي قارتين."
+  },
+  {
+    "id": "csv159",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "جيولوجيا والتحول التكتوني",
+    "question": "التحول الإقليمي أو الدينامي-حراري (Métamorphisme régional) هو تحول صخري ينتج عن:",
+    "options": [
+      "ارتفاع متزامن ومهم في كل من الضغط ودرجة الحرارة في مناطق التقارب والاصطدام التكتوني",
+      "ارتفاع درجة الحرارة فقط بجوار صهارة ساخنة مقتحمة",
+      "عوامل التعرية الجوية والرياح السطحية",
+      "تجمد مياه الأمطار في شقوق الصخور"
+    ],
+    "correct_answer": "ارتفاع متزامن ومهم في كل من الضغط ودرجة الحرارة في مناطق التقارب والاصطدام التكتوني",
+    "explanation": "التحول الإقليمي يرافق تشكل السلاسل الجبلية تحت تأثير الضغوط التكتونية العالية والحرارة، ويولد صخوراً مورقة كالشيست والغنايس."
+  },
+  {
+    "id": "csv160",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "جيولوجيا والغرانيتية",
+    "question": "صخرة الغرانيت البلوتوني هي صخرة صهارية تتميز ببنية:",
+    "options": [
+      "محببة (Grenue) ناتجة عن تبريد بطيء جداً للصهارة في الأعماق الباطنية",
+      "ميكروليتية ناتجة عن تبريد بركاني سريع على السطح",
+      "زجاجية غير متبلورة تماماً",
+      "رسوبية حتاتية طبقية"
+    ],
+    "correct_answer": "محببة (Grenue) ناتجة عن تبريد بطيء جداً للصهارة في الأعماق الباطنية",
+    "explanation": "التبريد البطيء للصهارة الحامضية في العمق يسمح بالتبلور التام لكافة المعادن (المرو، الفلسبار، الميكا) فتعطي بنية محببة."
+  },
+  {
+    "id": "csv161",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "علم المناعة ومضادات الأجسام",
+    "question": "جزيئة مضاد الأجسام (الأجسام المضادة) تتكون بنيوياً من:",
+    "options": [
+      "أربع سلاسل ببتيدية (سلسلتان ثقيلتان H متطابقتان وسلسلتان خفيفتان L متطابقتان) مرتبطة بجسور ثنائية الكبريت",
+      "سلسلة ببتيدية وحيدة دائرية مغلقة",
+      "شريط من الليبيدات الفوسفورية والأحماض الدهنية",
+      "ست سلاسل من حمض الـ ARN"
+    ],
+    "correct_answer": "أربع سلاسل ببتيدية (سلسلتان ثقيلتان H متطابقتان وسلسلتان خفيفتان L متطابقتان) مرتبطة بجسور ثنائية الكبريت",
+    "explanation": "مضاد الأجسام بروتين سكري على شكل حرف Y يتكون من 4 سلاسل ببتيدية ترتبط بروابط ثنائية الكبريت (S-S)."
+  },
+  {
+    "id": "csv162",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "علم المناعة وعامل التكملة",
+    "question": "ما هو الدور المناعي الأساسي لـ «عامل التكملة» (Système du complément) بعد تنشيطه؟",
+    "options": [
+      "تشكيل مركب الهجوم الغشائي (CAM) لإحداث فجوات أسموزية وتفجير الخلية الهدف وتسهيل البلعمة (اللكد والطهو)",
+      "تحفيز الغدد الصماء على إفراز الأدرينالين",
+      "تخثير الدم لمنع النزيف الخارجي",
+      "تدمير النواة في الخلايا اللمفاوية السليمة"
+    ],
+    "correct_answer": "تشكيل مركب الهجوم الغشائي (CAM) لإحداث فجوات أسموزية وتفجير الخلية الهدف وتسهيل البلعمة (اللكد والطهو)",
+    "explanation": "عامل التكملة مجموعة بروتينات مصلية تنشط تسلسلياً لتشكل مركب الهجوم الغشائي وتجذب الكريات البيضاء بموقع الالتهاب."
+  },
+  {
+    "id": "csv163",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "علم المناعة واضطراباته",
+    "question": "فيروس نقص المناعة المكتسب (VIH) المسبب لداء السيدا يستهدف نوعياً ويدمر الخلايا المناعية:",
+    "options": [
+      "اللمفاويات التائية المساعدة T4 الحاملة لمستقبلات CD4",
+      "الخلايا البدينة الحبيبية في الجلد فقط",
+      "الخلايا اللمفاوية B الذاكرة فقط",
+      "الكريات الحمراء والصفائح الدموية"
+    ],
+    "correct_answer": "اللمفاويات التائية المساعدة T4 الحاملة لمستقبلات CD4",
+    "explanation": "يثبت فيروس VIH على مستقبلات CD4 في خلايا LT4 (الموجهة للاستجابة المناعية برمتها)، مما ينهار معه الجهاز المناعي تدريجياً."
+  },
+  {
+    "id": "csv164",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "علم المناعة والحساسية المفرطة",
+    "question": "النوبة الأرجية الفورية (Allergie immédiate) تنجم عن إفراز مادة الهيستامين من طرف:",
+    "options": [
+      "الخلايا البدينة (Mastocytes) والقعدات بعد تثبيت المستأرج على مضادات أجسام IgE المرتبطة بغشائها",
+      "الخلايا اللمفاوية السامة القاتلة",
+      "الكبد والمرارة مباشرة",
+      "الغدة الدرقية في العنق"
+    ],
+    "correct_answer": "الخلايا البدينة (Mastocytes) والقعدات بعد تثبيت المستأرج على مضادات أجسام IgE المرتبطة بغشائها",
+    "explanation": "أثناء التماس الثاني بالمستأرج، يرتبط بالـ IgE المثبتة على غشاء الخلايا البدينة مما يفرغ حويصلاتها الغنية بالهيستامين المسبب للالتهاب."
+  },
+  {
+    "id": "csv165",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "علم المناعة واللقاحات والمصول",
+    "question": "ما هو الفرق المناعي الجوهري بين التلقيح (Vaccination) والاستمصال (Sérothérapie)؟",
+    "options": [
+      "التلقيح يمنح مناعة مكتسبة نشيطة ونوعية وذات ذاكرة طويلة الأمد، بينما الاستمصال نقل سلبي وفوري لمضادات أجسام جاهزة مؤقتة الأثر",
+      "التلقيح علاج فوري للحالات الطارئة بينما الاستمصال وقاية تدوم سنوات",
+      "التلقيح يعتمد على حقن الأدوية الكيميائية بينما الاستمصال يعتمد على الفيتامينات",
+      "لا يوجد أي فرق بينهما فكلاهما نفس الشيء"
+    ],
+    "correct_answer": "التلقيح يمنح مناعة مكتسبة نشيطة ونوعية وذات ذاكرة طويلة الأمد، بينما الاستمصال نقل سلبي وفوري لمضادات أجسام جاهزة مؤقتة الأثر",
+    "explanation": "اللقاح يحث الجهاز المناعي على صنع دفاعاته وتكوين خلايا ذاكرة، بينما المصل يوفر حماية فورية عاجلة تزول باستهلاك الأجسام المضادة."
+  },
+  {
+    "id": "csv166",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "الفسيولوجيا العضلية والتقلص",
+    "question": "الوحدة البنيوية والوظيفية الأساسية للتقلص العضلي في الليف العضلي المخطط تسمى:",
+    "options": [
+      "الساركومير (Sarcomère)",
+      "الغشاء الساركوبلازمي",
+      "الشبكة الإندوبلازمية الملساء",
+      "الميتوكوندريون المفرد"
+    ],
+    "correct_answer": "الساركومير (Sarcomère)",
+    "explanation": "الساركومير هو الحيز المحصور بين حزي Z متتاليين، ويحتوي على خييطات الميوزين السميكة وخييطات الأكتين الدقيقة."
+  },
+  {
+    "id": "csv167",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "الفسيولوجيا العضلية والتقلص",
+    "question": "أثناء التقلص العضلي وبحضور أيونات الكالسيوم Ca²⁺ والـ ATP، ماذا يحدث للساركومير؟",
+    "options": [
+      "انزلاق خييطات الأكتين بين خييطات الميوزين واقتراب الحزين Z وتقصير طول الساركومير والشريط الفاتح",
+      "زيادة طول خييطات الميوزين والأكتين نفسها",
+      "تباعد الحزين Z واتساع المنطقة H",
+      "تفكك خييطات البروتين وتحولها إلى سائل"
+    ],
+    "correct_answer": "انزلاق خييطات الأكتين بين خييطات الميوزين واقتراب الحزين Z وتقصير طول الساركومير والشريط الفاتح",
+    "explanation": "التقلص ينجم عن انزلاق نسبي لخييطات الأكتين فوق الميوزين دون تغير في طول الخييطات نفسها."
+  },
+  {
+    "id": "csv168",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "التنفس الخلوي ودورة كريبس",
+    "question": "أين تجري تفاعلات «دورة كريبس» (Cycle de Krebs) الهادمة لمشتقات الغلوكوز في الخلية؟",
+    "options": [
+      "داخل مصفوفة الميتوكوندري (Matrice mitochondriale)",
+      "في الغشاء الخارجي للميتوكوندري",
+      "في الحيز البيني للميتوكوندري",
+      "في النواة الخلوية"
+    ],
+    "correct_answer": "داخل مصفوفة الميتوكوندري (Matrice mitochondriale)",
+    "explanation": "تتم دورة كريبس في مصفوفة الميتوكوندري بفضل ترسانة من الأنزيمات المزيلة للهيدروجين والمزيلة للكربون."
+  },
+  {
+    "id": "csv169",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "السلسلة التنفسية والتفوسفر التأكسدي",
+    "question": "المتقبل النهائي للإلكترونات والبروتونات H⁺ في نهاية السلسلة التنفسية بالغشاء الداخلي للميتوكوندري هو:",
+    "options": [
+      "ثنائي الأكسجين O2 الذي يختزل إلى ماء H2O",
+      "حمض البيروفيك",
+      "أيونات الحديد Fe³⁺",
+      "غاز النيتروجين N2"
+    ],
+    "correct_answer": "ثنائي الأكسجين O2 الذي يختزل إلى ماء H2O",
+    "explanation": "الأكسجين هو المتقبل النهائي للإلكترونات في التنفس الهوائي: (1/2) O2 + 2H⁺ + 2e⁻ → H2O."
+  },
+  {
+    "id": "csv170",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "السلسلة التنفسية والتفوسفر التأكسدي",
+    "question": "كيف يتم تركيب جزيئات الـ ATP على مستوى الغشاء الداخلي للميتوكوندري؟",
+    "options": [
+      "تدفق بروتونات H⁺ عبر الكرات ذات الشمراخ (أنزيم ATP سينتاز) تحت تأثير ممال البروتونات من الحيز البيني نحو المصفوفة",
+      "تفكك دهون الغشاء السيتوبلازمي مباشرة",
+      "بامتصاص فوتونات الضوء المرئي",
+      "بالنقل النشط لجزيئات السكر ضد ممال التركيز"
+    ],
+    "correct_answer": "تدفق بروتونات H⁺ عبر الكرات ذات الشمراخ (أنزيم ATP سينتاز) تحت تأثير ممال البروتونات من الحيز البيني نحو المصفوفة",
+    "explanation": "تولد السلسلة التنفسية ممالاً كيميائياً للبروتونات، وعودة البروتونات عبر الـ ATP سينثيز تدير الأنزيم لفسفرة ADP إلى ATP."
+  },
+  {
+    "id": "csv171",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "التواصل الهرموني وتحلون الدم",
+    "question": "الهرمون الخافض لنسبة السكر في الدم (تحلون الدم) والذي تفرزه خلايا بيتا (β) في جزر لانجرهانس بالبنكرياس هو:",
+    "options": [
+      "الأنسولين (Insuline)",
+      "الغلوكاغون (Glucagon)",
+      "الأدرينالين",
+      "الثيروكسين"
+    ],
+    "correct_answer": "الأنسولين (Insuline)",
+    "explanation": "الأنسولين هو الهرمون الوحيد الخافض لسكر الدم ويحفز تخزين الغلوكوز على شكل غليكوجين في الكبد والعضلات والأنسجة الدهنية."
+  },
+  {
+    "id": "csv172",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "التواصل الهرموني وتحلون الدم",
+    "question": "الهرمون الهاضم لمدخرات الغليكوجين الكبدي والرافع لتحلون الدم والذي تفرزه خلايا ألفا (α) بالبنكرياس هو:",
+    "options": [
+      "الغلوكاغون (Glucagon)",
+      "الأنسولين",
+      "الكورتيزول",
+      "البرولاكتين"
+    ],
+    "correct_answer": "الغلوكاغون (Glucagon)",
+    "explanation": "الغلوكاغون هرمون مفرط لتحلون الدم، يفرز عند انخفاض السكر ليحفز حلمأة الغليكوجين الكبدي وتحرير الغلوكوز في الدم."
+  },
+  {
+    "id": "csv173",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "التواصل العصبي والسيالة العصبية",
+    "question": "جهد الراحة (Potentiel de repos) لليف العصبي والذي يقارب -70 ميليفولت ينجم أساساً عن:",
+    "options": [
+      "التوزيع غير المتكافئ لأيونات Na⁺ و K⁺ على جانبي الغشاء ومضخة Na⁺/K⁺ الأيونية المعتمدة على ATP",
+      "تفريغ شحنات كهربائية سالبة في الدم",
+      "انعدام الأيونات كلياً داخل الليف العصبي",
+      "مرور تيار كهربائي مستمر خارجي"
+    ],
+    "correct_answer": "التوزيع غير المتكافئ لأيونات Na⁺ و K⁺ على جانبي الغشاء ومضخة Na⁺/K⁺ الأيونية المعتمدة على ATP",
+    "explanation": "تراكم K⁺ بالداخل و Na⁺ بالخارج بفعل النفاذية الانتقائية ومضخة الصوديوم-بوتاسيوم يثبت استقطاب الراحة عند -70 mV."
+  },
+  {
+    "id": "csv174",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "التواصل العصبي والسيالة العصبية",
+    "question": "خلال طور إزالة الاستقطاب (Dépolarisation) لجهد العمل العصبي، ما هي القنوات الغشائية التي تفتح بسرعة؟",
+    "options": [
+      "قنوات الصوديوم Na⁺ المرتبطة بالفولطية، مما يؤدي لتدفق كثيف وسريع لأيونات Na⁺ نحو الداخل",
+      "قنوات البوتاسيوم K⁺ تفتح وتخرج كل الأيونات للخارج",
+      "قنوات الكالسيوم تغلق بإحكام",
+      "قنوات الكلور تدفق أيونات سالبة"
+    ],
+    "correct_answer": "قنوات الصوديوم Na⁺ المرتبطة بالفولطية، مما يؤدي لتدفق كثيف وسريع لأيونات Na⁺ نحو الداخل",
+    "explanation": "إزالة الاستقطاب تنجم عن انفتاح قنوات الصوديوم الفولطية ودخول Na⁺ بسرعة لتنقلب شحنة الغشاء إلى موجبة (+30 mV)."
+  },
+  {
+    "id": "csv175",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "التواصل العصبي والمشبك",
+    "question": "على مستوى المشبك الكيميائي (Synapse)، كيف تنتقل السيالة العصبية من الخلية قبل مشبكية إلى الخلية بعد مشبكية؟",
+    "options": [
+      "بتحرير وسيط كيميائي عصبي (مثل الأستيل كولين) في الشق المشبكي وتثبيته على مستقبلات نوعية بعد مشبكية",
+      "بالشرارة الكهربائية المباشرة عبر الهواء",
+      "بانتقال الميتوكوندريات عبر ثقوب كبيرة",
+      "بتبادل خيوط الـ ADN بين الخليتين"
+    ],
+    "correct_answer": "بتحرير وسيط كيميائي عصبي (مثل الأستيل كولين) في الشق المشبكي وتثبيته على مستقبلات نوعية بعد مشبكية",
+    "explanation": "تفريغ حويصلات المبلغ العصبي (كالأستيل كولين) بفعل تدفق Ca²⁺ ينقل الإشارة كيميائياً باتجاه واحد غير رجعي."
+  },
+  {
+    "id": "csv176",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "التوالد والتكاثر البشري",
+    "question": "أين يحدث إخصاب البويضة وتكوين البيضة الملقحة بشكل طبيعي في الجهاز التناسلي للأنثى؟",
+    "options": [
+      "في الثلث العلوي لقناة فالوب (الخرطوم)",
+      "داخل تجويف الرحم في بطانته السفلية",
+      "في عنق الرحم مباشرة",
+      "داخل المبيض قبل الإباضة"
+    ],
+    "correct_answer": "في الثلث العلوي لقناة فالوب (الخرطوم)",
+    "explanation": "يحدث الإخصاب الطبيعي في الثلث الخارجي لأعلى قناة المبيض (قناة فالوب)، ثم تهاجر البيضة الملقحة لتنغرس بالرحم."
+  },
+  {
+    "id": "csv177",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "التوالد والتكاثر البشري",
+    "question": "الهرمون النخامي الذي يسبب ذروته إحداث ظاهرة «الإباضة» (Ovulation) في الدورة الشهرية هو:",
+    "options": [
+      "الهرمون الملوتن (LH)",
+      "هرمون النمو (GH)",
+      "هرمون الأوكسيتوسين",
+      "هرمون الفازوبريسين"
+    ],
+    "correct_answer": "الهرمون الملوتن (LH)",
+    "explanation": "ذروة إفراز هرمون LH النخامي في منتصف الدورة (حوالي اليوم 14) تحفز انفجار الجريب الناضج وطرد البويضة."
+  },
+  {
+    "id": "csv178",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "التركيب الضوئي والإنتاجية النباتية",
+    "question": "المرحلة الكيميوضوئية (المعتمدة على الضوء) من التركيب الضوئي تحدث في:",
+    "options": [
+      "غشاء التيلاكويدات (Thylakoïdes) داخل البلاستيدة الخضراء وتنتج ATP و NADPH,H+",
+      "ستروما البلاستيدة بدون الحاجة للضوء",
+      "ميتوكوندريات الجذر تحت التربة",
+      "الثغور الورقية السطحية فقط"
+    ],
+    "correct_answer": "غشاء التيلاكويدات (Thylakoïdes) داخل البلاستيدة الخضراء وتنتج ATP و NADPH,H+",
+    "explanation": "في أغشية التيلاكويدات، تلتقط الأنظمة الضوئية الفوتونات لتحلل الماء ضوئياً وتنتج O2 و ATP ومركبات مختزلة غنية بالطاقة."
+  },
+  {
+    "id": "csv179",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "التركيب الضوئي ودورة كالفين",
+    "question": "تثبيت ثنائي أكسيد الكربون CO2 وتركيب السكريات العضوية في المرحلة الكيميائية الحيوية يتم عبر:",
+    "options": [
+      "دورة كالفين (Cycle de Calvin) في ستروما البلاستيدة الخضراء بواسطة أنزيم روبيسكو (Rubisco)",
+      "دورة كريبس التنفسية في الميتوكوندري",
+      "انحلال الغلوكوز في السيتوبلازم",
+      "التخمر اللبني في خلايا الساق"
+    ],
+    "correct_answer": "دورة كالفين (Cycle de Calvin) في ستروما البلاستيدة الخضراء بواسطة أنزيم روبيسكو (Rubisco)",
+    "explanation": "تدمج دورة كالفين CO2 في مادة عضوية (سكر سداسي) باستخدام الـ ATP و NADPH المركبين في المرحلة الضوئية."
+  },
+  {
+    "id": "csv180",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "البيئة ودورة المادة",
+    "question": "في دورة الكربون في الطبيعة، ما هي العملية البيولوجية الوحيدة التي تسحب CO2 من الغلاف الجوي وتثبته في المادة الحية؟",
+    "options": [
+      "التركيب الضوئي (Photosynthèse) للنباتات الخضراء والعوالق النباتية",
+      "تنفس الحيوانات والنباتات",
+      "احتراق الوقود الأحفوري كالنفط والفحم",
+      "تحلل الجثث بواسطة الكائنات المفككة"
+    ],
+    "correct_answer": "التركيب الضوئي (Photosynthèse) للنباتات الخضراء والعوالق النباتية",
+    "explanation": "الكائنات ذاتية التغذية الضوئية هي الوحيدة القادرة على امتصاص الكربون المعدني الجوي وتحويله لكربون عضوي."
+  },
+  {
+    "id": "csv181",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "البيئة وتلوث الأوساط المائية",
+    "question": "ظاهرة الخصوبة المفرطة للمياه (Eutrophisation) تنتج عن:",
+    "options": [
+      "الإفراط في إلقاء النترات والفوسفات مما يسبب تكاثر الطحالب وحجب الضوء ونفاد الأكسجين وموت الكائنات المائية",
+      "تسرب البترول الخام وتكوين بقع زيتية سطحية فقط",
+      "انخفاض درجة حرارة البحيرات إلى ما دون الصفر",
+      "زيادة نسبة الملوحة في مياه الأنهار"
+    ],
+    "correct_answer": "الإفراط في إلقاء النترات والفوسفات مما يسبب تكاثر الطحالب وحجب الضوء ونفاد الأكسجين وموت الكائنات المائية",
+    "explanation": "تدفق الأسمدة الفوسفاتية والآزوتية يغذي تكاثر الطحالب بكثافة، وموتها يستهلك البكتيريا للأكسجين بالتحلل فتختنق الأسماك."
+  },
+  {
+    "id": "csv182",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "التدبير المستدام للنفايات",
+    "question": "عملية «السماد العضوي» (Compostage) هي تقنية لمعالجة النفايات المنزلية تعتمد على:",
+    "options": [
+      "التحلل البيولوجي الهوائي للمادة العضوية بواسطة الكائنات الحية الدقيقة لإنتاج مخصب طبيعي للتربة",
+      "حرق النفايات في أفران ضخمة على درجات حرارة تفوق 1000°C",
+      "طمر النفايات تحت طبقات من الإسمنت المسلح",
+      "إلقاء النفايات في قاع المحيطات العميقة"
+    ],
+    "correct_answer": "التحلل البيولوجي الهوائي للمادة العضوية بواسطة الكائنات الحية الدقيقة لإنتاج مخصب طبيعي للتربة",
+    "explanation": "التسميد العضوي تثمين إيكولوجي للنفايات العضوية القابلة للتحلل بواسطة بكتيريا وفطريات هوائية لإنتاج دبال غني."
+  },
+  {
+    "id": "csv183",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "جيولوجيا والطبقات والرسوبيات",
+    "question": "مبدأ التراكب (Principe de superposition) في الاستراتيغرافيا ينص على أنه في سلسلة رسوبية غير مشوهة:",
+    "options": [
+      "كل طبقة تكون أحدث عمراً من الطبقة التي توجد أسفلها وأقدم من الطبقة التي تعلوها",
+      "كل الطبقات تشكلت في نفس اللحظة الجيولوجية",
+      "الطبقات العلوية هي الأقدم دائماً",
+      "لا علاقة لترتيب الطبقات بعمرها الزمني"
+    ],
+    "correct_answer": "كل طبقة تكون أحدث عمراً من الطبقة التي توجد أسفلها وأقدم من الطبقة التي تعلوها",
+    "explanation": "مبدأ التراكب الأساسي للتأريخ النسبي: الترسيب المتعاقب يضع الأقدم في الأسفل والأحدث في الأعلى."
+  },
+  {
+    "id": "csv184",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "جيولوجيا والمستحثات المرشدة",
+    "question": "تتميز «المستحثة المرشدة الجيدة» (Bon fossile stratigraphique) الصالحة للتأريخ النسبي الدقيق للطبقات بـ:",
+    "options": [
+      "توزيع جغرافي واسع، وتطور تطوري سريع وعمر زمني قصير، ووفرة عددية كبيرة",
+      "عمر زمني يمتد لمليارات السنين وموقع جغرافي ضيق جداً",
+      "حجم صخري عملاق يفوق مئة طن",
+      "انعدام وجودها في الصخور الكلسية"
+    ],
+    "correct_answer": "توزيع جغرافي واسع، وتطور تطوري سريع وعمر زمني قصير، ووفرة عددية كبيرة",
+    "explanation": "المستحثة الطبقاتية الجيدة كالأمونيت وثلاثيات الفصوص عاشت فترة وجيزة وانتشرت عالمياً مما يسمح بربط الطبقات بدقة."
+  },
+  {
+    "id": "csv185",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "الوراثة اللاجينية",
+    "question": "التعديلات «الابيجينية» أو فوق الجينية (Épigénétique) تشير إلى:",
+    "options": [
+      "تعديلات في التعبير الجيني دون أي تغيير في متتالية النوكليوتيدات في الـ ADN (كمثيلة السيتوزين وتعديل الهستونات)",
+      "طفرات دائمة تغير ترتيب القواعد النيتروجينية A و T و C و G",
+      "ضياع كروموسوم كامل من الخلية",
+      "تحول خلايا الدم إلى خلايا عصبية"
+    ],
+    "correct_answer": "تعديلات في التعبير الجيني دون أي تغيير في متتالية النوكليوتيدات في الـ ADN (كمثيلة السيتوزين وتعديل الهستونات)",
+    "explanation": "الابيجينيتيك تدرس آليات كبح أو تنشيط الجينات تحت تأثير المحيط والتغذية دون مساس بالتسلسل الأولي للـ ADN."
+  },
+  {
+    "id": "csv186",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "الانقسام الاختزالي والشذوذات الصبغية",
+    "question": "مرض متلازمة داون (Trisomie 21) ينجم وراثياً عن:",
+    "options": [
+      "عدم افتراق الصبغيين 21 أثناء أحد أطوار الانقسام الاختزالي مما يولد مشيجاً به صبغيان 21 بدلاً من واحد",
+      "حذف جزء من الصبغي الجنسي X",
+      "طفرة نقطية في جين الأنسولين",
+      "إصابة بفيروس أثناء الطفولة المبكرة"
+    ],
+    "correct_answer": "عدم افتراق الصبغيين 21 أثناء أحد أطوار الانقسام الاختزالي مما يولد مشيجاً به صبغيان 21 بدلاً من واحد",
+    "explanation": "خلل في انفصال الزوج الصبغي 21 خلال الانقسام المنصف أو التساوي يولد زيجوت يحمل 3 نسخ من الصبغي 21 (47 صبغياً)."
+  },
+  {
+    "id": "csv187",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "الانقسام الخلوي غير المباشر",
+    "question": "في الطور الاستوائي (Métaphase) من الانقسام غير المباشر، كيف تتموضع الصبغيات؟",
+    "options": [
+      "تنتظم الصبغيات في أقصى تكثف لها على المستوى الاستوائي للخلية مشكلة الصفيحة الاستوائية",
+      "تنفصل الصبيغيات وتهاجر نحو القطبين",
+      "يختفي الغشاء النووي وتتشكل النواة الجديدة",
+      "تتضاعف جزيئات الـ ADN داخل النوية"
+    ],
+    "correct_answer": "تنتظم الصبغيات في أقصى تكثف لها على المستوى الاستوائي للخلية مشكلة الصفيحة الاستوائية",
+    "explanation": "في الطور الاستوائي تتثبت الأجسام المركزية للصبغيات المضاعفة على ألياف المغزل اللالوني عند خط استواء الخلية."
+  },
+  {
+    "id": "csv188",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "الانقسام الخلوي غير المباشر",
+    "question": "خلال الطور الانفصالي (Anaphase) من الانقسام غير المباشر، ماذا يحدث لكل صبغي مضاعف؟",
+    "options": [
+      "انشطار الجزيء المركزي وافتراق الصبيغيتين الشقيقتين وهجرة كل صبيغي نحو أحد قطبي الخلية",
+      "التحام الصبغيات وتكون رباعيات صبغية",
+      "تركيب غشاء نووي جديد حول الصبغيات",
+      "إفراز أنزيمات هاضمة للكروماتين"
+    ],
+    "correct_answer": "انشطار الجزيء المركزي وافتراق الصبيغيتين الشقيقتين وهجرة كل صبيغي نحو أحد قطبي الخلية",
+    "explanation": "في الانفصالي يتقسم السنترومير وتتباعد الصبيغيات الشقيقة بواسطة تقصير ألياف المغزل ليصبح كل منها صبغياً منفرداً."
+  },
+  {
+    "id": "csv189",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "التنفس والتخمر اللبني والكحولي",
+    "question": "في التخمر اللبني (Fermentation lactique) الذي يحدث في العضلات عند نقص الأكسجين، يتحول البيروفات إلى:",
+    "options": [
+      "حمض اللبنيك (Acide lactique) مع إعادة أكسدة NADH,H+ إلى NAD+ دون تحرير CO2",
+      "كحول إيثيلي وغاز ثنائي أكسيد الكربون",
+      "حمض البيروفيك متبلر في الدم",
+      "جلوكوز مفسفر فوري"
+    ],
+    "correct_answer": "حمض اللبنيك (Acide lactique) مع إعادة أكسدة NADH,H+ إلى NAD+ دون تحرير CO2",
+    "explanation": "التخمر اللبني يختزل حمض البيروفيك مباشرة لحمض لبني بواسطة NADH لإعادة تجديد NAD+ واستمرار انحلال الغلوكوز لاهوائياً."
+  },
+  {
+    "id": "csv190",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "التنفس والتخمر الكحولي",
+    "question": "التخمر الكحولي الممارس بواسطة خميرة البيرة يتميز عن التخمر اللبني بكونه يحرر:",
+    "options": [
+      "الإيثانول (كحول) وغاز ثنائي أكسيد الكربون CO2",
+      "حمض اللاكتيك واليوريا",
+      "حمض الكبريتيك والماء",
+      "غاز الميثان النقي فقط"
+    ],
+    "correct_answer": "الإيثانول (كحول) وغاز ثنائي أكسيد الكربون CO2",
+    "explanation": "في التخمر الكحولي: يتحول البيروفات إلى أسيتالدهيد محرراً CO2، ثم يختزل إلى إيثانول: C6H12O6 → 2 C2H5OH + 2 CO2."
+  },
+  {
+    "id": "csv191",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "البيئة والتنوع البيولوجي",
+    "question": "ماذا يقصد بـ «الأنواع المتوطنة» (Espèces endémiques) في منطقة جغرافية كالمغرب (مثل شجرة الأركان)؟",
+    "options": [
+      "أنواع حية توجد وتعيش حصرياً في تلك المنطقة الجغرافية المحددة ولا توجد طبيعياً في أي مكان آخر من العالم",
+      "أنواع مستوردة غازية تضر بالبيئة المحلية",
+      "حيوانات أليفة تعيش في المنازل فقط",
+      "نباتات لا تحتاج للماء طيلة حياتها"
+    ],
+    "correct_answer": "أنواع حية توجد وتعيش حصرياً في تلك المنطقة الجغرافية المحددة ولا توجد طبيعياً في أي مكان آخر من العالم",
+    "explanation": "النوع المتوطن موطنه الطبيعي مقصور على رقعة بيئية محددة ويشكل ثروة وتراثاً إيكولوجياً يتطلب حماية خاصة."
+  },
+  {
+    "id": "csv192",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "البيئة وظاهرة الاحتباس الحراري",
+    "question": "الغاز الرئيسي المسؤول عن زيادة حدة «الاحتباس الحراري» الناتج عن الأنشطة الصناعية للبشرية هو:",
+    "options": [
+      "ثنائي أكسيد الكربون (CO2) وغاز الميثان (CH4)",
+      "غاز الأكسجين O2",
+      "غاز النيتروجين N2",
+      "غاز الهيليوم الخامل"
+    ],
+    "correct_answer": "ثنائي أكسيد الكربون (CO2) وغاز الميثان (CH4)",
+    "explanation": "غازات الدفيئة (CO2 و CH4 وبخار الماء) تمتص الأشعة تحت الحمراء المنبعثة من الأرض وتعيد حبسها في الغلاف الجوي."
+  },
+  {
+    "id": "csv193",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "الجيولوجيا والتأريخ المطلق",
+    "question": "التأريخ المطلق للصخور والتشكيلات الجيولوجية القديمة جداً يعتمد أساساً على ظاهرة:",
+    "options": [
+      "التناقص الإشعاعي للنظائر المشعة كالكربون 14 والأورانيوم والروبيديوم والسترونسيوم",
+      "مقارنة ألوان المعادن بالعين المجردة",
+      "قياس درجة ملوحة الصخرة",
+      "عد حبات الرمل داخل الصخرة الرسوبية"
+    ],
+    "correct_answer": "التناقص الإشعاعي للنظائر المشعة كالكربون 14 والأورانيوم والروبيديوم والسترونسيوم",
+    "explanation": "التأريخ بالنظائر المشعة يقيس النسبة بين النواة الإشعاعية الأم والنواة البنت المستقرة لتحديد العمر المطلق بالسنوات."
+  },
+  {
+    "id": "csv194",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "علم المناعة والمعقد الرئيسي للتلاؤم النسيجي",
+    "question": "جزيئات معقد التوافق النسيجي من الصنف الأول (CMH I) توجد على غشاء:",
+    "options": [
+      "جميع خلايا الجسم الحاملة لنواة",
+      "الخلايا المناعية العارضة للمستضد فقط (البلعميات وخلايا B)",
+      "الكريات الحمراء فقط",
+      "خلايا العظام الميتة فقط"
+    ],
+    "correct_answer": "جميع خلايا الجسم الحاملة لنواة",
+    "explanation": "يوجد CMH I على كل خلية منواة لعرض الببتيدات الباطنية لـ LTc، بينما يقتصر CMH II على الخلايا المناعية العارضة (CPA)."
+  },
+  {
+    "id": "csv195",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "علم المناعة والذاكرة المناعية",
+    "question": "الخاصية التي تميز الاستجابة المناعية الثانوية (بعد التماس الثاني بنفس المستضد) مقارنة بالاستجابة الأولية هي كونها:",
+    "options": [
+      "أسرع في الظهور، وأقوى في إنتاج مضادات الأجسام النوعية (بكميات ضخمة)، وتدوم فترة زمنية أطول",
+      "أبطأ بكثير من الاستجابة الأولى",
+      "تعتمد فقط على خط الدفاع الأول غير النوعي",
+      "تتوقف بعد دقائق قليلة من دخول الجرثوم"
+    ],
+    "correct_answer": "أسرع في الظهور، وأقوى في إنتاج مضادات الأجسام النوعية (بكميات ضخمة)، وتدوم فترة زمنية أطول",
+    "explanation": "بفضل الخلايا اللمفاوية الذاكرة (LBm و LTm)، يتفادى الجسم طور التحسس البطيء ويتدخل بقوة وفورية عند التماس الثاني."
+  },
+  {
+    "id": "csv196",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "الفسيولوجيا العصبية والانعكاس الشوكي",
+    "question": "في القوس الانعكاسي الشوكي (Arc réflexe)، ما هو المسار الصحيح لنقل السيالة العصبية؟",
+    "options": [
+      "مستقبل حسي ← عصبون حسي جابذ (عبر الجذر الخلفي) ← مركز نخاعي شوكي ← عصبون حركي نابذ (عبر الجذر الأمامي) ← عضو مستجيب (عضلة)",
+      "عضلة مستجيبة ← جذر أمامي ← مخ ← جذر خلفي ← جلد",
+      "مخ ← حبل شوكي ← عين ← لسان",
+      "عصب حركي ← مستقبل حسي ← جذر خلفي"
+    ],
+    "correct_answer": "مستقبل حسي ← عصبون حسي جابذ (عبر الجذر الخلفي) ← مركز نخاعي شوكي ← عصبون حركي نابذ (عبر الجذر الأمامي) ← عضو مستجيب (عضلة)",
+    "explanation": "قوس الانعكاس النخاعي: السيالة الحسية تدخل عبر العقدة الشوكية بالجذر الخلفي وتخرج السيالة الحركية عبر الجذر الأمامي للعضلة."
+  },
+  {
+    "id": "csv197",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "التنفس الخلوي وطرق تجديد ATP السريعة",
+    "question": "في بداية النشاط العضلي المكثف والمفاجئ، ما هو المسلك اللاهوائي فائق السرعة لتجديد الـ ATP دون إنتاج حمض اللبنيك؟",
+    "options": [
+      "مسلك الفوسفوكرياتين (Phosphocréatine) وحلمهة ADP بفضل أنزيم كرياتين كيناز",
+      "التنفس الخلوي في الميتوكوندري",
+      "دورة كريبس",
+      "أكسدة الأحماض الدهنية الطويلة"
+    ],
+    "correct_answer": "مسلك الفوسفوكرياتين (Phosphocréatine) وحلمهة ADP بفضل أنزيم كرياتين كيناز",
+    "explanation": "الفوسفوكرياتين مركب طاقي جاهز في الساركوبلازم يمنح فوسفاته لـ ADP فورا: Phosphocréatine + ADP → Créatine + ATP."
+  },
+  {
+    "id": "csv198",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "البيولوجيا الخلوية وإنتاج البروتينات",
+    "question": "أي من العضيات الخلوية التالية مسؤولة عن نضج وتعديل وتغليف البروتينات المفرزة وتوجيهها في حويصلات إفرازية؟",
+    "options": [
+      "جهاز غولجي (Appareil de Golgi)",
+      "الميتوكوندريا",
+      "السنتروسوم",
+      "الفجوة العصارية النباتية"
+    ],
+    "correct_answer": "جهاز غولجي (Appareil de Golgi)",
+    "explanation": "جهاز غولجي يستقبل البروتينات من الشبكة الهيولية ويقوم بالغلوسلة والنضج والتعبئة في حويصلات إفرازية نحو الخارج."
+  },
+  {
+    "id": "csv199",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "تطور الكائنات الحية والانتخاب الطبيعي",
+    "question": "مبدأ «الانتقاء الطبيعي» (Sélection naturelle) وفق نظرية التطور لداروين ينص على أن:",
+    "options": [
+      "الأفراد الحاملين لصفات وراثية أكثر ملاءمة للتكيف مع ظروف بيئتهم تكون فرص بقائهم وتوالدهم وتمرير حليلاتهم للأجيال اللاحقة أكبر",
+      "جميع الكائنات تسعى بإرادتها لتطوير أعضائها بالاستعمال والإهمال",
+      "الطبيعة تخلق الكائنات دفعة واحدة بدون أي تغير",
+      "الأفراد الأضعف بدنياً هم من يقودون تطور النوع دائماً"
+    ],
+    "correct_answer": "الأفراد الحاملين لصفات وراثية أكثر ملاءمة للتكيف مع ظروف بيئتهم تكون فرص بقائهم وتوالدهم وتمرير حليلاتهم للأجيال اللاحقة أكبر",
+    "explanation": "الانتقاء الطبيعي هو القوة الموجهة للتطور حيث تفضل البيئة النماذج الوراثية الأكثر نجاحاً في البقاء والتكاثر (Differential reproductive success)."
+  },
+  {
+    "id": "csv200",
+    "cycles": [
+      "secondary_prep",
+      "secondary_qual"
+    ],
+    "subject": "sec_svt",
+    "topic": "الوراثة البشرية والصيغة الصبغية",
+    "question": "الصيغة الصبغية الطبيعية لخلايا جسم إنسان أنثى بالغة هي:",
+    "options": [
+      "2n = 44A + XX (أي 46 صبغياً)",
+      "2n = 44A + XY",
+      "n = 22A + X",
+      "2n = 45A + XX"
+    ],
+    "correct_answer": "2n = 44A + XX (أي 46 صبغياً)",
+    "explanation": "الخلايا الجسدية ثنائية الصيغة الصبغية (2n=46) تتضمن 22 زوجاً من الصبغيات اللاجنسية (44A) وزوجاً جنسياً XX لدى الأنثى (و XY لدى الذكر)."
   },
   {
     "id": "cte116",

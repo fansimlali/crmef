@@ -61,3 +61,4 @@ sql += rows.join(',\n') + '\nON CONFLICT (id) DO UPDATE SET\n' +
 
 fs.writeFileSync(path.join(__dirname, '..', 'supabase_schema.sql'), sql, 'utf8');
 console.log(`Generated supabase_schema.sql with ${qs.length} questions.`);
+
