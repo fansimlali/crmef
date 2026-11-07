@@ -1,26 +1,92 @@
 import React, { useState } from 'react';
-import type { SubjectKey, Question } from '../types';
-import { SUBJECT_NAMES, SUBJECT_WEIGHTS } from '../types';
-import { Play, Sparkles, Target, Scale, HelpCircle } from 'lucide-react';
+import type { SubjectKey, Question, CycleKey } from '../types';
+import { CYCLES, SUBJECT_NAMES, getSubjectWeight } from '../types';
+import { Play, Sparkles, Target, Scale, HelpCircle, GraduationCap, AlertCircle } from 'lucide-react';
 
 interface QuizSetupProps {
   questions: Question[];
-  onStart: (phase: 'قبلي' | 'بعدي', selectedSubject: SubjectKey | 'all', maxCount: number) => void;
+  onStart: (
+    cycle: CycleKey,
+    phase: 'قبلي' | 'بعدي',
+    selectedSubject: SubjectKey | 'all',
+    maxCount: number
+  ) => void;
 }
 
 export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
+  const [selectedCycle, setSelectedCycle] = useState<CycleKey>('primary');
   const [phase, setPhase] = useState<'قبلي' | 'بعدي'>('قبلي');
   const [selectedSubject, setSelectedSubject] = useState<SubjectKey | 'all'>('all');
   const [questionCount, setQuestionCount] = useState<number>(0); // 0 means all
 
-  // حساب عدد الأسئلة في كل مادة
-  const getSubjectCount = (sub: SubjectKey) => questions.filter((q) => q.subject === sub).length;
-  const availableQuestionsCount = selectedSubject === 'all' 
-    ? questions.length 
+  // فلترة الأسئلة التي تنتمي إلى السلك المختار
+  // ملاحظة: أسئلة علوم التربية (edu) مشتركة لجميع الأسلاك التعليمية
+  const cycleQuestions = questions.filter((q) => {
+    if (q.subject === 'edu') return true;
+    if (q.cycles && q.cycles.length > 0) {
+      return q.cycles.includes(selectedCycle);
+    }
+    // التوافق القديم: المواد البادئة بـ sec_ تخص الثانوي، والباقي ابتدائي
+    if (q.subject.startsWith('sec_')) {
+      return selectedCycle === 'secondary_prep' || selectedCycle === 'secondary_qual';
+    }
+    return selectedCycle === 'primary';
+  });
+
+  // حساب عدد الأسئلة المتاحة للمادة
+  const getSubjectCount = (sub: SubjectKey) =>
+    cycleQuestions.filter((q) => q.subject === sub).length;
+
+  const availableQuestionsCount = selectedSubject === 'all'
+    ? cycleQuestions.length
     : getSubjectCount(selectedSubject as SubjectKey);
 
+  // قائمة المواد المناسبة لكل سلك
+  const getSubjectsForCycle = (): SubjectKey[] => {
+    if (selectedCycle === 'primary') {
+      return ['ar', 'fr', 'ma', 'sc', 'dar', 'dfr', 'dma', 'dsc', 'edu'];
+    }
+    if (selectedCycle === 'secondary_prep') {
+      return [
+        'sec_math', 'sec_d_math',
+        'sec_physics', 'sec_d_physics',
+        'sec_svt', 'sec_d_svt',
+        'sec_ar', 'sec_d_ar',
+        'sec_fr', 'sec_d_fr',
+        'sec_eng', 'sec_d_eng',
+        'sec_islamic', 'sec_d_islamic',
+        'sec_hist_geo', 'sec_d_hist_geo',
+        'sec_cs', 'sec_d_cs',
+        'edu'
+      ];
+    }
+    if (selectedCycle === 'secondary_qual') {
+      return [
+        'sec_philo', 'sec_d_philo',
+        'sec_math', 'sec_d_math',
+        'sec_physics', 'sec_d_physics',
+        'sec_svt', 'sec_d_svt',
+        'sec_ar', 'sec_d_ar',
+        'sec_fr', 'sec_d_fr',
+        'sec_eng', 'sec_d_eng',
+        'sec_hist_geo', 'sec_d_hist_geo',
+        'sec_eco', 'sec_d_eco',
+        'sec_islamic', 'sec_d_islamic',
+        'sec_cs', 'sec_d_cs',
+        'edu'
+      ];
+    }
+    return [];
+  };
+
+  const handleCycleChange = (cKey: CycleKey) => {
+    setSelectedCycle(cKey);
+    setSelectedSubject('all');
+    setQuestionCount(0);
+  };
+
   const handleStart = () => {
-    onStart(phase, selectedSubject, questionCount);
+    onStart(selectedCycle, phase, selectedSubject, questionCount);
   };
 
   return (
@@ -30,24 +96,71 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
         <div className="relative z-10 space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-200 text-xs font-semibold backdrop-blur-xs border border-emerald-400/20">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>نظام المحاكاة الرسمية لمباريات التعليم</span>
+            <span>نظام المحاكاة الرسمية لمباريات التعليم (دورة 2026)</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
-            امتحان تجريبي تفاعلي – ابتدائي مزدوج
+            منصة الامتحان التجريبي – الابتدائي والثانوي (إعدادي وتأهيلي)
           </h2>
           <p className="text-emerald-100 text-sm sm:text-base max-w-xl leading-relaxed">
-            اختبر جاهزيتك لمباراة التعليم بالمعاملات الرسمية للمواد مع تحليل ميتامعرفي لدرجة الثقة، وكشف مواطن القوة والضعف بدقة علمية وبيداغوجية.
+            اختبر جاهزيتك للمباراة بالمعاملات المعتمدة في القرار الوزاري، مع رصد درجات الثقة وتحليل مواطن القوة والضعف بدقة علمية وبيداغوجية.
           </p>
         </div>
       </div>
 
       {/* لوحة الإعدادات */}
       <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-8">
+        
+        {/* اختيار السلك التعليمي المستهدف */}
+        <div>
+          <label className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-3">
+            <GraduationCap className="w-5 h-5 text-emerald-600" />
+            <span>1. اختر سلك التأهيل المستهدف</span>
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {CYCLES.map((c) => {
+              const isSelected = selectedCycle === c.id;
+              const isAvailable = c.available;
+
+              return (
+                <div
+                  key={c.id}
+                  onClick={() => isAvailable && handleCycleChange(c.id)}
+                  className={`p-4 rounded-xl border-2 transition-all relative ${
+                    !isAvailable
+                      ? 'border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed'
+                      : isSelected
+                      ? 'border-emerald-600 bg-emerald-50/60 shadow-xs cursor-pointer'
+                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/50 cursor-pointer'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-bold text-slate-900 text-sm sm:text-base">
+                      {c.name}
+                    </span>
+                    {!isAvailable ? (
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 shrink-0">
+                        {c.unavailableReason || 'غير متاحة في التطبيق'}
+                      </span>
+                    ) : (
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 shrink-0">
+                        {c.badge}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    {c.description}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {/* اختيار المرحلة: قبلي أم بعدي */}
         <div>
           <label className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-3">
             <Target className="w-4 h-4 text-emerald-600" />
-            <span>مرحلة التقويم</span>
+            <span>2. مرحلة التقويم</span>
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label
@@ -68,7 +181,7 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
               <div>
                 <div className="font-semibold">اختبار قبلي (تشخيصي)</div>
                 <div className="text-xs text-slate-500 font-normal">
-                  لقياس مكتسباتك القبلية قبل بدء المراجعة وتحديد الثغرات
+                  لقياس مكتسباتك القبلية وتحديد مكامن الثغرات قبل بدء المراجعة
                 </div>
               </div>
             </label>
@@ -91,18 +204,18 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
               <div>
                 <div className="font-semibold">اختبار بعدي (إجمالي)</div>
                 <div className="text-xs text-slate-500 font-normal">
-                  لقياس مدى التمكن النهائي ومحاكاة ظروف الامتحان الحقيقي
+                  لقياس مدى التمكن النهائي ومحاكاة شروط الامتحان الحقيقي
                 </div>
               </div>
             </label>
           </div>
         </div>
 
-        {/* اختيار المادة */}
+        {/* اختيار المادة والتخصص */}
         <div>
           <label className="flex items-center gap-2 text-sm font-bold text-slate-800 mb-3">
             <Scale className="w-4 h-4 text-emerald-600" />
-            <span>المادة أو التخصص المستهدف</span>
+            <span>3. المادة أو التخصص المستهدف</span>
           </label>
           <select
             value={selectedSubject}
@@ -113,14 +226,14 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
             className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-slate-800 font-semibold focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
           >
             <option value="all">
-              جميع المواد ({questions.length} سؤالاً متاحاً) – محاكاة شاملة
+              جميع مواد وتخصصات السلك ({cycleQuestions.length} سؤالاً متاحاً) – محاكاة شاملة
             </option>
-            {(Object.keys(SUBJECT_NAMES) as SubjectKey[]).map((key) => {
+            {getSubjectsForCycle().map((key) => {
               const count = getSubjectCount(key);
-              const weight = SUBJECT_WEIGHTS[key];
+              const weight = getSubjectWeight(selectedCycle, key);
               return (
                 <option key={key} value={key} disabled={count === 0}>
-                  {SUBJECT_NAMES[key]} (المعامل: {weight}) — {count} سؤال
+                  {SUBJECT_NAMES[key] || key} (المعامل: {weight}) — {count} سؤال
                 </option>
               );
             })}
@@ -128,20 +241,20 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
         </div>
 
         {/* عدد الأسئلة المراد اجتيازها */}
-        {availableQuestionsCount > 0 && (
+        {availableQuestionsCount > 0 ? (
           <div>
             <label className="flex items-center justify-between text-sm font-bold text-slate-800 mb-2">
               <span className="flex items-center gap-2">
                 <HelpCircle className="w-4 h-4 text-emerald-600" />
-                <span>حجم الاختبار</span>
+                <span>4. حجم الاختبار</span>
               </span>
               <span className="text-xs text-slate-500 font-medium">
                 {questionCount === 0 ? `كامل الرصيد المتاح (${availableQuestionsCount})` : `${questionCount} سؤالاً`}
               </span>
             </label>
             <div className="flex flex-wrap gap-2">
-              {[0, 10, 20, 30].map((cnt) => {
-                const label = cnt === 0 ? `الكل (${availableQuestionsCount})` : `${cnt} سؤالاً`;
+              {[0, 5, 10, 20].map((cnt) => {
+                const label = cnt === 0 ? `الكل (${availableQuestionsCount})` : `${cnt} أسئلة`;
                 const isDisabled = cnt !== 0 && cnt > availableQuestionsCount;
                 if (isDisabled && cnt !== 0) return null;
                 return (
@@ -149,7 +262,7 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
                     key={cnt}
                     type="button"
                     onClick={() => setQuestionCount(cnt)}
-                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                       questionCount === cnt
                         ? 'bg-emerald-700 text-white shadow-xs'
                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -160,6 +273,11 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
                 );
               })}
             </div>
+          </div>
+        ) : (
+          <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>لا توجد أسئلة مسجلة حالياً لهذا التخصص بعينه. يمكنك إضافة أسئلة من تبويب "بنك الأسئلة" أو اختيار "جميع مواد وتخصصات السلك".</span>
           </div>
         )}
 

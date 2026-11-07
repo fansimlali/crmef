@@ -4,7 +4,7 @@ import { QuizSetup } from './components/QuizSetup';
 import { QuizQuestion } from './components/QuizQuestion';
 import { QuizResults } from './components/QuizResults';
 import { QuestionManager } from './components/QuestionManager';
-import type { Question, SubjectKey, ExamRecord } from './types';
+import type { Question, SubjectKey, ExamRecord, CycleKey } from './types';
 import { getQuestions } from './lib/supabase';
 import { Loader2 } from 'lucide-react';
 
@@ -15,6 +15,7 @@ export function App() {
 
   // حالة جلسة الاختبار
   const [quizStatus, setQuizStatus] = useState<'setup' | 'running' | 'results'>('setup');
+  const [examCycle, setExamCycle] = useState<CycleKey>('primary');
   const [examPhase, setExamPhase] = useState<'قبلي' | 'بعدي'>('قبلي');
   const [examQuestions, setExamQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -34,13 +35,26 @@ export function App() {
 
   // بدء الاختبار
   const handleStartExam = (
+    cycle: CycleKey,
     phase: 'قبلي' | 'بعدي',
     selectedSubject: SubjectKey | 'all',
     maxCount: number
   ) => {
-    let pool = allQuestions.filter(
-      (q) => selectedSubject === 'all' || q.subject === selectedSubject
-    );
+    setExamCycle(cycle);
+
+    const pool = allQuestions.filter((q) => {
+      // علوم التربية edu مشتركة لجميع الأسلاك
+      const matchesCycle =
+        q.subject === 'edu' ||
+        (q.cycles && q.cycles.length > 0
+          ? q.cycles.includes(cycle)
+          : cycle === 'primary'
+          ? !q.subject.startsWith('sec_')
+          : q.subject.startsWith('sec_'));
+
+      const matchesSubject = selectedSubject === 'all' || q.subject === selectedSubject;
+      return matchesCycle && matchesSubject;
+    });
 
     // خلط عشوائي لترتيب الأسئلة
     const shuffled = [...pool];
@@ -99,7 +113,7 @@ export function App() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 text-slate-500 gap-3">
             <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
-            <p className="text-sm font-semibold">جارٍ تحميل بنك الأسئلة والاتصال بالخادم...</p>
+            <p className="text-sm font-semibold">جارٍ تحميل بنك الأسئلة والاتصال بقاعدة البيانات...</p>
           </div>
         ) : activeTab === 'manager' ? (
           <QuestionManager
@@ -127,6 +141,7 @@ export function App() {
 
             {quizStatus === 'results' && (
               <QuizResults
+                cycle={examCycle}
                 phase={examPhase}
                 records={records}
                 onRestart={handleRestart}
@@ -139,10 +154,10 @@ export function App() {
       <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
         <div className="max-w-4xl mx-auto px-4 space-y-1">
           <p className="font-semibold text-slate-700">
-            منصة الامتحان التجريبي لمباراة التعليم – سلك الابتدائي (مزدوج)
+            منصة الامتحان التجريبي لمباراة ولوج سلك تأهيل أطر التدريس بالمراكز الجهوية لمهن التربية والتكوين (CRMEF)
           </p>
           <p>
-            مبنية بمعايير المعاملات المعتمدة من وزارة التربية الوطنية والتعليم الأولي والرياضة
+            تغطي سلك التعليم الابتدائي (مزدوج) وسلكي التعليم الثانوي (إعدادي وتأهيلي) وفق التوصيفات الرسمية للوزارة
           </p>
         </div>
       </footer>

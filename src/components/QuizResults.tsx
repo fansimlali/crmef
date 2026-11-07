@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import type { ExamRecord, SubjectKey } from '../types';
-import { SUBJECT_NAMES, SUBJECT_WEIGHTS } from '../types';
+import type { ExamRecord, SubjectKey, CycleKey } from '../types';
+import { SUBJECT_NAMES, CYCLES, getSubjectWeight } from '../types';
 import { 
   Trophy, 
   RotateCcw, 
@@ -12,20 +12,25 @@ import {
   AlertTriangle, 
   HelpCircle,
   Award,
-  BookOpen
+  BookOpen,
+  GraduationCap
 } from 'lucide-react';
 
 interface QuizResultsProps {
+  cycle: CycleKey;
   phase: 'قبلي' | 'بعدي';
   records: ExamRecord[];
   onRestart: () => void;
 }
 
 export const QuizResults: React.FC<QuizResultsProps> = ({
+  cycle,
   phase,
   records,
   onRestart,
 }) => {
+  const cycleInfo = CYCLES.find((c) => c.id === cycle);
+
   // تجميع السجلات حسب المادة وحساب النسب
   const subjectGroups: Record<string, ExamRecord[]> = {};
   records.forEach((r) => {
@@ -33,22 +38,30 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
     subjectGroups[r.subject].push(r);
   });
 
-  // حساب المعدل المرجح بالمعاملات من 20 (نفس صيغة مباراة الابتدائي الرسمية)
+  // حساب المعدل المرجح بالمعاملات من 20 حسب السلك
   let weightedSum = 0;
   let totalWeights = 0;
+  const eliminatorySubjects: string[] = [];
 
   Object.keys(subjectGroups).forEach((subKey) => {
     const list = subjectGroups[subKey];
     const correctCount = list.filter((r) => r.isCorrect).length;
     const accuracy = (correctCount / list.length) * 100;
-    const weight = SUBJECT_WEIGHTS[subKey as SubjectKey] || 1;
+    const weight = getSubjectWeight(cycle, subKey as SubjectKey);
 
     weightedSum += weight * accuracy;
     totalWeights += weight;
+
+    // فحص النقطة الموجبة للرسوب (أقل من 5 من 20 أي أقل من 25%)
+    const scoreOutOf20ForSubject = (accuracy * 20) / 100;
+    if (scoreOutOf20ForSubject < 5 && list.length >= 2) {
+      eliminatorySubjects.push(`${SUBJECT_NAMES[subKey as SubjectKey] || subKey} (${scoreOutOf20ForSubject.toFixed(1)}/20)`);
+    }
   });
 
   const finalScore = totalWeights > 0 ? parseFloat((weightedSum / totalWeights / 5).toFixed(2)) : 0;
-  const isPassed = finalScore >= 10;
+  const hasEliminatory = eliminatorySubjects.length > 0;
+  const isPassed = finalScore >= 10 && !hasEliminatory;
 
   // إحصائيات الميتامعرفة (درجات الثقة)
   const sureAndWrong = records.filter((r) => r.confidence === 'متأكد' && !r.isCorrect).length;
@@ -59,12 +72,12 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
   // تجميع السجلات حسب المحور
   const topicGroups: Record<string, ExamRecord[]> = {};
   records.forEach((r) => {
-    const label = `${SUBJECT_NAMES[r.subject]} : ${r.topic}`;
+    const label = `${SUBJECT_NAMES[r.subject] || r.subject} : ${r.topic}`;
     if (!topicGroups[label]) topicGroups[label] = [];
     topicGroups[label].push(r);
   });
 
-  // إطلاق الاحتفال إذا كانت النتيجة جيدة
+  // إطلاق الاحتفال إذا كانت النتيجة جيدة وبدون رسوب إقصائي
   useEffect(() => {
     if (isPassed) {
       confetti({
@@ -79,9 +92,12 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
   const handleDownload = () => {
     const data = {
       platform: 'CRMEF Exam Simulator',
+      cycle: cycleInfo?.name || cycle,
       phase,
       date: new Date().toISOString(),
       scoreOutOf20: finalScore,
+      hasEliminatoryScore: hasEliminatory,
+      eliminatoryDetails: eliminatorySubjects,
       totalQuestions: records.length,
       correctAnswers: totalCorrect,
       sureAndWrong,
@@ -94,7 +110,7 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `crmef_${phase === 'قبلي' ? 'pre' : 'post'}_${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = `crmef_${cycle}_${phase === 'قبلي' ? 'pre' : 'post'}_${new Date().toISOString().slice(0, 10)}.json`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -107,9 +123,15 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
     <div className="max-w-4xl mx-auto space-y-8 pb-12 print:p-0">
       {/* بطاقة النتيجة الرئيسية */}
       <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-10 shadow-sm text-center relative overflow-hidden">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold mb-4">
-          <Award className="w-4 h-4 text-emerald-600" />
-          <span>نتيجة الاختبار {phase === 'قبلي' ? 'القبلي (التشخيصي)' : 'البعدي (النهائي)'}</span>
+        <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-800 text-xs font-bold">
+            <GraduationCap className="w-3.5 h-3.5 text-emerald-600" />
+            <span>{cycleInfo?.name || cycle}</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
+            <Award className="w-3.5 h-3.5 text-emerald-600" />
+            <span>اختبار {phase === 'قبلي' ? 'قبلي (تشخيصي)' : 'بعدي (إجمالي)'}</span>
+          </span>
         </div>
 
         <div className="flex flex-col items-center justify-center my-4">
@@ -120,10 +142,33 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
             </div>
           </div>
           <p className="text-slate-600 text-sm sm:text-base mt-2 max-w-md">
-            معدل مرجح بالمعاملات الرسمية لمباراة الابتدائي. أجبت صواباً عن{' '}
+            معدل مرجح بنظام معاملات مباراة التعليم الرسمي. أجبت صواباً عن{' '}
             <strong className="text-slate-900">{totalCorrect}</strong> من أصل{' '}
             <strong className="text-slate-900">{records.length}</strong> سؤالاً.
           </p>
+
+          {/* تنبيه النقطة الموجبة للرسوب أو التأهيل للشفوي */}
+          {hasEliminatory ? (
+            <div className="mt-4 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs sm:text-sm font-bold flex items-center gap-2 max-w-lg text-start">
+              <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+              <div>
+                <span>تنبيه بيداغوجي (نقطة موجبة للرسوب): </span>
+                <span className="font-normal">
+                  وفق القرار الوزاري، الحصول على أقل من 5 من 20 في أي مادة يمنع التأهل للاختبار الشفوي: {eliminatorySubjects.join('، ')}.
+                </span>
+              </div>
+            </div>
+          ) : isPassed ? (
+            <div className="mt-4 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm font-bold flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-emerald-600" />
+              <span>معدل ممتاز! مؤهل من حيث النتيجة لاجتياز الاختبارات الشفوية والعملية.</span>
+            </div>
+          ) : (
+            <div className="mt-4 p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs sm:text-sm font-bold flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600" />
+              <span>المعدل أقل من عتبة النجاح (10/20). راجع الأخطاء أسفله لتعزيز مكتسباتك.</span>
+            </div>
+          )}
         </div>
 
         {/* تحليل الميتامعرفة وسلوك الإجابة */}
@@ -135,7 +180,7 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
             </div>
             <div className="text-2xl font-black text-rose-900">{sureAndWrong}</div>
             <div className="text-xs text-rose-700 mt-1">
-              إجابات كنت متأكداً منها لكنها كانت خاطئة! (أهم مؤشر للثغرات)
+              إجابات كنت متأكداً منها لكنها خاطئة (أهم مؤشر للثغرات المفاهيمية)
             </div>
           </div>
 
@@ -146,7 +191,7 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
             </div>
             <div className="text-2xl font-black text-amber-900">{guessAndRight}</div>
             <div className="text-xs text-amber-700 mt-1">
-              إجابات صحيحة ولكن عن طريق التخمين (تحتاج لتثبيت المفهوم)
+              إجابات صحيحة ولكن بالتخمين (تحتاج لتثبيت بيداغوجي للمفهوم)
             </div>
           </div>
 
@@ -157,7 +202,7 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
             </div>
             <div className="text-2xl font-black text-blue-900">{unknownCount}</div>
             <div className="text-xs text-blue-700 mt-1">
-              أسئلة اخترت فيها "لا أعرف" (صراحة تقويمية شجاعة)
+              أسئلة اخترت فيها "لا أعرف" (صراحة تشخيصية إيجابية)
             </div>
           </div>
         </div>
@@ -169,7 +214,7 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
             className="flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
           >
             <RotateCcw className="w-4 h-4" />
-            <span>إعادة الاختبار أو مادة أخرى</span>
+            <span>إعادة الاختبار أو اختيار تخصص آخر</span>
           </button>
 
           <button
@@ -194,15 +239,15 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
       <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-4">
         <h3 className="font-extrabold text-lg text-slate-900 flex items-center gap-2">
           <Trophy className="w-5 h-5 text-emerald-600" />
-          <span>النتائج التفصيلية حسب المادة والمعاملات</span>
+          <span>النتائج التفصيلية حسب المكونات والمعاملات الرسمية</span>
         </h3>
 
         <div className="overflow-x-auto">
           <table className="w-full text-start text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-slate-500 text-xs">
-                <th className="py-3 px-4 text-start font-bold">المادة</th>
-                <th className="py-3 px-4 text-start font-bold">المعامل</th>
+                <th className="py-3 px-4 text-start font-bold">المادة / المكون</th>
+                <th className="py-3 px-4 text-start font-bold">المعامل الرسمي</th>
                 <th className="py-3 px-4 text-start font-bold">الإجابات الصحيحة</th>
                 <th className="py-3 px-4 text-start font-bold">النسبة المئوية</th>
                 <th className="py-3 px-4 text-start font-bold">التقييم</th>
@@ -213,7 +258,7 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
                 const list = subjectGroups[subKey];
                 const correct = list.filter((r) => r.isCorrect).length;
                 const pct = Math.round((correct / list.length) * 100);
-                const weight = SUBJECT_WEIGHTS[subKey as SubjectKey] || 1;
+                const weight = getSubjectWeight(cycle, subKey as SubjectKey);
 
                 return (
                   <tr key={subKey} className="hover:bg-slate-50/50">
@@ -307,7 +352,7 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
               .map((r, i) => (
                 <div key={i} className="p-5 rounded-2xl border border-rose-100 bg-rose-50/30 space-y-3">
                   <div className="flex items-center justify-between text-xs font-bold text-slate-500">
-                    <span>{SUBJECT_NAMES[r.subject]} – {r.topic}</span>
+                    <span>{SUBJECT_NAMES[r.subject] || r.subject} – {r.topic}</span>
                     <span className="text-rose-600">درجة الثقة: {r.confidence}</span>
                   </div>
 

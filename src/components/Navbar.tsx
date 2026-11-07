@@ -31,7 +31,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
             </h1>
             <p className="text-xs text-slate-500 font-medium">
-              مباراة التعليم – سلك الابتدائي (مزدوج)
+              مباراة التعليم – الابتدائي والثانوي (إعدادي وتأهيلي)
             </p>
           </div>
         </div>

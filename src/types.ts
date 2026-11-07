@@ -1,4 +1,52 @@
+export type CycleKey = 
+  | 'primary'          // سلك التعليم الابتدائي (مزدوج)
+  | 'primary_amazigh'  // سلك التعليم الابتدائي (أمازيغية) - غير متاحة في التطبيق
+  | 'secondary_prep'   // سلك التعليم الثانوي الإعدادي
+  | 'secondary_qual';  // سلك التعليم الثانوي التأهيلي
+
+export interface CycleDefinition {
+  id: CycleKey;
+  name: string;
+  badge: string;
+  description: string;
+  available: boolean;
+  unavailableReason?: string;
+}
+
+export const CYCLES: CycleDefinition[] = [
+  {
+    id: 'primary',
+    name: 'سلك التعليم الابتدائي – التخصص المزدوج',
+    badge: 'ابتدائي مزدوج',
+    description: 'مواد التخصص (20) + ديداكتيك المواد (12) + علوم التربية (8).',
+    available: true,
+  },
+  {
+    id: 'secondary_prep',
+    name: 'سلك التعليم الثانوي الإعدادي',
+    badge: 'ثانوي إعدادي',
+    description: 'مادة التخصص (20) + ديداكتيك مادة التخصص (12) + علوم التربية (8).',
+    available: true,
+  },
+  {
+    id: 'secondary_qual',
+    name: 'سلك التعليم الثانوي التأهيلي',
+    badge: 'ثانوي تأهيلي',
+    description: 'مادة التخصص (20) + ديداكتيك مادة التخصص (12) + علوم التربية (8).',
+    available: true,
+  },
+  {
+    id: 'primary_amazigh',
+    name: 'سلك التعليم الابتدائي – تخصص اللغة الأمازيغية',
+    badge: 'أمازيغية',
+    description: 'تخصص اللغة الأمازيغية وديداكتيكها.',
+    available: false,
+    unavailableReason: 'غير متاحة في التطبيق',
+  },
+];
+
 export type SubjectKey = 
+  // مواد الابتدائي
   | 'ma' 
   | 'fr' 
   | 'ar' 
@@ -7,10 +55,34 @@ export type SubjectKey =
   | 'dfr' 
   | 'dar' 
   | 'dsc' 
-  | 'edu';
+  | 'edu'
+  // تخصصات وديداكتيك الثانوي الإعدادي والتأهيلي
+  | 'sec_philo'        // الفلسفة
+  | 'sec_d_philo'      // ديداكتيك الفلسفة
+  | 'sec_math'         // الرياضيات ثانوي
+  | 'sec_d_math'       // ديداكتيك الرياضيات ثانوي
+  | 'sec_physics'      // الفيزياء والكيمياء
+  | 'sec_d_physics'    // ديداكتيك الفيزياء والكيمياء
+  | 'sec_svt'          // علوم الحياة والأرض
+  | 'sec_d_svt'        // ديداكتيك علوم الحياة والأرض
+  | 'sec_ar'           // اللغة العربية ثانوي
+  | 'sec_d_ar'         // ديداكتيك العربية ثانوي
+  | 'sec_fr'           // اللغة الفرنسية ثانوي
+  | 'sec_d_fr'         // ديداكتيك الفرنسية ثانوي
+  | 'sec_eng'          // اللغة الإنجليزية
+  | 'sec_d_eng'        // ديداكتيك الإنجليزية
+  | 'sec_islamic'      // التربية الإسلامية
+  | 'sec_d_islamic'    // ديداكتيك التربية الإسلامية
+  | 'sec_hist_geo'     // التاريخ والجغرافيا / الاجتماعيات
+  | 'sec_d_hist_geo'   // ديداكتيك التاريخ والجغرافيا
+  | 'sec_cs'           // المعلوميات
+  | 'sec_d_cs'         // ديداكتيك المعلوميات
+  | 'sec_eco'          // علوم الاقتصاد والتدبير
+  | 'sec_d_eco';       // ديداكتيك الاقتصاد والتدبير
 
 export interface Question {
   id: string;
+  cycles?: CycleKey[]; // إن لم تُحدد، يتم اشتقاقها من المادة. علوم التربية edu صالحة لجميع الأسلاك!
   subject: SubjectKey;
   topic: string;
   question: string;
@@ -35,36 +107,45 @@ export interface ExamRecord {
   explanation?: string;
 }
 
-export interface ExamSessionResult {
-  phase: 'قبلي' | 'بعدي';
-  date: string;
-  totalQuestions: number;
-  correctAnswersCount: number;
-  scoreOutOf20: number;
-  records: ExamRecord[];
-  subjectStats: Record<string, { total: number; correct: number; percentage: number; weight: number }>;
-  topicStats: Record<string, { total: number; correct: number; percentage: number }>;
-  metaStats: {
-    falseConfidence: number; // متأكد وأخطأ
-    luckyGuess: number;      // تخمين وصح
-    hesitantCorrect: number; // متردد وصح
-    unknown: number;         // لا أعرف
-  };
-}
-
 export const SUBJECT_NAMES: Record<SubjectKey, string> = {
-  ar: 'اللغة العربية',
-  fr: 'اللغة الفرنسية',
-  ma: 'الرياضيات',
-  sc: 'العلوم والنشاط العلمي',
-  dar: 'ديداكتيك العربية',
-  dfr: 'ديداكتيك الفرنسية',
-  dma: 'ديداكتيك الرياضيات',
-  dsc: 'ديداكتيك العلوم',
-  edu: 'علوم التربية ومستجدات المنظومة',
+  // الابتدائي
+  ar: 'اللغة العربية (ابتدائي)',
+  fr: 'اللغة الفرنسية (ابتدائي)',
+  ma: 'الرياضيات (ابتدائي)',
+  sc: 'العلوم والنشاط العلمي (ابتدائي)',
+  dar: 'ديداكتيك العربية (ابتدائي)',
+  dfr: 'ديداكتيك الفرنسية (ابتدائي)',
+  dma: 'ديداكتيك الرياضيات (ابتدائي)',
+  dsc: 'ديداكتيك العلوم (ابتدائي)',
+  edu: 'علوم التربية ومستجدات المنظومة (مشترك لجميع الأسلاك)',
+  
+  // الثانوي
+  sec_philo: 'الفلسفة (تخصص ثانوي تأهيلي)',
+  sec_d_philo: 'ديداكتيك الفلسفة',
+  sec_math: 'الرياضيات (تخصص ثانوي)',
+  sec_d_math: 'ديداكتيك الرياضيات (ثانوي)',
+  sec_physics: 'الفيزياء والكيمياء (تخصص ثانوي)',
+  sec_d_physics: 'ديداكتيك الفيزياء والكيمياء',
+  sec_svt: 'علوم الحياة والأرض (تخصص ثانوي)',
+  sec_d_svt: 'ديداكتيك علوم الحياة والأرض',
+  sec_ar: 'اللغة العربية (تخصص ثانوي)',
+  sec_d_ar: 'ديداكتيك اللغة العربية (ثانوي)',
+  sec_fr: 'اللغة الفرنسية (تخصص ثانوي)',
+  sec_d_fr: 'ديداكتيك اللغة الفرنسية (ثانوي)',
+  sec_eng: 'اللغة الإنجليزية (تخصص ثانوي)',
+  sec_d_eng: 'ديداكتيك اللغة الإنجليزية',
+  sec_islamic: 'التربية الإسلامية (تخصص ثانوي)',
+  sec_d_islamic: 'ديداكتيك التربية الإسلامية',
+  sec_hist_geo: 'التاريخ والجغرافيا / الاجتماعيات (ثانوي)',
+  sec_d_hist_geo: 'ديداكتيك التاريخ والجغرافيا',
+  sec_cs: 'المعلوميات (تخصص ثانوي)',
+  sec_d_cs: 'ديداكتيك المعلوميات',
+  sec_eco: 'العلوم الاقتصادية والتدبير (تأهيلي)',
+  sec_d_eco: 'ديداكتيك الاقتصاد والتدبير',
 };
 
-export const SUBJECT_WEIGHTS: Record<SubjectKey, number> = {
+// المعاملات الرسمية لسلك الابتدائي
+export const PRIMARY_WEIGHTS: Partial<Record<SubjectKey, number>> = {
   ar: 6,
   fr: 6,
   ma: 6,
@@ -76,10 +157,21 @@ export const SUBJECT_WEIGHTS: Record<SubjectKey, number> = {
   edu: 8,
 };
 
+// المعاملات الرسمية لسلك الثانوي (الإعدادي والتأهيلي)
+// مادة التخصص: 20، ديداكتيك التخصص: 12، علوم التربية: 8
+export function getSubjectWeight(cycle: CycleKey, sub: SubjectKey): number {
+  if (cycle === 'primary') {
+    return PRIMARY_WEIGHTS[sub] || 1;
+  }
+  // للثانوي:
+  if (sub === 'edu') return 8;
+  if (sub.startsWith('sec_d_') || sub.startsWith('d')) return 12;
+  return 20; // مادة التخصص
+}
+
 export const CONFIDENCE_OPTIONS: ConfidenceLevel[] = [
   'متأكد',
   'متردد',
   'تخمين',
   'لا أعرف'
 ];
-
