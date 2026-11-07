@@ -201,3 +201,4 @@ export const SUMMARIES_DATA: SummaryArticle[] = ${JSON.stringify(articles, null,
 
 fs.writeFileSync('src/data/summariesData.ts', tsCode, 'utf8');
 console.log('Successfully generated src/data/summariesData.ts with', articles.length, 'articles.');
+

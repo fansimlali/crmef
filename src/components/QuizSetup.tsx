@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { SubjectKey, Question, CycleKey } from '../types';
 import { CYCLES, SUBJECT_NAMES, getSubjectWeight } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -10,7 +10,10 @@ import {
   GraduationCap, 
   CheckCircle2, 
   RotateCcw,
-  HelpCircle
+  HelpCircle,
+  Crown,
+  Lock,
+  AlertTriangle
 } from 'lucide-react';
 
 interface QuizSetupProps {
@@ -25,14 +28,31 @@ interface QuizSetupProps {
 }
 
 export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
-  const { user, answeredQuestionIds, resetProgress } = useAuth();
+  const { 
+    user, 
+    isAdmin, 
+    isPremium, 
+    answeredQuestionIds, 
+    resetProgress,
+    setUpgradeModalOpen 
+  } = useAuth();
+
+  // إذا كان المستخدم مسجلاً وله سلك محدد، نقفل السلك تلقائياً على سلكه
+  const userCycle = user?.cycle || null;
 
   // المراحل التدريجية (Stepper)
-  const [selectedCycle, setSelectedCycle] = useState<CycleKey | null>(null);
+  const [selectedCycle, setSelectedCycle] = useState<CycleKey | null>(userCycle);
   const [phase, setPhase] = useState<'قبلي' | 'بعدي' | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<SubjectKey | 'all'>('all');
   const [questionCount, setQuestionCount] = useState<number>(0);
   const [onlyUnanswered, setOnlyUnanswered] = useState<boolean>(false);
+
+  // مزامنة السلك عند تسجيل دخول المستخدم
+  useEffect(() => {
+    if (userCycle && !isAdmin) {
+      setSelectedCycle(userCycle);
+    }
+  }, [userCycle, isAdmin]);
 
   // تصفية الأسئلة حسب السلك المختار
   const cycleQuestions = questions.filter((q) => {
@@ -95,13 +115,40 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
   const getSubjectCount = (sub: SubjectKey) =>
     cycleQuestions.filter((q) => q.subject === sub).length;
 
+  // حساب عدد الأسئلة المجتازة في مادة معينة
+  const getAnsweredCountForSubject = (sub: SubjectKey) =>
+    cycleQuestions.filter((q) => q.subject === sub && answeredQuestionIds.has(q.id)).length;
+
+  // فحص الكوطة التجريبية (20 سؤالاً كحد أقصى لكل مادة)
+  const TRIAL_LIMIT = 20;
+  const currentSubjectAnswered = selectedSubject !== 'all' 
+    ? getAnsweredCountForSubject(selectedSubject) 
+    : 0;
+  const isSubjectQuotaExhausted = !isPremium && selectedSubject !== 'all' && currentSubjectAnswered >= TRIAL_LIMIT;
+
   const availableQuestionsCount = selectedSubject === 'all'
     ? cycleQuestions.length
     : getSubjectCount(selectedSubject as SubjectKey);
 
   const handleStartExam = () => {
     if (!selectedCycle || !phase) return;
-    onStart(selectedCycle, phase, selectedSubject, questionCount, onlyUnanswered);
+    if (isSubjectQuotaExhausted) {
+      setUpgradeModalOpen(true);
+      return;
+    }
+
+    // إذا كان المستخدم تجريبياً واختار كل المواد أو عدداً يفوق 20، نقيد الحد الأقصى بـ 20
+    let effectiveMax = questionCount;
+    if (!isPremium) {
+      if (selectedSubject !== 'all') {
+        const remainingForSub = Math.max(1, TRIAL_LIMIT - currentSubjectAnswered);
+        effectiveMax = effectiveMax === 0 ? remainingForSub : Math.min(effectiveMax, remainingForSub);
+      } else {
+        effectiveMax = effectiveMax === 0 ? TRIAL_LIMIT : Math.min(effectiveMax, TRIAL_LIMIT);
+      }
+    }
+
+    onStart(selectedCycle, phase, selectedSubject, effectiveMax, onlyUnanswered);
   };
 
   return (
@@ -123,42 +170,64 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
       </div>
 
       {/* شريط المتابعة الشخصية للمستخدم */}
-      {user && answeredQuestionIds.size > 0 && (
+      {user && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black shrink-0">
               <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xs sm:text-sm font-bold text-emerald-950">
-                مرحباً بك {user.fullName || user.email}
+              <div className="text-xs sm:text-sm font-bold text-emerald-950 flex items-center gap-2">
+                <span>مرحباً بك {user.fullName || user.email}</span>
+                {isPremium ? (
+                  <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black border border-amber-300">
+                    مشترك كامل ⭐
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold">
+                    حساب تجريبي (كوطة 20 سؤالاً/مادة)
+                  </span>
+                )}
               </div>
               <div className="text-xs text-emerald-700">
-                لقد اختبرت نفسك مسبقاً في <strong className="font-bold">{answeredQuestionIds.size}</strong> سؤالاً (مظللة ومحفوظة في حسابك){selectedCycle ? `، منها ${answeredInCycle} سؤالاً في هذا السلك.` : '.'}
+                لقد اختبرت نفسك مسبقاً في <strong className="font-bold">{answeredQuestionIds.size}</strong> سؤالاً (محفوظة في حسابك){selectedCycle ? `، منها ${answeredInCycle} سؤالاً في هذا السلك.` : '.'}
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                setOnlyUnanswered(!onlyUnanswered);
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                onlyUnanswered
-                  ? 'bg-emerald-700 text-white shadow-xs'
-                  : 'bg-white text-emerald-800 border border-emerald-300 hover:bg-emerald-100'
-              }`}
-            >
-              {onlyUnanswered ? '✓ التركيز على الأسئلة الجديدة فقط' : 'المتابعة من حيث انتهيت (استثناء المجتاز)'}
-            </button>
-            <button
-              onClick={resetProgress}
-              title="تصفير سجل الأسئلة المجتازة والبدء من الصفر"
-              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-white transition-all cursor-pointer"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
+            {answeredQuestionIds.size > 0 && (
+              <>
+                <button
+                  onClick={() => {
+                    setOnlyUnanswered(!onlyUnanswered);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    onlyUnanswered
+                      ? 'bg-emerald-700 text-white shadow-xs'
+                      : 'bg-white text-emerald-800 border border-emerald-300 hover:bg-emerald-100'
+                  }`}
+                >
+                  {onlyUnanswered ? '✓ الأسئلة غير المنجزة فقط' : 'استثناء الأسئلة المجتازة'}
+                </button>
+                <button
+                  onClick={resetProgress}
+                  title="تصفير سجل الأسئلة المجتازة والبدء من الصفر"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-white transition-all cursor-pointer"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              </>
+            )}
+            {!isPremium && !isAdmin && (
+              <button
+                onClick={() => setUpgradeModalOpen(true)}
+                className="px-3 py-1.5 rounded-lg text-xs font-black bg-amber-500 hover:bg-amber-600 text-white flex items-center gap-1 shadow-xs cursor-pointer"
+              >
+                <Crown className="w-3.5 h-3.5" />
+                <span>ترقية</span>
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -185,10 +254,21 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
             )}
           </div>
 
+          {/* تنبيه خاص إذا كان السلك مقفلاً بسبب حساب المستخدم */}
+          {user && !isAdmin && userCycle && (
+            <div className="mb-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center gap-2">
+              <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>
+                حسابك مقيّد في سلك <strong>{CYCLES.find(c => c.id === userCycle)?.name}</strong> فقط وفق شروط التسجيل. لا يمكن الاطلاع على باقي الأسلاك.
+              </span>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {CYCLES.map((c) => {
               const isSelected = selectedCycle === c.id;
-              const isAvailable = c.available;
+              const isLockedByAccount = user && !isAdmin && userCycle && userCycle !== c.id;
+              const isAvailable = c.available && !isLockedByAccount;
 
               return (
                 <div
@@ -200,7 +280,9 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
                     }
                   }}
                   className={`p-4 rounded-2xl border-2 transition-all relative ${
-                    !isAvailable
+                    isLockedByAccount
+                      ? 'border-slate-200 bg-slate-50 opacity-40 cursor-not-allowed'
+                      : !c.available
                       ? 'border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed'
                       : isSelected
                       ? 'border-emerald-600 bg-emerald-50/70 shadow-xs cursor-pointer ring-2 ring-emerald-500/20'
@@ -208,12 +290,17 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <span className="font-extrabold text-slate-900 text-sm sm:text-base">
-                      {c.name}
+                    <span className="font-extrabold text-slate-900 text-sm sm:text-base flex items-center gap-1.5">
+                      {isLockedByAccount && <Lock className="w-3.5 h-3.5 text-slate-400" />}
+                      <span>{c.name}</span>
                     </span>
-                    {!isAvailable ? (
+                    {isLockedByAccount ? (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600 shrink-0">
+                        مغلق لحسابك
+                      </span>
+                    ) : !c.available ? (
                       <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-700 shrink-0">
-                        {c.unavailableReason || 'غير متاحة في التطبيق'}
+                        {c.unavailableReason || 'غير متاحة'}
                       </span>
                     ) : (
                       <span className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${
@@ -333,48 +420,120 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
               </option>
               {getSubjectsForCycle().map((key) => {
                 const count = getSubjectCount(key);
+                const answeredCount = getAnsweredCountForSubject(key);
                 const weight = getSubjectWeight(selectedCycle, key);
+                const isExhausted = !isPremium && answeredCount >= TRIAL_LIMIT;
+
                 return (
                   <option key={key} value={key} disabled={count === 0}>
-                    {SUBJECT_NAMES[key] || key} (المعامل الرسمي: {weight}) — {count} سؤال
+                    {SUBJECT_NAMES[key] || key} (المعامل: {weight}) — {count} سؤال 
+                    {!isPremium ? ` [المجتاز: ${answeredCount}/${TRIAL_LIMIT}${isExhausted ? ' 🔒 مكتمل' : ''}]` : ''}
                   </option>
                 );
               })}
             </select>
 
-            {/* عدد الأسئلة المراد اجتيازها */}
-            <div className="pt-2">
-              <label className="flex items-center justify-between text-xs font-bold text-slate-700 mb-2">
-                <span className="flex items-center gap-1.5">
-                  <HelpCircle className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>حجم الاختبار:</span>
-                </span>
-                <span className="text-slate-500 font-normal">
-                  {questionCount === 0 ? `كامل الرصيد (${availableQuestionsCount})` : `${questionCount} سؤالاً`}
-                </span>
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {[0, 10, 20, 30].map((cnt) => {
-                  const label = cnt === 0 ? `الكل (${availableQuestionsCount})` : `${cnt} سؤالاً`;
-                  const isDisabled = cnt !== 0 && cnt > availableQuestionsCount;
-                  if (isDisabled && cnt !== 0) return null;
-                  return (
+            {/* ───── شريط العداد البصري للكوطة المجانية (الميزة المعتمدة 1) ───── */}
+            {!isPremium && selectedSubject !== 'all' && (
+              <div className="p-4 rounded-2xl border bg-slate-50/80 space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-extrabold text-slate-800 flex items-center gap-1.5">
+                    <span>عداد الكوطة التجريبية للمادة:</span>
+                    <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-black">
+                      {SUBJECT_NAMES[selectedSubject] || selectedSubject}
+                    </span>
+                  </span>
+                  <span className="font-bold text-slate-600">
+                    {currentSubjectAnswered} / {TRIAL_LIMIT} سؤالاً مجانياً
+                  </span>
+                </div>
+
+                {/* شريط التقدم البصري */}
+                <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden p-0.5">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      currentSubjectAnswered >= TRIAL_LIMIT
+                        ? 'bg-rose-500'
+                        : currentSubjectAnswered >= 15
+                        ? 'bg-amber-500'
+                        : 'bg-emerald-500'
+                    }`}
+                    style={{
+                      width: `${Math.min(100, (currentSubjectAnswered / TRIAL_LIMIT) * 100)}%`
+                    }}
+                  />
+                </div>
+
+                {/* نص الحالة أو تحذير استنفاد الكوطة */}
+                {isSubjectQuotaExhausted ? (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex flex-col sm:flex-row items-center justify-between gap-2 mt-2">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>
+                        انتهت الكوطة المجانية لهذه المادة (20/20 سؤالاً). تم حجب باقي الأسئلة (+80 سؤالاً إضافياً).
+                      </span>
+                    </div>
                     <button
-                      key={cnt}
                       type="button"
-                      onClick={() => setQuestionCount(cnt)}
-                      className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        questionCount === cnt
-                          ? 'bg-emerald-600 text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }`}
+                      onClick={() => setUpgradeModalOpen(true)}
+                      className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs shrink-0 flex items-center gap-1 cursor-pointer shadow-xs"
                     >
-                      {label}
+                      <Crown className="w-3.5 h-3.5" />
+                      <span>ترقية الحساب الآن</span>
                     </button>
-                  );
-                })}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between text-[11px] text-slate-500">
+                    <span>متبقي لك: {TRIAL_LIMIT - currentSubjectAnswered} سؤالاً مجانياً في هذه المادة</span>
+                    <span>بعد انتهاء الـ 20 سؤالاً يلزم الترقية لفتح البنك كاملاً</span>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
+
+            {/* عدد الأسئلة المراد اجتيازها */}
+            {!isSubjectQuotaExhausted && (
+              <div className="pt-2">
+                <label className="flex items-center justify-between text-xs font-bold text-slate-700 mb-2">
+                  <span className="flex items-center gap-1.5">
+                    <HelpCircle className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>حجم الاختبار:</span>
+                  </span>
+                  <span className="text-slate-500 font-normal">
+                    {questionCount === 0 
+                      ? (!isPremium ? 'الحد الأقصى للتجربة (20 سؤالاً)' : `كامل الرصيد (${availableQuestionsCount})`) 
+                      : `${questionCount} سؤالاً`}
+                  </span>
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {[0, 10, 20, 30].map((cnt) => {
+                    // إذا كان الحساب تجريبياً، لا نسمح باختيار أكثر من 20
+                    if (!isPremium && cnt > 20) return null;
+
+                    const label = cnt === 0 
+                      ? (!isPremium ? 'الأقصى المتاح (20)' : `الكل (${availableQuestionsCount})`) 
+                      : `${cnt} سؤالاً`;
+                    const isDisabled = cnt !== 0 && cnt > availableQuestionsCount;
+                    if (isDisabled && cnt !== 0) return null;
+
+                    return (
+                      <button
+                        key={cnt}
+                        type="button"
+                        onClick={() => setQuestionCount(cnt)}
+                        className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          questionCount === cnt
+                            ? 'bg-emerald-600 text-white shadow-xs'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -384,24 +543,35 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
         <div className="pt-6 border-t border-slate-100">
           <button
             onClick={handleStartExam}
-            disabled={!selectedCycle || !phase || availableQuestionsCount === 0}
+            disabled={!selectedCycle || !phase || availableQuestionsCount === 0 || isSubjectQuotaExhausted}
             className={`w-full py-4 px-8 rounded-2xl font-black text-lg sm:text-xl transition-all flex items-center justify-center gap-3 cursor-pointer shadow-lg ${
-              selectedCycle && phase && availableQuestionsCount > 0
+              selectedCycle && phase && availableQuestionsCount > 0 && !isSubjectQuotaExhausted
                 ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30 active:scale-[0.99]'
+                : isSubjectQuotaExhausted
+                ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/30 cursor-pointer'
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
             }`}
           >
-            {/* المثلث الأخضر المميز */}
-            <div className="w-8 h-8 rounded-full bg-white text-emerald-700 flex items-center justify-center shrink-0 shadow-xs">
-              <Play className="w-4 h-4 fill-emerald-600 text-emerald-600 translate-x-[-1px]" />
-            </div>
-            <span>
-              {!selectedCycle
-                ? 'الرجاء اختيار السلك للبدء'
-                : !phase
-                ? 'الرجاء اختيار مرحلة التقويم'
-                : 'ابدأ الاختبار التجريبي الآن'}
-            </span>
+            {isSubjectQuotaExhausted ? (
+              <>
+                <Crown className="w-5 h-5 text-white" />
+                <span>انتهت الكوطة (20/20) – انقر للترقية وفتح المادة كاملة</span>
+              </>
+            ) : (
+              <>
+                {/* المثلث الأخضر المميز */}
+                <div className="w-8 h-8 rounded-full bg-white text-emerald-700 flex items-center justify-center shrink-0 shadow-xs">
+                  <Play className="w-4 h-4 fill-emerald-600 text-emerald-600 translate-x-[-1px]" />
+                </div>
+                <span>
+                  {!selectedCycle
+                    ? 'الرجاء اختيار السلك للبدء'
+                    : !phase
+                    ? 'الرجاء اختيار مرحلة التقويم'
+                    : 'ابدأ الاختبار التجريبي الآن'}
+                </span>
+              </>
+            )}
           </button>
         </div>
 

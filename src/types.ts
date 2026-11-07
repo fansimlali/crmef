@@ -82,6 +82,34 @@ export type SubjectKey =
   | 'sec_pe'           // التربية البدنية والرياضية
   | 'sec_te';          // التكنولوجيا
 
+export type SubscriptionStatus = 'trial' | 'premium';
+
+export interface SubscriptionRequest {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  cycle: CycleKey;
+  receiptUrl: string;
+  receiptName?: string;
+  paymentMethod?: string;
+  notes?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  rejectionReason?: string;
+  createdAt: string;
+  reviewedAt?: string;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  fullName: string;
+  role: 'admin' | 'user';
+  subscriptionStatus: SubscriptionStatus;
+  cycle?: CycleKey;
+  sessionId?: string;
+}
+
 export interface Question {
   id: string;
   cycles?: CycleKey[]; // إن لم تُحدد، يتم اشتقاقها من المادة. علوم التربية edu صالحة لجميع الأسلاك!

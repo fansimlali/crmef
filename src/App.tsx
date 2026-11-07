@@ -7,6 +7,8 @@ import { QuizResults } from './components/QuizResults';
 import { QuestionManager } from './components/QuestionManager';
 import { SummariesViewer } from './components/SummariesViewer';
 import { AuthModal } from './components/AuthModal';
+import { UpgradeModal } from './components/UpgradeModal';
+import { SubscriptionManager } from './components/SubscriptionManager';
 import type { Question, SubjectKey, ExamRecord, CycleKey } from './types';
 import { getQuestions } from './lib/supabase';
 import { Loader2, ShieldAlert, LogIn } from 'lucide-react';
@@ -18,7 +20,7 @@ function AppContent() {
   const { user, isAdmin, answeredQuestionIds } = useAuth();
 
   // التبويب النشط
-  const [activeTab, setActiveTab] = useState<'quiz' | 'manager' | 'summaries'>('quiz');
+  const [activeTab, setActiveTab] = useState<'quiz' | 'manager' | 'summaries' | 'subscriptions'>('quiz');
 
   // نافذة المصادقة
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -121,7 +123,7 @@ function AppContent() {
   };
 
   // ───── تغيير التبويب مع معالجة خاصة ─────
-  const handleSetActiveTab = (tab: 'quiz' | 'manager' | 'summaries') => {
+  const handleSetActiveTab = (tab: 'quiz' | 'manager' | 'summaries' | 'subscriptions') => {
     setActiveTab(tab);
     if (tab === 'quiz' && quizStatus === 'results') {
       setQuizStatus('setup');
@@ -140,7 +142,26 @@ function AppContent() {
     }
 
     if (activeTab === 'summaries') {
-      return <SummariesViewer />;
+      return <SummariesViewer onOpenAuth={() => setAuthModalOpen(true)} />;
+    }
+
+    if (activeTab === 'subscriptions') {
+      if (!user || !isAdmin) {
+        return (
+          <div className="flex flex-col items-center justify-center py-24 text-slate-500 gap-5">
+            <div className="w-16 h-16 rounded-3xl bg-rose-50 flex items-center justify-center">
+              <ShieldAlert className="w-8 h-8 text-rose-500" />
+            </div>
+            <div className="text-center space-y-2">
+              <h2 className="text-xl font-extrabold text-slate-800">صلاحية غير كافية</h2>
+              <p className="text-sm text-slate-500 max-w-sm">
+                هذا القسم مخصص للمشرف العام لمراجعة طلبات الاشتراك وتفعيل الحسابات.
+              </p>
+            </div>
+          </div>
+        );
+      }
+      return <SubscriptionManager />;
     }
 
     if (activeTab === 'manager') {
@@ -240,6 +261,9 @@ function AppContent() {
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
       />
+
+      {/* نافذة ترقية الحساب وإرسال وصل الأداء */}
+      <UpgradeModal />
 
       {/* المحتوى الرئيسي */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6 sm:py-8">
