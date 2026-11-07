@@ -82,3 +82,4 @@ export const CONFIDENCE_OPTIONS: ConfidenceLevel[] = [
   'تخمين',
   'لا أعرف'
 ];
+

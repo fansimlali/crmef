@@ -79,3 +79,4 @@ on conflict (id) do update set
     options = excluded.options,
     correct_answer = excluded.correct_answer,
     explanation = excluded.explanation;
+
