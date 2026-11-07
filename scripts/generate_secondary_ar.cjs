@@ -675,3 +675,4 @@ const tsContent = `import type { Question } from '../types';\n\nexport const INI
 fs.writeFileSync(path.join(__dirname, '..', 'src', 'data', 'initialQuestions.ts'), tsContent, 'utf8');
 
 console.log(`Total questions in bank after Arabic update: ${allQuestions.length}`);
+
