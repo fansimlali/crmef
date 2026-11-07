@@ -18,19 +18,21 @@ CREATE TABLE IF NOT EXISTS questions (
 -- Enable RLS
 ALTER TABLE questions ENABLE ROW LEVEL SECURITY;
 
--- Allow public read access
-CREATE POLICY IF NOT EXISTS "Allow public read" ON questions
-  FOR SELECT USING (true);
+-- حذف السياسات القديمة الخطرة (كانت تسمح لأي حساب مسجل بتعديل الأسئلة)
+DROP POLICY IF EXISTS "Allow authenticated insert" ON questions;
+DROP POLICY IF EXISTS "Allow authenticated update" ON questions;
+DROP POLICY IF EXISTS "Allow authenticated delete" ON questions;
 
--- Allow authenticated insert/update/delete for admin
-CREATE POLICY IF NOT EXISTS "Allow authenticated insert" ON questions
-  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-
-CREATE POLICY IF NOT EXISTS "Allow authenticated update" ON questions
-  FOR UPDATE USING (auth.role() = 'authenticated');
-
-CREATE POLICY IF NOT EXISTS "Allow authenticated delete" ON questions
-  FOR DELETE USING (auth.role() = 'authenticated');
+-- قراءة عامة فقط. الكتابة للمشرف حصرا عبر الملف:
+--   supabase/migrations/20261107_auth_roles_and_admin.sql
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'questions' AND policyname = 'Allow public read'
+  ) THEN
+    CREATE POLICY "Allow public read" ON questions FOR SELECT USING (true);
+  END IF;
+END $$;
 
 -- Insert Questions
 INSERT INTO questions (id, cycles, subject, topic, question, options, correct_answer, explanation)
