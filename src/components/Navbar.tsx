@@ -1,7 +1,6 @@
 import React from 'react';
 import { 
   BookOpen, 
-  Database, 
   Sparkles, 
   FileText, 
   User, 
@@ -24,7 +23,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   questionsCount,
   onOpenAuth,
 }) => {
-  const { user, isAdmin, logout } = useAuth();
+  const { user, isAdmin, accessLevel, logout } = useAuth();
 
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
@@ -75,31 +74,23 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>الملخصات (محمية)</span>
             </button>
 
-            {/* بنك الأسئلة (مخصص للمشرف العام أو الاطلاع) */}
-            <button
-              onClick={() => {
-                if (!isAdmin && !user) {
-                  onOpenAuth();
-                } else {
-                  setActiveTab('manager');
-                }
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                activeTab === 'manager'
-                  ? 'bg-white text-emerald-800 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              {isAdmin ? (
+            {/* إدارة الأسئلة: تظهر للمشرف فقط. الصلاحية الفعلية يفرضها الخادم (RLS) وليس الواجهة */}
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab('manager')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  activeTab === 'manager'
+                    ? 'bg-white text-emerald-800 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              ) : (
-                <Database className="w-3.5 h-3.5 text-slate-500" />
-              )}
-              <span>{isAdmin ? 'إدارة الأسئلة (مشرف)' : 'بنك الأسئلة'}</span>
-              <span className="bg-slate-200 text-slate-700 text-[11px] px-1.5 py-0.2 rounded-full">
-                {questionsCount}
-              </span>
-            </button>
+                <span>إدارة الأسئلة (مشرف)</span>
+                <span className="bg-slate-200 text-slate-700 text-[11px] px-1.5 py-0.2 rounded-full">
+                  {questionsCount}
+                </span>
+              </button>
+            )}
           </div>
 
           {/* حساب المستخدم / المشرف */}
@@ -116,6 +107,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="font-bold text-slate-700 max-w-[100px] truncate">
                   {user.fullName || user.email}
                 </span>
+                {!isAdmin && (
+                  <span
+                    className={`px-1.5 py-0.5 rounded-md font-bold text-[10px] ${
+                      accessLevel === 'subscriber'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {accessLevel === 'subscriber' ? 'مشترك' : 'تجربة مجانية'}
+                  </span>
+                )}
               </div>
               <button
                 onClick={logout}

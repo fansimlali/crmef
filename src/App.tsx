@@ -15,7 +15,7 @@ import { Loader2, ShieldAlert, LogIn } from 'lucide-react';
 // المحتوى الرئيسي للتطبيق (مُغلَّف بـ AuthProvider في الخارج)
 // ─────────────────────────────────────────────────────────────
 function AppContent() {
-  const { user, isAdmin, answeredQuestionIds } = useAuth();
+  const { user, isAdmin, answeredQuestionIds, recoveryMode } = useAuth();
 
   // التبويب النشط
   const [activeTab, setActiveTab] = useState<'quiz' | 'manager' | 'summaries'>('quiz');
@@ -237,7 +237,7 @@ function AppContent() {
 
       {/* نافذة المصادقة */}
       <AuthModal
-        isOpen={authModalOpen}
+        isOpen={authModalOpen || recoveryMode}
         onClose={() => setAuthModalOpen(false)}
       />
 

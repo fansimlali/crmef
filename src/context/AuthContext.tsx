@@ -1,20 +1,41 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
+import type { User } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
+import { translateAuthError } from '../lib/authErrors';
+
+export type UserRole = 'admin' | 'user';
+// زائر: غير مسجل | مجاني: حساب بلا اشتراك (التجربة المجانية) | مشترك: اشتراك ساري | مشرف
+export type AccessLevel = 'visitor' | 'free' | 'subscriber' | 'admin';
 
 export interface UserProfile {
   id: string;
   email: string;
   fullName?: string;
-  role: 'admin' | 'user';
+  role: UserRole;
+}
+
+export interface AuthResult {
+  success: boolean;
+  error?: string;
+  code?: string;
+  needsConfirmation?: boolean;
 }
 
 interface AuthContextType {
   user: UserProfile | null;
   loading: boolean;
   isAdmin: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  signup: (email: string, password: string, fullName?: string) => Promise<{ success: boolean; error?: string }>;
+  accessLevel: AccessLevel;
+  subscriptionExpiresAt: string | null;
+  authAvailable: boolean;
+  recoveryMode: boolean;
+  login: (email: string, password: string) => Promise<AuthResult>;
+  signup: (email: string, password: string, fullName?: string) => Promise<AuthResult>;
   logout: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<AuthResult>;
+  updatePassword: (newPassword: string) => Promise<AuthResult>;
+  resendConfirmation: (email: string) => Promise<AuthResult>;
   answeredQuestionIds: Set<string>;
   markQuestionAnswered: (questionId: string, isCorrect: boolean) => void;
   resetProgress: () => void;
@@ -22,236 +43,240 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const ADMIN_EMAILS = ['admin@crmef.ma', 'admin@admin.com', 'admin@test.com'];
-const LOCAL_USER_KEY = 'crmef_current_user_v1';
 const PROGRESS_KEY_PREFIX = 'crmef_progress_';
+// مفتاح تخزين محلي قديم يُحذف عند التشغيل
+const LEGACY_USER_KEY = 'crmef_current_user_v1';
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+const UNAVAILABLE = 'الحسابات غير متاحة حاليا: الخادم غير مهيأ.';
+
+function readProgress(userId: string | null): Set<string> {
+  if (!userId) return new Set();
+  try {
+    const raw = localStorage.getItem(`${PROGRESS_KEY_PREFIX}${userId}`);
+    const ids: unknown = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(ids) ? ids.filter((x): x is string => typeof x === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeProgress(userId: string, ids: Set<string>) {
+  try {
+    localStorage.setItem(`${PROGRESS_KEY_PREFIX}${userId}`, JSON.stringify(Array.from(ids)));
+  } catch {
+    // التخزين المحلي ممتلئ أو معطل: نتجاهل
+  }
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [authUser, setAuthUser] = useState<User | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(!supabase);
+  // الدور والاشتراك يأتيان من الخادم (دالة my_access) ولا يُقرآن من المتصفح أبدا
+  const [access, setAccess] = useState<{ role: UserRole; expiresAt: string | null } | null>(null);
+  const [recoveryMode, setRecoveryMode] = useState(false);
   const [answeredQuestionIds, setAnsweredQuestionIds] = useState<Set<string>>(new Set());
 
-  // تحميل المستخدم الحالي والجلسة
+  const userId = authUser?.id ?? null;
+
+  // حذف أي بيانات جلسة محلية قديمة
   useEffect(() => {
-    const initAuth = async () => {
-      // 1. فحص جلسة Supabase إذا كان مفعلاً
-      if (isSupabaseConfigured() && supabase) {
-        try {
-          const { data } = await supabase.auth.getSession();
-          if (data?.session?.user) {
-            const u = data.session.user;
-            const role = ADMIN_EMAILS.includes(u.email || '') || u.user_metadata?.role === 'admin'
-              ? 'admin'
-              : 'user';
-            const profile: UserProfile = {
-              id: u.id,
-              email: u.email || '',
-              fullName: u.user_metadata?.full_name || u.email?.split('@')[0],
-              role
-            };
-            setUser(profile);
-            loadUserProgress(profile.id);
-            setLoading(false);
-            return;
-          }
-        } catch (e) {
-          console.warn('Supabase auth session error:', e);
-        }
-      }
-
-      // 2. فحص التخزين المحلي (Offline / Demo Mode)
-      try {
-        const saved = localStorage.getItem(LOCAL_USER_KEY);
-        if (saved) {
-          const parsed: UserProfile = JSON.parse(saved);
-          setUser(parsed);
-          loadUserProgress(parsed.id);
-        }
-      } catch (e) {
-        console.error(e);
-      }
-
-      setLoading(false);
-    };
-
-    initAuth();
+    try {
+      localStorage.removeItem(LEGACY_USER_KEY);
+    } catch {
+      // تجاهل
+    }
   }, []);
 
-  // تحميل الأسئلة التي اختبر المستخدم نفسه فيها
-  const loadUserProgress = (userId: string) => {
-    try {
-      const saved = localStorage.getItem(`${PROGRESS_KEY_PREFIX}${userId}`);
-      if (saved) {
-        const ids: string[] = JSON.parse(saved);
-        setAnsweredQuestionIds(new Set(ids));
-      } else {
-        setAnsweredQuestionIds(new Set());
-      }
-    } catch (e) {
-      setAnsweredQuestionIds(new Set());
-    }
-  };
+  // متابعة جلسة Supabase
+  useEffect(() => {
+    if (!supabase) return;
+    let active = true;
 
-  // تسجيل إجابة على سؤال لتظليله ومتابعة التقدم
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      setAuthUser(data.session?.user ?? null);
+      setSessionChecked(true);
+    });
+
+    // لا نستدعي الخادم داخل هذا الاستدعاء (تفاديا لتعطل المكتبة): نكتفي بتحديث الحالة
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      setAuthUser(session?.user ?? null);
+      if (event === 'PASSWORD_RECOVERY') setRecoveryMode(true);
+      if (event === 'SIGNED_OUT') setRecoveryMode(false);
+    });
+
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  // جلب الدور والاشتراك من الخادم عند تغير المستخدم
+  useEffect(() => {
+    if (!supabase || !userId) {
+      setAccess(null);
+      return;
+    }
+    let active = true;
+    supabase.rpc('my_access').then(({ data, error }) => {
+      if (!active) return;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (error || !row) {
+        // فشل مغلق: عند أي خلل لا يُمنح أي امتياز
+        setAccess({ role: 'user', expiresAt: null });
+        return;
+      }
+      setAccess({
+        role: row.role === 'admin' ? 'admin' : 'user',
+        expiresAt: row.expires_at ?? null,
+      });
+    });
+    return () => {
+      active = false;
+    };
+  }, [userId]);
+
+  // تقدم المستخدم (محلي على هذا الجهاز)
+  useEffect(() => {
+    setAnsweredQuestionIds(readProgress(userId));
+  }, [userId]);
+
+  const user = useMemo<UserProfile | null>(() => {
+    if (!authUser) return null;
+    const metaName = authUser.user_metadata?.full_name;
+    return {
+      id: authUser.id,
+      email: authUser.email ?? '',
+      fullName:
+        (typeof metaName === 'string' && metaName.trim()) ||
+        (authUser.email ? authUser.email.split('@')[0] : undefined),
+      role: access?.role ?? 'user',
+    };
+  }, [authUser, access]);
+
+  const isAdmin = user?.role === 'admin';
+  const subscriptionActive =
+    !!access?.expiresAt && new Date(access.expiresAt).getTime() > Date.now();
+  const accessLevel: AccessLevel = !user
+    ? 'visitor'
+    : isAdmin
+    ? 'admin'
+    : subscriptionActive
+    ? 'subscriber'
+    : 'free';
+
   const markQuestionAnswered = (questionId: string, _isCorrect: boolean) => {
     setAnsweredQuestionIds((prev) => {
       const next = new Set(prev);
       next.add(questionId);
-      if (user) {
-        localStorage.setItem(`${PROGRESS_KEY_PREFIX}${user.id}`, JSON.stringify(Array.from(next)));
-      }
+      if (userId) writeProgress(userId, next);
       return next;
     });
   };
 
   const resetProgress = () => {
     setAnsweredQuestionIds(new Set());
-    if (user) {
-      localStorage.removeItem(`${PROGRESS_KEY_PREFIX}${user.id}`);
+    if (userId) {
+      try {
+        localStorage.removeItem(`${PROGRESS_KEY_PREFIX}${userId}`);
+      } catch {
+        // تجاهل
+      }
     }
   };
 
-  // تسجيل الدخول
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    const cleanEmail = email.trim().toLowerCase();
-
-    // 1. محاولة تسجيل الدخول عبر Supabase
-    if (isSupabaseConfigured() && supabase) {
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password
-        });
-        if (!error && data.user) {
-          const role = ADMIN_EMAILS.includes(cleanEmail) || data.user.user_metadata?.role === 'admin'
-            ? 'admin'
-            : 'user';
-          const profile: UserProfile = {
-            id: data.user.id,
-            email: cleanEmail,
-            fullName: data.user.user_metadata?.full_name || cleanEmail.split('@')[0],
-            role
-          };
-          setUser(profile);
-          loadUserProgress(profile.id);
-          localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(profile));
-          return { success: true };
-        }
-      } catch (err: any) {
-        console.warn('Supabase signIn error, testing local fallback:', err);
-      }
-    }
-
-    // 2. نظام محلي مدمج فوري (لضمان عمل النظام حتى قبل تأكيد البريد في Supabase)
-    const isAdmin = cleanEmail === 'admin@crmef.ma' || cleanEmail.startsWith('admin');
-    if (isAdmin && password.length >= 6) {
-      const adminProfile: UserProfile = {
-        id: 'admin_local_1',
-        email: cleanEmail,
-        fullName: 'المشرف العام للمنصة',
-        role: 'admin'
-      };
-      setUser(adminProfile);
-      loadUserProgress(adminProfile.id);
-      localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(adminProfile));
-      return { success: true };
-    }
-
-    if (password.length >= 6) {
-      const userProfile: UserProfile = {
-        id: `user_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`,
-        email: cleanEmail,
-        fullName: cleanEmail.split('@')[0],
-        role: 'user'
-      };
-      setUser(userProfile);
-      loadUserProgress(userProfile.id);
-      localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(userProfile));
-      return { success: true };
-    }
-
-    return { success: false, error: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' };
-  };
-
-  // إنشاء حساب جديد
-  const signup = async (email: string, password: string, fullName?: string): Promise<{ success: boolean; error?: string }> => {
-    const cleanEmail = email.trim().toLowerCase();
-    if (password.length < 6) {
-      return { success: false, error: 'كلمة المرور يجب ألا تقل عن 6 أحرف' };
-    }
-
-    if (isSupabaseConfigured() && supabase) {
-      try {
-        const { data, error } = await supabase.auth.signUp({
-          email: cleanEmail,
-          password,
-          options: {
-            data: { full_name: fullName, role: ADMIN_EMAILS.includes(cleanEmail) ? 'admin' : 'user' }
-          }
-        });
-        if (error) {
-          console.warn('Supabase signup error:', error.message);
-        } else if (data.user) {
-          const profile: UserProfile = {
-            id: data.user.id,
-            email: cleanEmail,
-            fullName: fullName || cleanEmail.split('@')[0],
-            role: ADMIN_EMAILS.includes(cleanEmail) ? 'admin' : 'user'
-          };
-          setUser(profile);
-          loadUserProgress(profile.id);
-          localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(profile));
-          return { success: true };
-        }
-      } catch (e: any) {
-        console.warn('Supabase signup exception:', e);
-      }
-    }
-
-    // حساب محلي فوري
-    const role = ADMIN_EMAILS.includes(cleanEmail) ? 'admin' : 'user';
-    const profile: UserProfile = {
-      id: `user_${Date.now()}`,
-      email: cleanEmail,
-      fullName: fullName || cleanEmail.split('@')[0],
-      role
-    };
-    setUser(profile);
-    loadUserProgress(profile.id);
-    localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(profile));
+  const login = async (email: string, password: string): Promise<AuthResult> => {
+    if (!supabase) return { success: false, error: UNAVAILABLE };
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+    if (error) return { success: false, error: translateAuthError(error), code: error.code };
     return { success: true };
   };
 
-  // تسجيل الخروج
-  const logout = async () => {
-    if (isSupabaseConfigured() && supabase) {
-      try {
-        await supabase.auth.signOut();
-      } catch (e) {}
-    }
-    setUser(null);
-    setAnsweredQuestionIds(new Set());
-    localStorage.removeItem(LOCAL_USER_KEY);
+  const signup = async (email: string, password: string, fullName?: string): Promise<AuthResult> => {
+    if (!supabase) return { success: false, error: UNAVAILABLE };
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password,
+      options: {
+        // الدور لا يُرسل أبدا من المتصفح: يُمنح من الخادم فقط
+        data: { full_name: (fullName ?? '').trim().slice(0, 100) },
+        emailRedirectTo: window.location.origin,
+      },
+    });
+    if (error) return { success: false, error: translateAuthError(error), code: error.code };
+    // عند تفعيل تأكيد البريد لا تُنشأ جلسة حتى يؤكد المستخدم بريده
+    if (!data.session) return { success: true, needsConfirmation: true };
+    return { success: true };
   };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        isAdmin: user?.role === 'admin',
-        login,
-        signup,
-        logout,
-        answeredQuestionIds,
-        markQuestionAnswered,
-        resetProgress
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-};
+  const logout = async () => {
+    if (supabase) {
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch {
+        // تجاهل: نكمل التنظيف المحلي
+      }
+    }
+    setAuthUser(null);
+    setRecoveryMode(false);
+    setAnsweredQuestionIds(new Set());
+  };
+
+  const requestPasswordReset = async (email: string): Promise<AuthResult> => {
+    if (!supabase) return { success: false, error: UNAVAILABLE };
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo: window.location.origin,
+    });
+    // رسالة عامة: لا نكشف هل البريد مسجل أم لا. نُظهر فقط خطأ تقييد الطلبات.
+    if (error && (error.status === 429 || error.code === 'over_email_send_rate_limit' || error.code === 'over_request_rate_limit')) {
+      return { success: false, error: translateAuthError(error), code: error.code };
+    }
+    return { success: true };
+  };
+
+  const updatePassword = async (newPassword: string): Promise<AuthResult> => {
+    if (!supabase) return { success: false, error: UNAVAILABLE };
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) return { success: false, error: translateAuthError(error), code: error.code };
+    setRecoveryMode(false);
+    return { success: true };
+  };
+
+  const resendConfirmation = async (email: string): Promise<AuthResult> => {
+    if (!supabase) return { success: false, error: UNAVAILABLE };
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.trim().toLowerCase(),
+      options: { emailRedirectTo: window.location.origin },
+    });
+    if (error) return { success: false, error: translateAuthError(error), code: error.code };
+    return { success: true };
+  };
+
+  const value: AuthContextType = {
+    user,
+    loading: !sessionChecked,
+    isAdmin,
+    accessLevel,
+    subscriptionExpiresAt: subscriptionActive ? access?.expiresAt ?? null : null,
+    authAvailable: !!supabase,
+    recoveryMode,
+    login,
+    signup,
+    logout,
+    requestPasswordReset,
+    updatePassword,
+    resendConfirmation,
+    answeredQuestionIds,
+    markQuestionAnswered,
+    resetProgress,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -260,4 +285,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
