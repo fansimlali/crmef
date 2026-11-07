@@ -43,28 +43,50 @@ function saveLocalCustomQuestions(questions: Question[]) {
 
 // جلب جميع الأسئلة
 export async function getQuestions(): Promise<Question[]> {
+  const mergedMap = new Map<string, Question>();
+
+  // 1. نبدأ دائماً ببنك الأسئلة المعتمد والكامل (2,284 سؤالاً) كقاعدة أساسية
+  INITIAL_QUESTIONS.forEach((q) => mergedMap.set(q.id, q));
+
+  // 2. إذا كانت قاعدة Supabase مهيأة وبها أسئلة، نقوم بدمجها وتحديث البيانات
   if (isSupabaseConfigured() && supabase) {
     try {
       const { data, error } = await supabase
         .from('questions')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
 
       if (error) {
-        console.warn('Supabase fetch failed, falling back to local data:', error.message);
+        console.warn('Supabase fetch failed, continuing with built-in bank:', error.message);
       } else if (data && data.length > 0) {
-        return data as Question[];
+        data.forEach((row: any) => {
+          const existing = mergedMap.get(row.id);
+          const enriched: Question = {
+            id: row.id,
+            subject: row.subject,
+            topic: row.topic || existing?.topic || '',
+            question: row.question,
+            options: row.options,
+            correct_answer: row.correct_answer,
+            explanation: row.explanation || existing?.explanation || '',
+            cycles: row.cycles || existing?.cycles || (
+              row.subject.startsWith('sec_')
+                ? ['secondary_prep', 'secondary_qual']
+                : row.subject === 'edu'
+                ? ['primary', 'secondary_prep', 'secondary_qual']
+                : ['primary']
+            )
+          };
+          mergedMap.set(row.id, enriched);
+        });
       }
     } catch (err) {
       console.warn('Network error reaching Supabase, using local fallback:', err);
     }
   }
 
-  // في حال عدم توفر Supabase أو عدم وجود بيانات به: الدمج بين الأسئلة الأساسية وما أضافه المستخدم محلياً
+  // 3. دمج الأسئلة المضافة محلياً في ذاكرة المتصفح
   const localAdded = getLocalCustomQuestions();
-  const mergedMap = new Map<string, Question>();
-  INITIAL_QUESTIONS.forEach(q => mergedMap.set(q.id, q));
-  localAdded.forEach(q => mergedMap.set(q.id, q));
+  localAdded.forEach((q) => mergedMap.set(q.id, q));
 
   return Array.from(mergedMap.values());
 }

@@ -58,15 +58,15 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
     }
     if (selectedCycle === 'secondary_prep') {
       return [
-        'sec_math', 'sec_d_math',
-        'sec_physics', 'sec_d_physics',
-        'sec_svt', 'sec_d_svt',
-        'sec_ar', 'sec_d_ar',
-        'sec_fr', 'sec_d_fr',
-        'sec_eng', 'sec_d_eng',
-        'sec_islamic', 'sec_d_islamic',
-        'sec_hist_geo', 'sec_d_hist_geo',
-        'sec_cs', 'sec_d_cs',
+        'sec_math',
+        'sec_physics',
+        'sec_svt',
+        'sec_ar',
+        'sec_fr',
+        'sec_eng',
+        'sec_islamic',
+        'sec_hist_geo',
+        'sec_cs',
         'sec_pe',
         'sec_te',
         'edu'
@@ -74,17 +74,18 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
     }
     if (selectedCycle === 'secondary_qual') {
       return [
-        'sec_philo', 'sec_d_philo',
-        'sec_math', 'sec_d_math',
-        'sec_physics', 'sec_d_physics',
-        'sec_svt', 'sec_d_svt',
-        'sec_ar', 'sec_d_ar',
-        'sec_fr', 'sec_d_fr',
-        'sec_eng', 'sec_d_eng',
-        'sec_hist_geo', 'sec_d_hist_geo',
-        'sec_eco', 'sec_d_eco',
-        'sec_islamic', 'sec_d_islamic',
-        'sec_cs', 'sec_d_cs',
+        'sec_philo',
+        'sec_math',
+        'sec_physics',
+        'sec_svt',
+        'sec_ar',
+        'sec_fr',
+        'sec_eng',
+        'sec_islamic',
+        'sec_hist_geo',
+        'sec_cs',
+        'sec_eco',
+        'sec_pe',
         'edu'
       ];
     }
