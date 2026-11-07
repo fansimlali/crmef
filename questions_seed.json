@@ -1,0 +1,227 @@
+[
+  {
+    "id": "ma1",
+    "subject": "ma",
+    "topic": "قابلية القسمة",
+    "question": "أي الأعداد التالية يقبل القسمة على 9؟",
+    "options": ["7 218", "4 728", "3 612", "2 543"],
+    "correct_answer": "7 218",
+    "explanation": "7+2+1+8 = 18 وهو من مضاعفات 9."
+  },
+  {
+    "id": "ma2",
+    "subject": "ma",
+    "topic": "الكسور",
+    "question": "ما ناتج 2/3 + 1/4 ؟",
+    "options": ["11/12", "3/7", "3/12", "9/12"],
+    "correct_answer": "11/12",
+    "explanation": "نوحد المقامات: 8/12 + 3/12 = 11/12."
+  },
+  {
+    "id": "ma3",
+    "subject": "ma",
+    "topic": "الهندسة",
+    "question": "مثلث قائم طولا ضلعيه القائمين 6 سم و8 سم. ما طول وتره؟",
+    "options": ["10 سم", "14 سم", "12 سم", "100 سم"],
+    "correct_answer": "10 سم",
+    "explanation": "فيثاغورس: 36 + 64 = 100، والجذر التربيعي 10."
+  },
+  {
+    "id": "ma4",
+    "subject": "ma",
+    "topic": "التناسبية",
+    "question": "ثمن 5 كراسات 35 درهما. ما ثمن 8 كراسات بالسعر نفسه؟",
+    "options": ["56 درهما", "48 درهما", "60 درهما", "40 درهما"],
+    "correct_answer": "56 درهما",
+    "explanation": "ثمن الكراس 7 دراهم، و7 × 8 = 56."
+  },
+  {
+    "id": "fr1",
+    "subject": "fr",
+    "topic": "Conjugaison",
+    "question": "Hier, nous ____ au marché. (aller, passé composé)",
+    "options": ["sommes allés", "avons allé", "allions", "irons"],
+    "correct_answer": "sommes allés",
+    "explanation": "Aller se conjugue avec l’auxiliaire être : nous sommes allés."
+  },
+  {
+    "id": "fr2",
+    "subject": "fr",
+    "topic": "Orthographe",
+    "question": "Il ____ lavé les mains.",
+    "options": ["s’est", "c’est", "ces", "ses"],
+    "correct_answer": "s’est",
+    "explanation": "Verbe pronominal au passé composé : il s’est lavé."
+  },
+  {
+    "id": "fr3",
+    "subject": "fr",
+    "topic": "Grammaire",
+    "question": "Dans « Le chat mange la souris », « la souris » est :",
+    "options": ["COD", "sujet", "COI", "attribut du sujet"],
+    "correct_answer": "COD",
+    "explanation": "On pose la question : le chat mange quoi ? → la souris (COD)."
+  },
+  {
+    "id": "ar1",
+    "subject": "ar",
+    "topic": "النحو",
+    "question": "في جملة «إنَّ العلمَ نورٌ» إعراب كلمة «العلمَ»:",
+    "options": ["اسم إنّ منصوب", "خبر إنّ مرفوع", "مبتدأ مرفوع", "فاعل مرفوع"],
+    "correct_answer": "اسم إنّ منصوب",
+    "explanation": "إنّ تنصب المبتدأ ويسمى اسمها."
+  },
+  {
+    "id": "ar2",
+    "subject": "ar",
+    "topic": "الصرف",
+    "question": "اسم الفاعل من الفعل «كتب» هو:",
+    "options": ["كاتب", "مكتوب", "كتّاب", "مكتبة"],
+    "correct_answer": "كاتب",
+    "explanation": "اسم الفاعل من الثلاثي على وزن فاعل."
+  },
+  {
+    "id": "ar3",
+    "subject": "ar",
+    "topic": "الإملاء",
+    "question": "أي كلمة كتبت همزتها كتابة صحيحة؟",
+    "options": ["سؤال", "سوأل", "سئال", "سُأال"],
+    "correct_answer": "سؤال",
+    "explanation": "الهمزة المضمومة بعد فتحة تكتب على الواو."
+  },
+  {
+    "id": "sc1",
+    "subject": "sc",
+    "topic": "الأرض والكون",
+    "question": "سبب تعاقب الليل والنهار هو:",
+    "options": ["دوران الأرض حول نفسها", "دوران الأرض حول الشمس", "ميلان محور الأرض فقط", "دوران القمر حول الأرض"],
+    "correct_answer": "دوران الأرض حول نفسها",
+    "explanation": "الأرض تدور حول محورها دورة كل 24 ساعة."
+  },
+  {
+    "id": "sc2",
+    "subject": "sc",
+    "topic": "جسم الإنسان",
+    "question": "أين يتم امتصاص معظم الغذاء المهضوم؟",
+    "options": ["الأمعاء الدقيقة", "المعدة", "الأمعاء الغليظة", "المريء"],
+    "correct_answer": "الأمعاء الدقيقة",
+    "explanation": "جدار الأمعاء الدقيقة غني بالزغابات الماصة."
+  },
+  {
+    "id": "sc3",
+    "subject": "sc",
+    "topic": "الكهرباء",
+    "question": "مصباحان مركبان على التوازي، احترق أحدهما. ماذا يحدث للآخر؟",
+    "options": ["يستمر في الإضاءة", "ينطفئ", "ينفجر", "تنقطع الدارة كلها"],
+    "correct_answer": "يستمر في الإضاءة",
+    "explanation": "في التركيب على التوازي لكل مصباح فرع مستقل."
+  },
+  {
+    "id": "dma1",
+    "subject": "dma",
+    "topic": "بناء المفهوم",
+    "question": "ما ترتيب بناء المفهوم الرياضي عند متعلم الابتدائي؟",
+    "options": ["محسوس ثم شبه محسوس ثم مجرد", "مجرد ثم محسوس", "رموز ثم أشياء", "قاعدة ثم أمثلة"],
+    "correct_answer": "محسوس ثم شبه محسوس ثم مجرد",
+    "explanation": "يمر المتعلم من المانيبولاسيون إلى الرسم ثم الرموز."
+  },
+  {
+    "id": "dma2",
+    "subject": "dma",
+    "topic": "تحليل الأخطاء",
+    "question": "كتب متعلم 0,5 < 0,12 «لأن 12 أكبر من 5». ما مصدر خطئه؟",
+    "options": ["معاملة الجزء العشري كعدد صحيح", "خطأ في الحساب الذهني", "سهو عابر", "نسيان الجدول"],
+    "correct_answer": "معاملة الجزء العشري كعدد صحيح",
+    "explanation": "العلاج: جدول القيمة الموضعية والمستقيم المدرج."
+  },
+  {
+    "id": "dfr1",
+    "subject": "dfr",
+    "topic": "Grammaire",
+    "question": "La démarche inductive en grammaire consiste à :",
+    "options": ["partir d’exemples pour dégager la règle", "donner la règle puis les exercices", "faire copier la règle", "interroger sur la règle apprise"],
+    "correct_answer": "partir d’exemples pour dégager la règle",
+    "explanation": "Observation d’un corpus, manipulation, règle, application."
+  },
+  {
+    "id": "dfr2",
+    "subject": "dfr",
+    "topic": "Remédiation",
+    "question": "Pour traiter la confusion « ces / ses », l’activité la plus adaptée est :",
+    "options": ["la substitution (ses → mes ; ces → ceux-ci)", "recopier la règle 50 fois", "une dictée sans correction", "apprendre les deux mots par cœur"],
+    "correct_answer": "la substitution (ses → mes ; ces → ceux-ci)",
+    "explanation": "La manipulation par substitution donne un critère de choix."
+  },
+  {
+    "id": "dar1",
+    "subject": "dar",
+    "topic": "القواعد",
+    "question": "المقاربة المعتمدة في درس القواعد بالابتدائي:",
+    "options": ["استقرائية: من الأمثلة إلى القاعدة", "إملاء القاعدة ثم التطبيق", "حفظ القاعدة قبل الأمثلة", "الشرح النظري فقط"],
+    "correct_answer": "استقرائية: من الأمثلة إلى القاعدة",
+    "explanation": "ينطلق من نص أو أمثلة ثم يستخرج المتعلمون القاعدة."
+  },
+  {
+    "id": "dar2",
+    "subject": "dar",
+    "topic": "القراءة",
+    "question": "تأتي القراءة الجهرية في درس القراءة:",
+    "options": ["بعد القراءة الصامتة والفهم", "قبل أي ملاحظة للنص", "بدلا من الفهم", "في نهاية الأسبوع فقط"],
+    "correct_answer": "بعد القراءة الصامتة والفهم",
+    "explanation": "تسبقها الملاحظة والقراءة الصامتة وأسئلة الفهم."
+  },
+  {
+    "id": "dsc1",
+    "subject": "dsc",
+    "topic": "الاستقصاء",
+    "question": "ما ترتيب مراحل مقاربة الاستقصاء؟",
+    "options": ["وضعية وتساؤل، فرضيات، تجريب، استنتاج", "استنتاج، تجريب، فرضيات", "درس نظري ثم تطبيق", "حفظ ثم اختبار"],
+    "correct_answer": "وضعية وتساؤل، فرضيات، تجريب، استنتاج",
+    "explanation": "تنطلق من تساؤل وتنتهي بخلاصة وتعميم."
+  },
+  {
+    "id": "dsc2",
+    "subject": "dsc",
+    "topic": "التمثلات",
+    "question": "أي مما يلي تمثل خاطئ شائع لدى المتعلمين؟",
+    "options": ["الفصول تنتج عن قرب الأرض من الشمس", "الأرض تدور حول الشمس", "للقمر أطوار", "الأرض كروية"],
+    "correct_answer": "الفصول تنتج عن قرب الأرض من الشمس",
+    "explanation": "سبب الفصول هو ميلان محور الأرض."
+  },
+  {
+    "id": "edu1",
+    "subject": "edu",
+    "topic": "نظريات التعلم",
+    "question": "من صاحب مفهوم «منطقة النمو القريبة»؟",
+    "options": ["فيجوتسكي", "بياجي", "سكينر", "بلوم"],
+    "correct_answer": "فيجوتسكي",
+    "explanation": "فيجوتسكي: الفرق بين ما يفعله المتعلم وحده وبمساعدة."
+  },
+  {
+    "id": "edu2",
+    "subject": "edu",
+    "topic": "التقويم",
+    "question": "التقويم الذي يُنجز قبل التعلم الجديد لكشف المكتسبات والتمثلات:",
+    "options": ["التشخيصي", "التكويني", "الإجمالي", "الإشهادي"],
+    "correct_answer": "التشخيصي",
+    "explanation": "التشخيصي قبل، والتكويني أثناء، والإجمالي بعد."
+  },
+  {
+    "id": "edu3",
+    "subject": "edu",
+    "topic": "تصنيف بلوم",
+    "question": "يتدرج التصنيف المعرفي الأصلي لبلوم من:",
+    "options": ["المعرفة إلى التقويم", "التقويم إلى المعرفة", "الفهم إلى التذكر", "التطبيق إلى التحليل فقط"],
+    "correct_answer": "المعرفة إلى التقويم",
+    "explanation": "معرفة، فهم، تطبيق، تحليل، تركيب، تقويم."
+  },
+  {
+    "id": "edu4",
+    "subject": "edu",
+    "topic": "الإصلاح التربوي",
+    "question": "ركيزتا مدرسة الريادة:",
+    "options": ["التعلم وفق المستوى الملائم والتدريس الصريح", "الاستقصاء والمشروع", "التعلم الذاتي والتقويم الإشهادي", "اللغات والرقمنة"],
+    "correct_answer": "التعلم وفق المستوى الملائم والتدريس الصريح",
+    "explanation": "TaRL والتدريس الصريح."
+  }
+]

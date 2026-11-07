@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>امتحان تجريبي – مباراة الابتدائي (مزدوج)</title>
+<style>
+:root{color-scheme:light dark;--bg:#f3f5f2;--fg:#1c2421;--mu:#5d6862;--cd:#fff;--bd:#cfd6d1;--ac:#0f5c4d;--ok:#1b7a45;--no:#b0381f}
+@media(prefers-color-scheme:dark){:root{--bg:#14191a;--fg:#e8ecea;--mu:#9aa5a0;--cd:#1e2527;--bd:#35413f;--ac:#5cc5ae;--ok:#62c78d;--no:#ee8368}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.8 "Noto Naskh Arabic","Segoe UI",Tahoma,serif}
+#app{max-width:720px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:1.5rem;margin:.4em 0 .8em}
+.c{background:var(--cd);border:1px solid var(--bd);border-radius:6px;padding:14px 16px;margin:0 0 14px}
+.m{color:var(--mu);font-size:.9rem}
+.q{font-size:1.15rem;margin:0 0 10px}
+button,select,textarea{font:inherit;color:inherit}
+button{background:var(--cd);border:1px solid var(--bd);border-radius:6px;padding:8px 14px;margin:4px 0;cursor:pointer}
+button:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+.o{display:block;width:100%;text-align:start}
+.on{border-color:var(--ac);background:var(--ac);color:#fff}
+@media(prefers-color-scheme:dark){.on{color:#0b1412}}
+#go,#nx,#dl{background:var(--ac);color:#fff;border-color:var(--ac);font-weight:700}
+@media(prefers-color-scheme:dark){#go,#nx,#dl{color:#0b1412}}
+button:disabled{opacity:.45;cursor:not-allowed}
+select,textarea{width:100%;background:var(--cd);border:1px solid var(--bd);border-radius:6px;padding:8px;margin:6px 0}
+table{width:100%;border-collapse:collapse;font-size:.95rem}
+td,th{border-bottom:1px solid var(--bd);padding:5px 6px;text-align:start}
+.s{font-size:2.2rem;font-weight:700;color:var(--ac)}
+.no{color:var(--no)}.ok{color:var(--ok)}
+.sc{overflow-x:auto}
+</style></head><body><main id="app"></main>
+<script>
+const SUB={ma:"الرياضيات",fr:"الفرنسية",ar:"العربية",sc:"العلوم",dma:"ديداكتيك الرياضيات",dfr:"ديداكتيك الفرنسية",dar:"ديداكتيك العربية",dsc:"ديداكتيك العلوم",edu:"علوم التربية"};
+const W={ma:6,fr:6,ar:6,sc:2,dma:3,dfr:3,dar:3,dsc:3,edu:8},CF=["متأكد","متردد","تخمين","لا أعرف"];
+const $=s=>document.querySelector(s),app=$("#app");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const Q=(id,s,t,q,o,e)=>({id,s,t,q,o,e});
+/* الجواب الصحيح دائما هو العنصر الأول في o، ويتم خلط الخيارات عند العرض */
+let B=[
+Q("ma1","ma","قابلية القسمة","أي الأعداد التالية يقبل القسمة على 9؟",["7 218","4 728","3 612","2 543"],"7+2+1+8 = 18 وهو من مضاعفات 9."),
+Q("ma2","ma","الكسور","ما ناتج 2/3 + 1/4 ؟",["11/12","3/7","3/12","9/12"],"نوحد المقامات: 8/12 + 3/12 = 11/12."),
+Q("ma3","ma","الهندسة","مثلث قائم طولا ضلعيه القائمين 6 سم و8 سم. ما طول وتره؟",["10 سم","14 سم","12 سم","100 سم"],"فيثاغورس: 36 + 64 = 100، والجذر التربيعي 10."),
+Q("ma4","ma","التناسبية","ثمن 5 كراسات 35 درهما. ما ثمن 8 كراسات بالسعر نفسه؟",["56 درهما","48 درهما","60 درهما","40 درهما"],"ثمن الكراس 7 دراهم، و7 × 8 = 56."),
+Q("fr1","fr","Conjugaison","Hier, nous ____ au marché. (aller, passé composé)",["sommes allés","avons allé","allions","irons"],"Aller se conjugue avec l’auxiliaire être : nous sommes allés."),
+Q("fr2","fr","Orthographe","Il ____ lavé les mains.",["s’est","c’est","ces","ses"],"Verbe pronominal au passé composé : il s’est lavé."),
+Q("fr3","fr","Grammaire","Dans « Le chat mange la souris », « la souris » est :",["COD","sujet","COI","attribut du sujet"],"On pose la question : le chat mange quoi ? → la souris (COD)."),
+Q("ar1","ar","النحو","في جملة «إنَّ العلمَ نورٌ» إعراب كلمة «العلمَ»:",["اسم إنّ منصوب","خبر إنّ مرفوع","مبتدأ مرفوع","فاعل مرفوع"],"إنّ تنصب المبتدأ ويسمى اسمها."),
+Q("ar2","ar","الصرف","اسم الفاعل من الفعل «كتب» هو:",["كاتب","مكتوب","كتّاب","مكتبة"],"اسم الفاعل من الثلاثي على وزن فاعل."),
+Q("ar3","ar","الإملاء","أي كلمة كتبت همزتها كتابة صحيحة؟",["سؤال","سوأل","سئال","سُأال"],"الهمزة المضمومة بعد فتحة تكتب على الواو."),
+Q("sc1","sc","الأرض والكون","سبب تعاقب الليل والنهار هو:",["دوران الأرض حول نفسها","دوران الأرض حول الشمس","ميلان محور الأرض فقط","دوران القمر حول الأرض"],"الأرض تدور حول محورها دورة كل 24 ساعة."),
+Q("sc2","sc","جسم الإنسان","أين يتم امتصاص معظم الغذاء المهضوم؟",["الأمعاء الدقيقة","المعدة","الأمعاء الغليظة","المريء"],"جدار الأمعاء الدقيقة غني بالزغابات الماصة."),
+Q("sc3","sc","الكهرباء","مصباحان مركبان على التوازي، احترق أحدهما. ماذا يحدث للآخر؟",["يستمر في الإضاءة","ينطفئ","ينفجر","تنقطع الدارة كلها"],"في التركيب على التوازي لكل مصباح فرع مستقل."),
+Q("dma1","dma","بناء المفهوم","ما ترتيب بناء المفهوم الرياضي عند متعلم الابتدائي؟",["محسوس ثم شبه محسوس ثم مجرد","مجرد ثم محسوس","رموز ثم أشياء","قاعدة ثم أمثلة"],"يمر المتعلم من المانيبولاسيون إلى الرسم ثم الرموز."),
+Q("dma2","dma","تحليل الأخطاء","كتب متعلم 0,5 &lt; 0,12 «لأن 12 أكبر من 5». ما مصدر خطئه؟",["معاملة الجزء العشري كعدد صحيح","خطأ في الحساب الذهني","سهو عابر","نسيان الجدول"],"العلاج: جدول القيمة الموضعية والمستقيم المدرج."),
+Q("dfr1","dfr","Grammaire","La démarche inductive en grammaire consiste à :",["partir d’exemples pour dégager la règle","donner la règle puis les exercices","faire copier la règle","interroger sur la règle apprise"],"Observation d’un corpus, manipulation, règle, application."),
+Q("dfr2","dfr","Remédiation","Pour traiter la confusion « ces / ses », l’activité la plus adaptée est :",["la substitution (ses → mes ; ces → ceux-ci)","recopier la règle 50 fois","une dictée sans correction","apprendre les deux mots par cœur"],"La manipulation par substitution donne un critère de choix."),
+Q("dar1","dar","القواعد","المقاربة المعتمدة في درس القواعد بالابتدائي:",["استقرائية: من الأمثلة إلى القاعدة","إملاء القاعدة ثم التطبيق","حفظ القاعدة قبل الأمثلة","الشرح النظري فقط"],"ينطلق من نص أو أمثلة ثم يستخرج المتعلمون القاعدة."),
+Q("dar2","dar","القراءة","تأتي القراءة الجهرية في درس القراءة:",["بعد القراءة الصامتة والفهم","قبل أي ملاحظة للنص","بدلا من الفهم","في نهاية الأسبوع فقط"],"تسبقها الملاحظة والقراءة الصامتة وأسئلة الفهم."),
+Q("dsc1","dsc","الاستقصاء","ما ترتيب مراحل مقاربة الاستقصاء؟",["وضعية وتساؤل، فرضيات، تجريب، استنتاج","استنتاج، تجريب، فرضيات","درس نظري ثم تطبيق","حفظ ثم اختبار"],"تنطلق من تساؤل وتنتهي بخلاصة وتعميم."),
+Q("dsc2","dsc","التمثلات","أي مما يلي تمثل خاطئ شائع لدى المتعلمين؟",["الفصول تنتج عن قرب الأرض من الشمس","الأرض تدور حول الشمس","للقمر أطوار","الأرض كروية"],"سبب الفصول هو ميلان محور الأرض."),
+Q("edu1","edu","نظريات التعلم","من صاحب مفهوم «منطقة النمو القريبة»؟",["فيجوتسكي","بياجي","سكينر","بلوم"],"فيجوتسكي: الفرق بين ما يفعله المتعلم وحده وبمساعدة."),
+Q("edu2","edu","التقويم","التقويم الذي يُنجز قبل التعلم الجديد لكشف المكتسبات والتمثلات:",["التشخيصي","التكويني","الإجمالي","الإشهادي"],"التشخيصي قبل، والتكويني أثناء، والإجمالي بعد."),
+Q("edu3","edu","تصنيف بلوم","يتدرج التصنيف المعرفي الأصلي لبلوم من:",["المعرفة إلى التقويم","التقويم إلى المعرفة","الفهم إلى التذكر","التطبيق إلى التحليل فقط"],"معرفة، فهم، تطبيق، تحليل، تركيب، تقويم."),
+Q("edu4","edu","الإصلاح التربوي","ركيزتا مدرسة الريادة:",["التعلم وفق المستوى الملائم والتدريس الصريح","الاستقصاء والمشروع","التعلم الذاتي والتقويم الإشهادي","اللغات والرقمنة"],"TaRL والتدريس الصريح.")
+];
+try{B=B.concat(JSON.parse(localStorage.getItem("x")||"[]"))}catch(e){}
+const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+let S={};
+function home(){
+const n=k=>B.filter(q=>q.s==k).length;
+app.innerHTML=`<h1>امتحان تجريبي: مباراة الابتدائي (مزدوج)</h1>
+<div class="c"><b>المرحلة</b><br><label><input type="radio" name="ph" value="قبلي" checked> اختبار قبلي</label> <label><input type="radio" name="ph" value="بعدي"> اختبار بعدي</label>
+<br><b>المادة</b><select id="sub"><option value="all">كل المواد (${B.length} سؤالا)</option>${Object.keys(SUB).map(k=>`<option value="${k}">${SUB[k]} (${n(k)})</option>`).join("")}</select>
+<button id="go">ابدأ الاختبار</button></div>
+<details class="c"><summary>إضافة دفعة أسئلة</summary><p class="m">الصق مصفوفة JSON، كل عنصر بالحقول: id وs وt وq وo وe. الجواب الصحيح هو أول عنصر في o.</p><textarea id="imp" rows="5" dir="ltr"></textarea><button id="add">إضافة الأسئلة</button></details>`;
+$("#go").onclick=()=>{const k=$("#sub").value,ph=document.querySelector("[name=ph]:checked").value;
+const qs=shuf(B.filter(q=>k=="all"||q.s==k)).map(q=>({...q,o:shuf(q.o.map((x,i)=>({x,r:i==0})))}));
+if(!qs.length)return;S={ph,qs,i:0,rec:[]};ask()};
+$("#add").onclick=()=>{try{const a=JSON.parse($("#imp").value);if(!Array.isArray(a)||a.some(q=>!q.id||!q.s||!q.q||!Array.isArray(q.o)))throw 0;
+B=B.concat(a);let x=[];try{x=JSON.parse(localStorage.getItem("x")||"[]");localStorage.setItem("x",JSON.stringify(x.concat(a)))}catch(e){}home()}catch(e){alert("الصيغة غير صالحة. تأكد من وجود الحقول id وs وq وo في كل عنصر.")}}}
+function ask(){
+const q=S.qs[S.i];S.sel=null;S.conf=null;S.ch=0;S.t0=Date.now();
+app.innerHTML=`<p class="m">${S.ph}: سؤال ${S.i+1} من ${S.qs.length}، ${SUB[q.s]}، ${esc(q.t)}</p>
+<div class="c"><p class="q" dir="auto">${q.q}</p>${q.o.map((o,i)=>`<button class="o" dir="auto" data-i="${i}">${esc(o.x)}</button>`).join("")}</div>
+<div class="c"><b>ما درجة ثقتك؟</b><br>${CF.map((c,i)=>`<button class="f" data-c="${i}">${c}</button>`).join(" ")}</div>
+<button id="nx" disabled>${S.i+1<S.qs.length?"السؤال التالي":"إنهاء الاختبار"}</button>`;
+const mark=()=>{document.querySelectorAll(".o").forEach((b,i)=>b.classList.toggle("on",i===S.sel));
+document.querySelectorAll(".f").forEach((b,i)=>b.classList.toggle("on",i===S.conf));
+$("#nx").disabled=!(S.conf!==null&&(S.sel!==null||S.conf==3))};
+document.querySelectorAll(".o").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;if(S.sel!==null&&S.sel!==i)S.ch++;S.sel=i;if(S.conf==3)S.conf=null;mark()});
+document.querySelectorAll(".f").forEach(b=>b.onclick=()=>{S.conf=+b.dataset.c;if(S.conf==3)S.sel=null;mark()});
+$("#nx").onclick=()=>{const o=S.sel===null?null:q.o[S.sel];
+S.rec.push({id:q.id,s:q.s,t:q.t,q:q.q,chosen:o?o.x:null,correct:q.o.find(x=>x.r).x,ok:!!(o&&o.r),conf:CF[S.conf],sec:Math.round((Date.now()-S.t0)/1000),changes:S.ch});
+S.i++;S.i<S.qs.length?ask():end()}}
+function end(){
+const R=S.rec,pc=a=>a.length?Math.round(100*a.filter(r=>r.ok).length/a.length):0;
+const grp=f=>{const m={};R.forEach(r=>(m[f(r)]=m[f(r)]||[]).push(r));return m};
+const bs=grp(r=>r.s),bt=grp(r=>SUB[r.s]+": "+r.t);let w=0,cw=0;
+for(const k in bs){w+=W[k]*pc(bs[k]);cw+=W[k]}
+const sc=cw?+(w/cw/5).toFixed(1):0,tr=m=>Object.keys(m).map(k=>`<tr><td>${esc(SUB[k]||k)}</td><td>${m[k].filter(r=>r.ok).length}/${m[k].length}</td><td>${pc(m[k])}%</td></tr>`).join("");
+const sure=R.filter(r=>r.conf=="متأكد"&&!r.ok).length,lucky=R.filter(r=>r.conf=="تخمين"&&r.ok).length,unk=R.filter(r=>r.chosen===null).length;
+const wrong=R.filter(r=>!r.ok).map(r=>{const q=S.qs.find(x=>x.id==r.id);return `<div class="c"><p dir="auto">${q.q}</p><p class="no" dir="auto">إجابتك: ${r.chosen===null?"لا أعرف":esc(r.chosen)}</p><p class="ok" dir="auto">الصحيح: ${esc(r.correct)}</p><p class="m">${esc(q.e||"")}</p></div>`}).join("");
+app.innerHTML=`<h1>نتيجة الاختبار ${S.ph}</h1><div class="c"><div class="s">${sc} / 20</div><p class="m">معدل مرجح بمعاملات المباراة للمواد التي اجتزتها. أجبت صوابا عن ${R.filter(r=>r.ok).length} من ${R.length}.</p>
+<p>ثقة خاطئة (متأكد وأخطأت): <b>${sure}</b><br>تخمين أصاب: <b>${lucky}</b><br>لا أعرف: <b>${unk}</b></p>
+<button id="dl">حفظ النتائج في ملف</button><p class="m">احفظ الملف وأرسله إلي لأحلل مكامن القوة والضعف والتردد.</p></div>
+<div class="c sc"><b>حسب المادة</b><table>${tr(bs)}</table></div><div class="c sc"><b>حسب الباب</b><table>${tr(bt)}</table></div>
+${wrong?`<h2>مراجعة الأخطاء</h2>${wrong}`:""}<button id="re">العودة للرئيسية</button>`;
+$("#re").onclick=home;
+$("#dl").onclick=()=>{const d={phase:S.ph,date:new Date().toISOString(),score20:sc,records:R},a=document.createElement("a");
+a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,1)],{type:"application/json"}));a.download=`crmef_${S.ph=="قبلي"?"pre":"post"}_${d.date.slice(0,10)}.json`;a.click()}}
+home();
+</script></body></html>
