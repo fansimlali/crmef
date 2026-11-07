@@ -5,13 +5,14 @@ import {
   Crown, 
   CheckCircle2, 
   Upload, 
-  CreditCard, 
   AlertCircle, 
   Clock, 
   FileCheck, 
   Sparkles
 } from 'lucide-react';
 import { CYCLES } from '../types';
+
+const SUBSCRIPTION_AMOUNT = 50;
 
 export const UpgradeModal: React.FC = () => {
   const { 
@@ -23,9 +24,7 @@ export const UpgradeModal: React.FC = () => {
     isPremium 
   } = useAuth();
 
-  const [paymentMethod, setPaymentMethod] = useState('CIH Bank');
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
-  const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -66,7 +65,7 @@ export const UpgradeModal: React.FC = () => {
     setSubmitting(true);
     setErrorMsg(null);
 
-    const res = await submitSubscriptionRequest(receiptImage, paymentMethod, notes);
+    const res = await submitSubscriptionRequest(receiptImage, 'bank_transfer', '');
     setSubmitting(false);
 
     if (res.success) {
@@ -96,9 +95,9 @@ export const UpgradeModal: React.FC = () => {
             <Crown className="w-8 h-8" />
           </div>
           <h3 className="text-2xl font-black text-slate-900 flex items-center justify-center gap-2">
-            <span>الترقية إلى حساب مشترك كامل</span>
+            <span>الترقية إلى مشترك كامل</span>
             <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">
-              VIP
+              {SUBSCRIPTION_AMOUNT} درهم
             </span>
           </h3>
           <p className="text-xs sm:text-sm text-slate-600 font-medium max-w-md mx-auto">
@@ -169,56 +168,74 @@ export const UpgradeModal: React.FC = () => {
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
                 <span className="text-xs font-black text-slate-700 block mb-1">ماذا ستحصل عند التفعيل:</span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-bold text-slate-700">
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>فتح بنك الـ 100 سؤال لكل مادة</span>
+                  {[
+                    'فتح بنك الـ 100 سؤال لكل مادة',
+                    'المحاكاة الشاملة الكاملة بلا حدود',
+                    'فتح جميع الملخصات المحمية لسلكك',
+                    'حفظ نتائجك ومتابعة تقدمك دائماً',
+                  ].map((f, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>{f}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* بيانات الحساب + QR Code */}
+              <div className="border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl overflow-hidden shadow-xs">
+                {/* رأس البطاقة */}
+                <div className="bg-amber-500 px-4 py-3 flex items-center justify-between">
+                  <span className="text-white font-extrabold text-sm flex items-center gap-2">
+                    <Crown className="w-4 h-4" />
+                    معلومات التحويل البنكي
+                  </span>
+                  <span className="bg-white text-amber-700 font-black text-sm px-3 py-1 rounded-full shadow-xs">
+                    {SUBSCRIPTION_AMOUNT} درهم فقط
+                  </span>
+                </div>
+
+                {/* المحتوى: صورة الـ QR الحقيقية + معلومات الحساب */}
+                <div className="p-5 flex flex-col sm:flex-row items-center gap-6">
+                  {/* صورة QR Code المرفوعة */}
+                  <div className="flex flex-col items-center gap-2 shrink-0">
+                    <div className="bg-white p-2.5 rounded-2xl border-2 border-amber-200 shadow-md">
+                      <img
+                        src="/payment_qr.png"
+                        alt="QR Code الحساب البنكي"
+                        className="w-44 h-44 object-contain rounded-xl"
+                      />
+                    </div>
+                    <span className="text-[11px] text-amber-900 font-extrabold text-center">
+                      امسح الرمز عبر تطبيق البنك للتحويل الفوري
+                    </span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>المحاكاة الشاملة الكاملة بلا حدود</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>فتح جميع الملخصات المحمية لسلكك</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>حفظ نتائجك ومتابعة تقدمك دائماً</span>
+
+                  {/* تفاصيل الحساب بدون إظهار أي اسم */}
+                  <div className="flex-1 space-y-3 w-full">
+                    <div className="bg-white p-3.5 rounded-xl border border-amber-200/80 space-y-2 text-xs">
+                      <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                        <span className="text-slate-500 font-bold">البنك:</span>
+                        <span className="font-extrabold text-slate-800">CIH Bank</span>
+                      </div>
+                      <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                        <span className="text-slate-500 font-bold">Code SWIFT:</span>
+                        <span className="font-mono font-black text-sky-600 tracking-wider">CIHMMAMC</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-500 font-bold">مبلغ الاشتراك:</span>
+                        <span className="font-black text-emerald-700 text-sm">{SUBSCRIPTION_AMOUNT} درهم</span>
+                      </div>
+                    </div>
+
+                    <div className="text-[11px] text-amber-950 bg-amber-100/80 rounded-xl p-3 leading-relaxed font-semibold border border-amber-200">
+                      📌 قم بمسح رمز <strong>QR</strong> أعلاه مباشرة عبر تطبيق CIH Bank أو تطبيق بنكك لتحويل مبلغ <strong>{SUBSCRIPTION_AMOUNT} درهم</strong>، ثم ارفع صورة الوصل أسفله وسيتم تفعيل حسابك مباشرة بعد التحقق.
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* بيانات الحساب البنكي للدفع */}
-              <div className="border border-amber-200 bg-amber-50/60 p-4 rounded-2xl space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-extrabold text-amber-900 flex items-center gap-1.5">
-                    <CreditCard className="w-4 h-4 text-amber-700" />
-                    <span>معلومات الحساب البنكي للتحويل:</span>
-                  </span>
-                  <span className="text-xs font-black px-2 py-0.5 rounded-lg bg-amber-200 text-amber-900">
-                    واجب الاشتراك: 100 درهم
-                  </span>
-                </div>
-                <div className="space-y-1 text-xs font-mono text-slate-800 bg-white p-3 rounded-xl border border-amber-200/80">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 font-sans">البنك:</span>
-                    <span className="font-bold">التجاري وفا بنك / CIH Bank</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 font-sans">المستفيد:</span>
-                    <span className="font-bold">منصة CRMEF للتكوين</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 font-sans">رقم الحساب (RIB):</span>
-                    <span className="font-bold select-all text-emerald-700">011 780 0000 1234567890 12</span>
-                  </div>
-                </div>
-                <p className="text-[11px] text-amber-800 font-medium">
-                  * يمكنك أيضاً الدفع عبر وكالات كاش بلوس (Cash Plus) أو بريد بنك وإرفاق وصل الدفع.
-                </p>
-              </div>
-
-              {/* نموذج رفع الوصل */}
+              {/* نموذج رفع الوصل فقط */}
               <form onSubmit={handleSubmit} className="space-y-4">
                 {errorMsg && (
                   <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2">
@@ -226,34 +243,6 @@ export const UpgradeModal: React.FC = () => {
                     <span>{errorMsg}</span>
                   </div>
                 )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">وسيلة الدفع المستعملة</label>
-                    <select
-                      value={paymentMethod}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-emerald-500"
-                    >
-                      <option value="CIH Bank">تطبيق CIH Bank (تحويل فوري)</option>
-                      <option value="Attijariwafa Bank">التجاري وفا بنك</option>
-                      <option value="Al Barid Bank">بريد بنك</option>
-                      <option value="Cash Plus">وكالة كاش بلوس (Cash Plus)</option>
-                      <option value="Bank Transfer">بنك مغربي آخر</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">ملاحظة أو رقم الحوالة (اختياري)</label>
-                    <input
-                      type="text"
-                      placeholder="مثال: تحويل باسم عادل"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-                </div>
 
                 {/* منطقة رفع الصورة */}
                 <div>

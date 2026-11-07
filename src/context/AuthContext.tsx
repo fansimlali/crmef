@@ -13,8 +13,9 @@ interface AuthContextType {
     password: string, 
     fullName: string, 
     cycle: CycleKey
-  ) => Promise<{ success: boolean; error?: string }>;
+  ) => Promise<{ success: boolean; error?: string; needsEmailConfirmation?: boolean }>;
   logout: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
   answeredQuestionIds: Set<string>;
   markQuestionAnswered: (questionId: string, isCorrect: boolean) => void;
   resetProgress: () => void;
@@ -262,7 +263,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     password: string, 
     fullName: string, 
     cycle: CycleKey
-  ): Promise<{ success: boolean; error?: string }> => {
+  ): Promise<{ success: boolean; error?: string; needsEmailConfirmation?: boolean }> => {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@')) {
       return { success: false, error: 'يرجى إدخال بريد إلكتروني صالح' };
@@ -282,7 +283,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e) {}
 
     if (usersDb.some(u => u.email === cleanEmail)) {
-      return { success: false, error: 'هذا البريد الإلكتروني مسجل بالفعل! يرجى تسجيل الدخول أو استخدام بريد آخر.' };
+      return { success: false, error: 'هذا البريد الإلكتروني مستخدم من قبل، جرب بريداً إلكترونياً آخر.' };
     }
 
     const newSessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -305,6 +306,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         });
         if (error) {
+          // رسالة واضحة عند تكرار البريد الإلكتروني
+          if (error.message?.includes('already registered') || error.message?.includes('User already registered')) {
+            return { success: false, error: 'هذا البريد الإلكتروني مستخدم من قبل، جرب بريداً إلكترونياً آخر.' };
+          }
           console.warn('Supabase signup message:', error.message);
         } else if (data.user) {
           const profile: UserProfile = {
@@ -316,6 +321,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             cycle,
             sessionId: newSessionId
           };
+          // إذا كان البريد غير مؤكد (Supabase يرسل تأكيد)
+          if (!data.session) {
+            // المستخدم أُنشئ لكن لم يؤكد البريد بعد
+            return { success: true, needsEmailConfirmation: true };
+          }
           setUser(profile);
           loadUserProgress(profile.id);
           localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(profile));
@@ -359,6 +369,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true };
   };
 
+  // إعادة تعيين كلمة المرور
+  const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return { success: false, error: 'يرجى إدخال بريد إلكتروني صالح' };
+    }
+
+    // إرسال عبر Supabase إذا كان مفعلاً
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+          redirectTo: `${window.location.origin}/reset-password`
+        });
+        if (error) {
+          return { success: false, error: 'تعذر إرسال رابط إعادة التعيين. تحقق من البريد الإلكتروني.' };
+        }
+        return { success: true };
+      } catch (e) {
+        console.warn('Supabase resetPassword error:', e);
+      }
+    }
+
+    // وضع محلي: نتحقق من وجود الحساب
+    try {
+      const raw = localStorage.getItem(LOCAL_USERS_DB_KEY);
+      const usersDb: any[] = raw ? JSON.parse(raw) : [];
+      const exists = usersDb.some((u: any) => u.email === cleanEmail);
+      if (!exists && !ADMIN_EMAILS.includes(cleanEmail)) {
+        return { success: false, error: 'لا يوجد حساب مسجل بهذا البريد الإلكتروني.' };
+      }
+    } catch (e) {}
+
+    // في الوضع المحلي لا يمكن إرسال بريد فعلي، نظهر رسالة نجاح
+    return { success: true };
+  };
   // تسجيل الخروج
   const logout = async () => {
     if (isSupabaseConfigured() && supabase) {
@@ -486,6 +531,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         signup,
         logout,
+        resetPassword,
         answeredQuestionIds,
         markQuestionAnswered,
         resetProgress,
@@ -510,3 +556,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

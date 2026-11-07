@@ -265,7 +265,10 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {CYCLES.map((c) => {
+            {(user && !isAdmin && userCycle 
+              ? CYCLES.filter(c => c.id === userCycle) 
+              : CYCLES
+            ).map((c) => {
               const isSelected = selectedCycle === c.id;
               const isLockedByAccount = user && !isAdmin && userCycle && userCycle !== c.id;
               const isAvailable = c.available && !isLockedByAccount;
@@ -281,7 +284,7 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
                   }}
                   className={`p-4 rounded-2xl border-2 transition-all relative ${
                     isLockedByAccount
-                      ? 'border-slate-200 bg-slate-50 opacity-40 cursor-not-allowed'
+                      ? 'border-slate-200 bg-slate-50 opacity-40 cursor-not-allowed hidden'
                       : !c.available
                       ? 'border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed'
                       : isSelected
@@ -291,14 +294,9 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <span className="font-extrabold text-slate-900 text-sm sm:text-base flex items-center gap-1.5">
-                      {isLockedByAccount && <Lock className="w-3.5 h-3.5 text-slate-400" />}
                       <span>{c.name}</span>
                     </span>
-                    {isLockedByAccount ? (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-600 shrink-0">
-                        مغلق لحسابك
-                      </span>
-                    ) : !c.available ? (
+                    {!c.available ? (
                       <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-700 shrink-0">
                         {c.unavailableReason || 'غير متاحة'}
                       </span>

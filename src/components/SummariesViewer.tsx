@@ -104,9 +104,9 @@ export const SummariesViewer: React.FC<SummariesViewerProps> = ({ onOpenAuth }) 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* القائمة الجانبية للملخصات */}
         <div className="space-y-3">
-          {/* فلتر الأسلاك */}
-          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl text-xs font-bold text-slate-600">
-            {(isAdmin || !userCycle) && (
+          {/* فلتر الأسلاك (يظهر فقط للمشرف أو إذا لم يكن هناك سلك مقيد) */}
+          {(!user || isAdmin || !userCycle) ? (
+            <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl text-xs font-bold text-slate-600">
               <button
                 onClick={() => setSelectedCycleFilter('all')}
                 className={`flex-1 py-1.5 rounded-lg transition-all ${
@@ -115,51 +115,37 @@ export const SummariesViewer: React.FC<SummariesViewerProps> = ({ onOpenAuth }) 
               >
                 الكل
               </button>
-            )}
-            <button
-              disabled={Boolean(user && !isAdmin && userCycle !== 'primary')}
-              onClick={() => setSelectedCycleFilter('primary')}
-              className={`flex-1 py-1.5 rounded-lg transition-all ${
-                selectedCycleFilter === 'primary' 
-                  ? 'bg-white text-emerald-700 shadow-xs' 
-                  : user && !isAdmin && userCycle !== 'primary'
-                  ? 'opacity-40 cursor-not-allowed text-slate-400'
-                  : 'hover:text-slate-900'
-              }`}
-            >
-              الابتدائي
-            </button>
-            <button
-              disabled={Boolean(user && !isAdmin && userCycle !== 'secondary_prep')}
-              onClick={() => setSelectedCycleFilter('secondary_prep')}
-              className={`flex-1 py-1.5 rounded-lg transition-all ${
-                selectedCycleFilter === 'secondary_prep' 
-                  ? 'bg-white text-emerald-700 shadow-xs' 
-                  : user && !isAdmin && userCycle !== 'secondary_prep'
-                  ? 'opacity-40 cursor-not-allowed text-slate-400'
-                  : 'hover:text-slate-900'
-              }`}
-            >
-              الإعدادي
-            </button>
-            <button
-              disabled={Boolean(user && !isAdmin && userCycle !== 'secondary_qual')}
-              onClick={() => setSelectedCycleFilter('secondary_qual')}
-              className={`flex-1 py-1.5 rounded-lg transition-all ${
-                selectedCycleFilter === 'secondary_qual' 
-                  ? 'bg-white text-emerald-700 shadow-xs' 
-                  : user && !isAdmin && userCycle !== 'secondary_qual'
-                  ? 'opacity-40 cursor-not-allowed text-slate-400'
-                  : 'hover:text-slate-900'
-              }`}
-            >
-              التأهيلي
-            </button>
-          </div>
-
-          {user && !isAdmin && userCycle && (
-            <div className="text-[11px] text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-200">
-              ملخصاتك معروضة بحسب سلكك: <strong>{CYCLES.find(c => c.id === userCycle)?.name}</strong>
+              <button
+                onClick={() => setSelectedCycleFilter('primary')}
+                className={`flex-1 py-1.5 rounded-lg transition-all ${
+                  selectedCycleFilter === 'primary' ? 'bg-white text-emerald-700 shadow-xs' : 'hover:text-slate-900'
+                }`}
+              >
+                الابتدائي
+              </button>
+              <button
+                onClick={() => setSelectedCycleFilter('secondary_prep')}
+                className={`flex-1 py-1.5 rounded-lg transition-all ${
+                  selectedCycleFilter === 'secondary_prep' ? 'bg-white text-emerald-700 shadow-xs' : 'hover:text-slate-900'
+                }`}
+              >
+                الإعدادي
+              </button>
+              <button
+                onClick={() => setSelectedCycleFilter('secondary_qual')}
+                className={`flex-1 py-1.5 rounded-lg transition-all ${
+                  selectedCycleFilter === 'secondary_qual' ? 'bg-white text-emerald-700 shadow-xs' : 'hover:text-slate-900'
+                }`}
+              >
+                التأهيلي
+              </button>
+            </div>
+          ) : (
+            <div className="p-3 bg-emerald-50/80 rounded-xl border border-emerald-200 text-xs font-bold text-emerald-950 flex items-center justify-between">
+              <span>ملخصات سلكك المعتمد:</span>
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-[11px] font-black">
+                {CYCLES.find(c => c.id === userCycle)?.name}
+              </span>
             </div>
           )}
 

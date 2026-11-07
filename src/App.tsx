@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { LandingPage } from './components/LandingPage';
 import { Navbar } from './components/Navbar';
 import { QuizSetup } from './components/QuizSetup';
 import { QuizQuestion } from './components/QuizQuestion';
@@ -24,6 +25,7 @@ function AppContent() {
 
   // نافذة المصادقة
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authDefaultMode, setAuthDefaultMode] = useState<'login' | 'signup'>('login');
 
   // جميع الأسئلة
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
@@ -248,39 +250,55 @@ function AppContent() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 font-sans selection:bg-emerald-100 selection:text-emerald-900">
-      {/* شريط التنقل */}
-      <Navbar
-        activeTab={activeTab}
-        setActiveTab={handleSetActiveTab}
-        questionsCount={allQuestions.length}
-        onOpenAuth={() => setAuthModalOpen(true)}
-      />
+      {/* صفحة الهبوط للزوار غير المسجلين */}
+      {!user && !authModalOpen && (
+        <LandingPage
+          onOpenAuth={(mode = 'login') => {
+            setAuthDefaultMode(mode);
+            setAuthModalOpen(true);
+          }}
+        />
+      )}
 
       {/* نافذة المصادقة */}
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
+        defaultMode={authDefaultMode}
       />
 
-      {/* نافذة ترقية الحساب وإرسال وصل الأداء */}
-      <UpgradeModal />
+      {/* المحتوى الكامل للمستخدمين المسجلين */}
+      {user && (
+        <>
+          {/* شريط التنقل */}
+          <Navbar
+            activeTab={activeTab}
+            setActiveTab={handleSetActiveTab}
+            questionsCount={allQuestions.length}
+            onOpenAuth={() => setAuthModalOpen(true)}
+          />
 
-      {/* المحتوى الرئيسي */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6 sm:py-8">
-        {renderTabContent()}
-      </main>
+          {/* نافذة ترقية الحساب وإرسال وصل الأداء */}
+          <UpgradeModal />
 
-      {/* الذيل */}
-      <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
-        <div className="max-w-4xl mx-auto px-4 space-y-1">
-          <p className="font-semibold text-slate-700">
-            منصة الامتحان التجريبي لمباراة ولوج سلك تأهيل أطر التدريس بالمراكز الجهوية لمهن التربية والتكوين (CRMEF)
-          </p>
-          <p>
-            تغطي سلك التعليم الابتدائي (مزدوج) وسلكي التعليم الثانوي (إعدادي وتأهيلي) وفق التوصيفات الرسمية للوزارة
-          </p>
-        </div>
-      </footer>
+          {/* المحتوى الرئيسي */}
+          <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6 sm:py-8">
+            {renderTabContent()}
+          </main>
+
+          {/* الذيل */}
+          <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
+            <div className="max-w-4xl mx-auto px-4 space-y-1">
+              <p className="font-semibold text-slate-700">
+                منصة الامتحان التجريبي لمباراة ولوج سلك تأهيل أطر التدريس بالمراكز الجهوية لمهن التربية والتكوين (CRMEF)
+              </p>
+              <p>
+                تغطي سلك التعليم الابتدائي (مزدوج) وسلكي التعليم الثانوي (إعدادي وتأهيلي) وفق التوصيفات الرسمية للوزارة
+              </p>
+            </div>
+          </footer>
+        </>
+      )}
     </div>
   );
 }
