@@ -277,8 +277,11 @@ CREATE POLICY "receipts upload own folder" ON storage.objects
     bucket_id = 'receipts'
     AND (storage.foldername(name))[1] = auth.uid()::text
     AND char_length(name) < 255
-    -- امتدادات الصور فقط (تحقق إضافي فوق allowed_mime_types).
-    AND lower((storage.foldername(name))[2]) IN ('jpg', 'jpeg', 'png', 'webp')
+    AND (
+      lower(storage.extension(name)) IN ('jpg', 'jpeg', 'png', 'webp')
+      OR lower(right(name, 4)) IN ('.jpg', '.png')
+      OR lower(right(name, 5)) IN ('.jpeg', '.webp')
+    )
   );
 
 DROP POLICY IF EXISTS "receipts read own or admin" ON storage.objects;
