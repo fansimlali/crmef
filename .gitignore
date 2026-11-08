@@ -35,6 +35,7 @@ supabase_summaries_seed.sql
 # بنك الأسئلة المدفوع: المصدر والبذور المحلية فقط (لا تُرفع أبداً)
 questions_seed.json
 supabase_questions_seed.sql
+supabase_seed_part_*.sql
 dist/
 qt/
 
