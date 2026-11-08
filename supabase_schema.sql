@@ -469,6 +469,7 @@ DECLARE
   v_trial BOOLEAN;
   v_premium BOOLEAN;
   v_answered INTEGER;
+  v_exists BOOLEAN;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'AUTH_REQUIRED';
@@ -485,6 +486,18 @@ BEGIN
   SELECT (subscription_status = 'premium' OR role = 'admin') INTO v_premium
   FROM public.profiles WHERE id = v_uid;
 
+  -- حصر بالسلك المسجل (غير المشرف): التجريبي والكامل لا يجيبان إلا عن أسئلة سلكهما.
+  IF NOT public.is_admin(v_uid) THEN
+    SELECT EXISTS (
+      SELECT 1 FROM public.profiles p
+      JOIN public.questions q ON q.id = p_question_id
+      WHERE p.id = v_uid AND p.cycle = ANY(q.cycles)
+    ) INTO v_exists;
+    IF NOT v_exists THEN
+      RAISE EXCEPTION 'TRIAL_QUESTION_LOCKED';
+    END IF;
+  END IF;
+
   -- التجريبي لا يتعامل إلا مع أسئلة العينة المجانية.
   IF NOT COALESCE(v_premium, FALSE) AND NOT v_trial THEN
     RAISE EXCEPTION 'TRIAL_QUESTION_LOCKED';
@@ -496,10 +509,12 @@ BEGIN
     JOIN public.questions q ON q.id = qp.question_id
     WHERE qp.user_id = v_uid AND q.subject = v_subject;
 
-    IF v_answered >= 20 AND NOT EXISTS (
+    SELECT EXISTS (
       SELECT 1 FROM public.question_progress
       WHERE user_id = v_uid AND question_id = p_question_id
-    ) THEN
+    ) INTO v_exists;
+
+    IF v_answered >= 20 AND NOT v_exists THEN
       RAISE EXCEPTION 'TRIAL_QUOTA_EXCEEDED';
     END IF;
   END IF;
@@ -536,6 +551,7 @@ DECLARE
   v_correct TEXT;
   v_explanation TEXT;
   v_is_correct BOOLEAN;
+  v_exists BOOLEAN;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'AUTH_REQUIRED';
@@ -560,11 +576,12 @@ BEGIN
 
   -- حصر بالسلك المسجل: التجريبي والكامل لا يجيبان إلا عن أسئلة سلكهما.
   IF NOT public.is_admin(v_uid) THEN
-    IF NOT EXISTS (
+    SELECT EXISTS (
       SELECT 1 FROM public.profiles p
       JOIN public.questions q ON q.id = p_question_id
       WHERE p.id = v_uid AND p.cycle = ANY(q.cycles)
-    ) THEN
+    ) INTO v_exists;
+    IF NOT v_exists THEN
       RAISE EXCEPTION 'TRIAL_QUESTION_LOCKED';
     END IF;
   END IF;
@@ -577,10 +594,13 @@ BEGIN
     FROM public.question_progress qp
     JOIN public.questions q ON q.id = qp.question_id
     WHERE qp.user_id = v_uid AND q.subject = v_subject;
-    IF v_answered >= 20 AND NOT EXISTS (
+
+    SELECT EXISTS (
       SELECT 1 FROM public.question_progress
       WHERE user_id = v_uid AND question_id = p_question_id
-    ) THEN
+    ) INTO v_exists;
+
+    IF v_answered >= 20 AND NOT v_exists THEN
       RAISE EXCEPTION 'TRIAL_QUOTA_EXCEEDED';
     END IF;
   END IF;
