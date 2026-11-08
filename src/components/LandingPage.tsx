@@ -44,7 +44,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
         {/* بطاقات المميزات */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { icon: GraduationCap, title: 'ثلاثة أسلاك', desc: 'ابتدائي، إعدادي، تأهيلي — 19 تخصصاً' },
+            { icon: GraduationCap, title: 'ثلاثة أسلاك', desc: 'ابتدائي، إعدادي، تأهيلي — تخصصات متعددة' },
             { icon: Shield, title: 'ملخصات حصرية', desc: 'بالدارجة المغربية، محمية للمشتركين' },
             { icon: Users, title: 'أسئلة رسمية', desc: 'وفق توصيفات الوزارة المُحيَّنة' },
           ].map(({ icon: Icon, title, desc }, i) => (

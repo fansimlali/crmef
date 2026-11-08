@@ -22,6 +22,7 @@ export const SubscriptionManager: React.FC = () => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [rejectingReqId, setRejectingReqId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('صورة الوصل غير واضحة أو المبلغ غير مطابق');
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const filteredRequests = subscriptionRequests.filter(r => {
     if (filter === 'all') return true;
@@ -32,13 +33,21 @@ export const SubscriptionManager: React.FC = () => {
 
   const handleApprove = async (id: string) => {
     if (confirm('هل أنت متأكد من تفعيل هذا المشترك كمشترك كامل في المنصة؟')) {
-      await approveSubscription(id);
+      setActionError(null);
+      const ok = await approveSubscription(id);
+      if (!ok) {
+        setActionError('تعذر تفعيل الاشتراك. تحقق من صلاحيات المشرف ومن وجود جدول profiles ثم أعد المحاولة.');
+      }
     }
   };
 
   const handleConfirmReject = async () => {
     if (!rejectingReqId) return;
-    await rejectSubscription(rejectingReqId, rejectionReason);
+    setActionError(null);
+    const ok = await rejectSubscription(rejectingReqId, rejectionReason);
+    if (!ok) {
+      setActionError('تعذر رفض الطلب. تحقق من صلاحيات المشرف ثم أعد المحاولة.');
+    }
     setRejectingReqId(null);
   };
 
@@ -73,6 +82,14 @@ export const SubscriptionManager: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* رسالة خطأ عند فشل إجراء إداري */}
+      {actionError && (
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-sm font-bold flex items-center gap-2">
+          <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+          <span>{actionError}</span>
+        </div>
+      )}
 
       {/* أزرار الفلترة */}
       <div className="flex items-center justify-between flex-wrap gap-3 bg-white p-2 rounded-2xl border border-slate-200">
@@ -186,23 +203,30 @@ export const SubscriptionManager: React.FC = () => {
 
                 {/* مصغرة الوصل مع زر المعاينة */}
                 <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-3">
-                  <div 
-                    onClick={() => setPreviewImage(req.receiptUrl)}
-                    className="flex items-center gap-2 cursor-pointer group p-1.5 rounded-xl hover:bg-slate-50 transition-all border border-slate-200"
-                  >
-                    <img 
-                      src={req.receiptUrl} 
-                      alt="وصل الدفع" 
-                      className="w-12 h-12 object-cover rounded-lg border border-slate-300 group-hover:opacity-90"
-                    />
-                    <div className="text-[11px] text-right">
-                      <span className="font-bold text-slate-800 block group-hover:text-emerald-700 flex items-center gap-1">
-                        <Eye className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>معاينة صورة الوصل</span>
-                      </span>
-                      <span className="text-slate-400">انقر للتكبير</span>
+                  {req.receiptUrl ? (
+                    <div 
+                      onClick={() => setPreviewImage(req.receiptUrl)}
+                      className="flex items-center gap-2 cursor-pointer group p-1.5 rounded-xl hover:bg-slate-50 transition-all border border-slate-200"
+                    >
+                      <img 
+                        src={req.receiptUrl} 
+                        alt="وصل الدفع" 
+                        className="w-12 h-12 object-cover rounded-lg border border-slate-300 group-hover:opacity-90"
+                      />
+                      <div className="text-[11px] text-right">
+                        <span className="font-bold text-slate-800 block group-hover:text-emerald-700 flex items-center gap-1">
+                          <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>معاينة صورة الوصل</span>
+                        </span>
+                        <span className="text-slate-400">انقر للتكبير</span>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-2 p-1.5 rounded-xl border border-dashed border-slate-300 text-[11px] text-slate-500">
+                      <AlertCircle className="w-4 h-4 text-amber-500" />
+                      <span>تعذر توليد رابط آمن للوصل. تحقق من مخزن receipts.</span>
+                    </div>
+                  )}
 
                   {/* أزرار الإجراء للمشرف */}
                   <div className="flex items-center gap-1.5">

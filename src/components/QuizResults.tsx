@@ -52,7 +52,8 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
     weightedSum += weight * accuracy;
     totalWeights += weight;
 
-    // فحص النقطة الموجبة للرسوب (أقل من 5 من 20 أي أقل من 25%)
+    // فحص النقطة الموجبة للرسوب (أقل من 5 من 20 أي أقل من 25%).
+    // مع عينة صغيرة جداً (سؤال واحد) تكون النتيجة استرشادية فقط، فلا نُقصي.
     const scoreOutOf20ForSubject = (accuracy * 20) / 100;
     if (scoreOutOf20ForSubject < 5 && list.length >= 2) {
       eliminatorySubjects.push(`${SUBJECT_NAMES[subKey as SubjectKey] || subKey} (${scoreOutOf20ForSubject.toFixed(1)}/20)`);
@@ -77,9 +78,9 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
     topicGroups[label].push(r);
   });
 
-  // إطلاق الاحتفال إذا كانت النتيجة جيدة وبدون رسوب إقصائي
+  // إطلاق الاحتفال إذا كانت النتيجة جيدة وبدون رسوب إقصائي (مع احترام تقليل الحركة).
   useEffect(() => {
-    if (isPassed) {
+    if (isPassed && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       confetti({
         particleCount: 100,
         spread: 70,
@@ -111,8 +112,11 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
     const link = document.createElement('a');
     link.href = url;
     link.download = `crmef_${cycle}_${phase === 'قبلي' ? 'pre' : 'post'}_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
     link.click();
-    URL.revokeObjectURL(url);
+    link.remove();
+    // تأجيل التحرير حتى لا يُجهَض التنزيل في فايرفوكس/سفاري.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const handlePrint = () => {

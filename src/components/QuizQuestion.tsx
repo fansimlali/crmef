@@ -28,8 +28,9 @@ export const QuizQuestion: React.FC<QuizQuestionProps> = ({
   const [changesCount, setChangesCount] = useState<number>(0);
   const [secondsSpent, setSecondsSpent] = useState<number>(0);
 
-  const startTimeRef = useRef<number>(Date.now());
-  const timerRef = useRef<any>(null);
+  const startTimeRef = useRef<number>(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const submittedRef = useRef<boolean>(false);
 
   // خلط الخيارات عند ظهور السؤال
   useEffect(() => {
@@ -43,6 +44,7 @@ export const QuizQuestion: React.FC<QuizQuestionProps> = ({
     setConfidence(null);
     setChangesCount(0);
     setSecondsSpent(0);
+    submittedRef.current = false;
     startTimeRef.current = Date.now();
 
     if (timerRef.current) clearInterval(timerRef.current);
@@ -53,7 +55,7 @@ export const QuizQuestion: React.FC<QuizQuestionProps> = ({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [question.id]);
+  }, [question.id, question.options]);
 
   const handleSelectOption = (option: string) => {
     if (selectedOption !== null && selectedOption !== option) {
@@ -77,11 +79,18 @@ export const QuizQuestion: React.FC<QuizQuestionProps> = ({
   // التحقق من إمكانية الانتقال: يجب اختيار درجة الثقة و(إما اختيار جواب أو اختيار "لا أعرف")
   const canProceed = confidence !== null && (selectedOption !== null || confidence === 'لا أعرف');
 
-  const handleProceed = () => {
-    if (!canProceed) return;
+  const handleProceed = async () => {
+    if (!canProceed || submittedRef.current || !confidence) return;
+    // قفل متزامن يمنع الإرسال المزدوج قبل إعادة العرض.
+    submittedRef.current = true;
 
-    const isCorrect = selectedOption !== null && selectedOption === question.correct_answer;
-    markQuestionAnswered(question.id, isCorrect);
+    // الخادم يتحقق من الجواب ويعيد الصحيح والشرح (الإجابة غير موجودة في العميل).
+    const result = await markQuestionAnswered(question.id, selectedOption);
+    if (!result.success) {
+      // رفض خادمي (كوطة/قفل): لا نتقدم، ونسمح بإعادة المحاولة.
+      submittedRef.current = false;
+      return;
+    }
 
     const finalRecord: ExamRecord = {
       id: question.id,
@@ -89,19 +98,19 @@ export const QuizQuestion: React.FC<QuizQuestionProps> = ({
       topic: question.topic,
       question: question.question,
       chosen: selectedOption,
-      correct: question.correct_answer,
-      isCorrect,
-      confidence: confidence!,
+      correct: result.correctAnswer || '',
+      isCorrect: result.isCorrect ?? false,
+      confidence,
       timeSpentSeconds: secondsSpent,
       changeCount: changesCount,
-      explanation: question.explanation,
+      explanation: result.explanation,
     };
 
     onNext(finalRecord);
   };
 
   // الكشف عما إذا كان السؤال بالفرنسية
-  const isFrench = question.subject === 'fr' || question.subject === 'dfr';
+  const isFrench = /fr|eng/.test(question.subject);
 
   // تنسيق الوقت (دقائق:ثوانٍ)
   const formatTime = (secs: number) => {
@@ -110,7 +119,7 @@ export const QuizQuestion: React.FC<QuizQuestionProps> = ({
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const progressPercent = Math.round(((currentIndex + 1) / totalQuestions) * 100);
+  const progressPercent = totalQuestions > 0 ? Math.round(((currentIndex + 1) / totalQuestions) * 100) : 0;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -142,7 +151,7 @@ export const QuizQuestion: React.FC<QuizQuestionProps> = ({
         </div>
 
         {/* شريط التقدم المئوي */}
-        <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+        <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent} aria-label="تقدم الاختبار">
           <div
             className="bg-emerald-600 h-full rounded-full transition-all duration-300 ease-out"
             style={{ width: `${progressPercent}%` }}

@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import type { Question } from '../types';
-import { INITIAL_QUESTIONS } from '../data/initialQuestions';
+import type { Question, SubjectKey } from '../types';
+import { SUBJECT_NAMES } from '../types';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -21,11 +21,11 @@ export const supabase = isSupabaseConfigured()
 
 const STORAGE_KEY = 'crmef_custom_questions_v1';
 
-// الحصول على الأسئلة المحلية المضافة
+// الحصول على الأسئلة المحلية المضافة على جهاز المشرف فقط (وضع عدم الاتصال)
 function getLocalCustomQuestions(): Question[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    return raw ? (JSON.parse(raw) as Question[]) : [];
   } catch (e) {
     console.error('Error reading localStorage', e);
     return [];
@@ -41,93 +41,158 @@ function saveLocalCustomQuestions(questions: Question[]) {
   }
 }
 
-// جلب جميع الأسئلة
-export async function getQuestions(): Promise<Question[]> {
+/** تحقق مشترك من سلامة بنية السؤال قبل الحفظ (يستخدمه المشرف). */
+export function validateQuestion(q: Partial<Question>): string | null {
+  if (!q.id || typeof q.id !== 'string' || !q.id.trim()) return 'معرّف السؤال مطلوب.';
+  if (!q.subject || !(q.subject in SUBJECT_NAMES)) return 'مادة السؤال غير صالحة.';
+  if (!q.topic || !q.topic.trim()) return 'محور السؤال مطلوب.';
+  if (!q.question || !q.question.trim()) return 'نص السؤال مطلوب.';
+  if (!Array.isArray(q.options) || q.options.length < 2) {
+    return 'يجب أن يحتوي السؤال على خيارين على الأقل.';
+  }
+  if (q.options.some((opt) => typeof opt !== 'string' || !opt.trim())) {
+    return 'جميع الخيارات يجب أن تكون نصوصاً غير فارغة.';
+  }
+  if (!q.correct_answer || !q.options.includes(q.correct_answer)) {
+    return 'الجواب الصحيح يجب أن يطابق أحد الخيارات نصاً.';
+  }
+  if (new Set(q.options).size !== q.options.length) {
+    return 'لا يمكن تكرار نفس الخيار مرتين.';
+  }
+  return null;
+}
+
+/**
+ * جلب الأسئلة المسموح بها لحساب المتصل.
+ * النموذج المدفوع: التجريبي يرى فقط is_trial (أول 20 لكل مادة) بلا إجابات،
+ * والمشترك الكامل/المشرف يرى البنك كاملاً مع الإجابات (عند توفرها).
+ * لا يوجد بنك مدمج في الحزمة: المصدر الوحيد هو Supabase.
+ */
+export async function getQuestions(isAdmin = false): Promise<Question[]> {
+  if (!isSupabaseConfigured() || !supabase) {
+    throw new Error(
+      'خدمة الأسئلة غير مهيأة. يرجى ضبط إعدادات Supabase (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) وإعادة النشر.'
+    );
+  }
+
+  const client = supabase;
+
+  // 1. الأسئلة العامة (بلا إجابات) — RLS يحدد المشاهدة حسب الاشتراك.
+  const PAGE = 1000;
+  let offset = 0;
+  const rows: any[] = [];
+  for (;;) {
+    const { data, error } = await client
+      .from('questions')
+      .select('id, cycles, subject, topic, question, options, is_trial')
+      .order('id', { ascending: true })
+      .range(offset, offset + PAGE - 1);
+    if (error) {
+      throw new Error(`تعذر جلب الأسئلة من Supabase: ${error.message}`);
+    }
+    if (!data || data.length === 0) break;
+    rows.push(...data);
+    if (data.length < PAGE) break;
+    offset += PAGE;
+  }
+
   const mergedMap = new Map<string, Question>();
+  rows.forEach((row: any) => {
+    mergedMap.set(row.id, {
+      id: row.id,
+      subject: row.subject as SubjectKey,
+      topic: row.topic || '',
+      question: row.question,
+      options: Array.isArray(row.options) ? row.options : [],
+      // الإجابة لا تُرسل للتجريبي أبداً (بلا عمود في الجدول أصلاً).
+      correct_answer: undefined,
+      explanation: undefined,
+      cycles: row.cycles || (
+        String(row.subject).startsWith('sec_')
+          ? ['secondary_prep', 'secondary_qual']
+          : row.subject === 'edu'
+          ? ['primary', 'secondary_prep', 'secondary_qual']
+          : ['primary']
+      ),
+    } as Question);
+  });
 
-  // 1. نبدأ دائماً ببنك الأسئلة المعتمد والكامل (2,284 سؤالاً) كقاعدة أساسية
-  INITIAL_QUESTIONS.forEach((q) => mergedMap.set(q.id, q));
-
-  // 2. إذا كانت قاعدة Supabase مهيأة وبها أسئلة، نقوم بدمجها وتحديث البيانات
-  if (isSupabaseConfigured() && supabase) {
+  // 2. الإجابات: المشرف يقرأها مباشرة، والكامل يتحقق منها عبر الدالة عند الإجابة.
+  // للمشرف ندمجها هنا لتظهر في لوحة الإدارة.
+  if (isAdmin) {
     try {
-      const { data, error } = await supabase
-        .from('questions')
-        .select('*');
-
-      if (error) {
-        console.warn('Supabase fetch failed, continuing with built-in bank:', error.message);
-      } else if (data && data.length > 0) {
-        data.forEach((row: any) => {
-          const existing = mergedMap.get(row.id);
-          const enriched: Question = {
-            id: row.id,
-            subject: row.subject,
-            topic: row.topic || existing?.topic || '',
-            question: row.question,
-            options: row.options,
-            correct_answer: row.correct_answer,
-            explanation: row.explanation || existing?.explanation || '',
-            cycles: row.cycles || existing?.cycles || (
-              row.subject.startsWith('sec_')
-                ? ['secondary_prep', 'secondary_qual']
-                : row.subject === 'edu'
-                ? ['primary', 'secondary_prep', 'secondary_qual']
-                : ['primary']
-            )
-          };
-          mergedMap.set(row.id, enriched);
-        });
+      const answerRows: any[] = [];
+      let ansOffset = 0;
+      for (;;) {
+        const { data, error } = await client
+          .from('question_answers')
+          .select('question_id, correct_answer, explanation')
+          .range(ansOffset, ansOffset + PAGE - 1);
+        if (error) break;
+        if (!data || data.length === 0) break;
+        answerRows.push(...data);
+        if (data.length < PAGE) break;
+        ansOffset += PAGE;
       }
+      answerRows.forEach((a: any) => {
+        const q = mergedMap.get(a.question_id);
+        if (q) {
+          q.correct_answer = a.correct_answer;
+          q.explanation = a.explanation || '';
+        }
+      });
     } catch (err) {
-      console.warn('Network error reaching Supabase, using local fallback:', err);
+      console.warn('question_answers fetch failed (admin view):', err);
     }
   }
 
-  // 3. دمج الأسئلة المضافة محلياً في ذاكرة المتصفح
-  const localAdded = getLocalCustomQuestions();
-  localAdded.forEach((q) => mergedMap.set(q.id, q));
+  // 3. دمج الأسئلة المضافة محلياً على جهاز المشرف (وضع عدم الاتصال)
+  if (isAdmin) {
+    getLocalCustomQuestions().forEach((q) => mergedMap.set(q.id, q));
+  }
 
   return Array.from(mergedMap.values());
 }
 
-// إضافة سؤال فردي
+// إضافة سؤال فردي (نص في questions + إجابة في question_answers)
 export async function addQuestion(question: Question): Promise<{ success: boolean; error?: string }> {
-  let supabaseSuccess = false;
-  let supabaseErrorMsg = '';
+  const validationError = validateQuestion(question);
+  if (validationError) return { success: false, error: validationError };
+
+  const baseRow = {
+    id: question.id,
+    subject: question.subject,
+    topic: question.topic,
+    question: question.question,
+    options: question.options,
+    cycles: question.cycles || (question.subject === 'edu'
+      ? ['primary', 'secondary_prep', 'secondary_qual']
+      : question.subject.startsWith('sec_')
+      ? ['secondary_prep', 'secondary_qual']
+      : ['primary']),
+  };
 
   if (isSupabaseConfigured() && supabase) {
-    try {
-      const { error } = await supabase.from('questions').upsert({
-        id: question.id,
-        subject: question.subject,
-        topic: question.topic,
-        question: question.question,
-        options: question.options,
-        correct_answer: question.correct_answer,
-        explanation: question.explanation || ''
-      });
-
-      if (!error) {
-        supabaseSuccess = true;
-      } else {
-        supabaseErrorMsg = error.message;
-      }
-    } catch (e: any) {
-      supabaseErrorMsg = e?.message || 'Network error';
+    const client = supabase;
+    const { error } = await client.from('questions').upsert(baseRow);
+    if (error) {
+      return { success: false, error: `فشل الحفظ في Supabase: ${error.message}` };
     }
+    const { error: answerError } = await client.from('question_answers').upsert({
+      question_id: question.id,
+      correct_answer: question.correct_answer,
+      explanation: question.explanation || '',
+    });
+    if (answerError) {
+      return { success: false, error: `حُفظ نص السؤال لكن فشل حفظ الإجابة: ${answerError.message}` };
+    }
+    return { success: true };
   }
 
-  // حفظ في التخزين المحلي أيضاً للاستخدام في وضع Offline
-  const current = getLocalCustomQuestions();
-  const filtered = current.filter(q => q.id !== question.id);
-  filtered.push(question);
-  saveLocalCustomQuestions(filtered);
-
-  if (isSupabaseConfigured() && !supabaseSuccess) {
-    return { success: false, error: `فشل الحفظ في Supabase: ${supabaseErrorMsg}. تم الحفظ محلياً.` };
-  }
-
+  // وضع محلي فقط عند غياب إعدادات Supabase
+  const current = getLocalCustomQuestions().filter((q) => q.id !== question.id);
+  current.push(question);
+  saveLocalCustomQuestions(current);
   return { success: true };
 }
 
@@ -137,49 +202,75 @@ export async function bulkAddQuestions(questions: Question[]): Promise<{ count: 
     return { count: 0, error: 'لا توجد أسئلة للرفع' };
   }
 
-  let errorMsg = '';
-  if (isSupabaseConfigured() && supabase) {
-    try {
-      const rows = questions.map(q => ({
-        id: q.id,
-        subject: q.subject,
-        topic: q.topic,
-        question: q.question,
-        options: q.options,
-        correct_answer: q.correct_answer,
-        explanation: q.explanation || ''
-      }));
+  // رفض المعرفات المكررة داخل الدفعة نفسها.
+  const seen = new Set<string>();
+  for (const q of questions) {
+    if (seen.has(q.id)) return { count: 0, error: `معرّف مكرر داخل الدفعة: ${q.id}` };
+    seen.add(q.id);
+  }
 
-      const { error } = await supabase.from('questions').upsert(rows);
-      if (error) {
-        errorMsg = error.message;
-      }
-    } catch (e: any) {
-      errorMsg = e?.message || 'خطأ في الاتصال بقاعدة البيانات';
+  for (let i = 0; i < questions.length; i++) {
+    const validationError = validateQuestion(questions[i]);
+    if (validationError) {
+      return { count: 0, error: `السؤال رقم ${i + 1}: ${validationError}` };
     }
   }
 
-  // حفظ أيضاً محلياً
+  const baseRows = questions.map((q) => ({
+    id: q.id,
+    subject: q.subject,
+    topic: q.topic,
+    question: q.question,
+    options: q.options,
+    cycles: q.cycles || (q.subject === 'edu'
+      ? ['primary', 'secondary_prep', 'secondary_qual']
+      : q.subject.startsWith('sec_')
+      ? ['secondary_prep', 'secondary_qual']
+      : ['primary']),
+  }));
+  const answerRows = questions.map((q) => ({
+    question_id: q.id,
+    correct_answer: q.correct_answer,
+    explanation: q.explanation || '',
+  }));
+
+  if (isSupabaseConfigured() && supabase) {
+    const client = supabase;
+    const { error } = await client.from('questions').upsert(baseRows);
+    if (error) {
+      return { count: 0, error: `فشل رفع الأسئلة إلى Supabase: ${error.message}` };
+    }
+    const { error: answerError } = await client.from('question_answers').upsert(answerRows);
+    if (answerError) {
+      return { count: 0, error: `رفُعت الأسئلة لكن فشل رفع الإجابات: ${answerError.message}` };
+    }
+    return { count: questions.length };
+  }
+
+  // وضع محلي فقط
   const current = getLocalCustomQuestions();
   const currentMap = new Map<string, Question>();
-  current.forEach(q => currentMap.set(q.id, q));
-  questions.forEach(q => currentMap.set(q.id, q));
+  current.forEach((q) => currentMap.set(q.id, q));
+  questions.forEach((q) => currentMap.set(q.id, q));
   saveLocalCustomQuestions(Array.from(currentMap.values()));
-
-  return { count: questions.length, error: errorMsg ? `تحذير: ${errorMsg}. تم الحفظ محلياً.` : undefined };
+  return { count: questions.length };
 }
 
-// مسح وحذف سؤال
-export async function removeQuestion(id: string): Promise<boolean> {
+// حذف سؤال (الإجابة أولاً لأنها مرجع FK، ثم النص)
+export async function removeQuestion(id: string): Promise<{ success: boolean; error?: string }> {
   if (isSupabaseConfigured() && supabase) {
-    try {
-      await supabase.from('questions').delete().eq('id', id);
-    } catch (e) {
-      console.error(e);
+    const client = supabase;
+    const { error: answerError } = await client.from('question_answers').delete().eq('question_id', id);
+    if (answerError) {
+      return { success: false, error: `تعذر حذف إجابة السؤال من Supabase: ${answerError.message}` };
+    }
+    const { error } = await client.from('questions').delete().eq('id', id);
+    if (error) {
+      return { success: false, error: `تعذر حذف السؤال من Supabase: ${error.message}` };
     }
   }
 
   const current = getLocalCustomQuestions();
-  saveLocalCustomQuestions(current.filter(q => q.id !== id));
-  return true;
+  saveLocalCustomQuestions(current.filter((q) => q.id !== id));
+  return { success: true };
 }

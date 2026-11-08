@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const dir = 'C:/cmref/molakhasat';
+const dir = path.join(__dirname, '..', 'molakhasat');
 const files = fs.readdirSync(dir).filter(f => f.startsWith('0') || f.startsWith('1'));
 
 console.log('Found summary files:', files.length);
@@ -199,6 +199,13 @@ const tsCode = `export interface SummaryArticle {
 export const SUMMARIES_DATA: SummaryArticle[] = ${JSON.stringify(articles, null, 2)};
 `;
 
-fs.writeFileSync('src/data/summariesData.ts', tsCode, 'utf8');
-console.log('Successfully generated src/data/summariesData.ts with', articles.length, 'articles.');
+// IMPORTANT: paid content must never be written into src/, otherwise it is
+// bundled into the public JavaScript. It is generated into the gitignored
+// scripts/seed-data folder and then exported to SQL by export_summaries.mjs.
+const outputDir = path.join(__dirname, 'seed-data');
+fs.mkdirSync(outputDir, { recursive: true });
+const outputPath = path.join(outputDir, 'summariesData.ts');
+
+fs.writeFileSync(outputPath, tsCode, 'utf8');
+console.log('Successfully generated', outputPath, 'with', articles.length, 'articles.');
 

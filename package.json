@@ -3,11 +3,17 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": { "node": ">=20" },
   "scripts": {
     "dev": "vite",
+    "predev": "node scripts/check_env.mjs",
     "build": "tsc -b && vite build",
+    "prebuild": "node scripts/check_env.mjs",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:env": "node scripts/check_env.mjs",
+    "seed:summaries": "node scripts/export_summaries.mjs",
+    "seed:questions": "node scripts/generate_supabase_sql.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

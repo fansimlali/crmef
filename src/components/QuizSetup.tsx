@@ -8,8 +8,7 @@ import {
   Target, 
   Scale, 
   GraduationCap, 
-  CheckCircle2, 
-  RotateCcw,
+  CheckCircle2,
   HelpCircle,
   Crown,
   Lock,
@@ -33,7 +32,6 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
     isAdmin, 
     isPremium, 
     answeredQuestionIds, 
-    resetProgress,
     setUpgradeModalOpen 
   } = useAuth();
 
@@ -115,6 +113,9 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
   const getSubjectCount = (sub: SubjectKey) =>
     cycleQuestions.filter((q) => q.subject === sub).length;
 
+  const availableSubjects = getSubjectsForCycle().filter((sub) => getSubjectCount(sub) > 0);
+  const unavailableSubjects = getSubjectsForCycle().filter((sub) => getSubjectCount(sub) === 0);
+
   // حساب عدد الأسئلة المجتازة في مادة معينة
   const getAnsweredCountForSubject = (sub: SubjectKey) =>
     cycleQuestions.filter((q) => q.subject === sub && answeredQuestionIds.has(q.id)).length;
@@ -126,26 +127,41 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
     : 0;
   const isSubjectQuotaExhausted = !isPremium && selectedSubject !== 'all' && currentSubjectAnswered >= TRIAL_LIMIT;
 
+  // الكوطة الإجمالية للمحاكاة الشاملة: مجموع ما تبقّى في المواد المتاحة فقط دون تجاوز 20 لكل مادة.
+  const remainingTrialTotal = availableSubjects.reduce(
+    (total, sub) => total + Math.max(0, TRIAL_LIMIT - getAnsweredCountForSubject(sub)),
+    0
+  );
+  const isAllQuotaExhausted =
+    !isPremium && selectedSubject === 'all' && remainingTrialTotal === 0;
+
   const availableQuestionsCount = selectedSubject === 'all'
     ? cycleQuestions.length
     : getSubjectCount(selectedSubject as SubjectKey);
 
   const handleStartExam = () => {
     if (!selectedCycle || !phase) return;
-    if (isSubjectQuotaExhausted) {
+    if (isSubjectQuotaExhausted || isAllQuotaExhausted) {
       setUpgradeModalOpen(true);
       return;
     }
 
-    // إذا كان المستخدم تجريبياً واختار كل المواد أو عدداً يفوق 20، نقيد الحد الأقصى بـ 20
+    // إذا كان المستخدم تجريبياً واختار كل المواد أو عدداً يفوق 20، نقيد الحد الأقصى بالكوطة المتبقية
     let effectiveMax = questionCount;
     if (!isPremium) {
       if (selectedSubject !== 'all') {
-        const remainingForSub = Math.max(1, TRIAL_LIMIT - currentSubjectAnswered);
+        const remainingForSub = Math.max(0, TRIAL_LIMIT - currentSubjectAnswered);
         effectiveMax = effectiveMax === 0 ? remainingForSub : Math.min(effectiveMax, remainingForSub);
       } else {
-        effectiveMax = effectiveMax === 0 ? TRIAL_LIMIT : Math.min(effectiveMax, TRIAL_LIMIT);
+        effectiveMax = effectiveMax === 0
+          ? remainingTrialTotal
+          : Math.min(effectiveMax, remainingTrialTotal);
       }
+    }
+
+    if (effectiveMax <= 0) {
+      setUpgradeModalOpen(true);
+      return;
     }
 
     onStart(selectedCycle, phase, selectedSubject, effectiveMax, onlyUnanswered);
@@ -197,27 +213,18 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
 
           <div className="flex items-center gap-2">
             {answeredQuestionIds.size > 0 && (
-              <>
-                <button
-                  onClick={() => {
-                    setOnlyUnanswered(!onlyUnanswered);
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    onlyUnanswered
-                      ? 'bg-emerald-700 text-white shadow-xs'
-                      : 'bg-white text-emerald-800 border border-emerald-300 hover:bg-emerald-100'
-                  }`}
-                >
-                  {onlyUnanswered ? '✓ الأسئلة غير المنجزة فقط' : 'استثناء الأسئلة المجتازة'}
-                </button>
-                <button
-                  onClick={resetProgress}
-                  title="تصفير سجل الأسئلة المجتازة والبدء من الصفر"
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-white transition-all cursor-pointer"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
-              </>
+              <button
+                onClick={() => {
+                  setOnlyUnanswered(!onlyUnanswered);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  onlyUnanswered
+                    ? 'bg-emerald-700 text-white shadow-xs'
+                    : 'bg-white text-emerald-800 border border-emerald-300 hover:bg-emerald-100'
+                }`}
+              >
+                {onlyUnanswered ? '✓ الأسئلة غير المنجزة فقط' : 'استثناء الأسئلة المجتازة'}
+              </button>
             )}
             {!isPremium && !isAdmin && (
               <button
@@ -274,7 +281,8 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
               const isAvailable = c.available && !isLockedByAccount;
 
               return (
-                <div
+                <button
+                  type="button"
                   key={c.id}
                   onClick={() => {
                     if (isAvailable) {
@@ -282,7 +290,10 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
                       setSelectedSubject('all');
                     }
                   }}
-                  className={`p-4 rounded-2xl border-2 transition-all relative ${
+                  disabled={!isAvailable}
+                  aria-pressed={isSelected}
+                  aria-label={c.name}
+                  className={`text-right p-4 rounded-2xl border-2 transition-all relative ${
                     isLockedByAccount
                       ? 'border-slate-200 bg-slate-50 opacity-40 cursor-not-allowed hidden'
                       : !c.available
@@ -311,7 +322,7 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
                   <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                     {c.description}
                   </p>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -416,7 +427,7 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
               <option value="all">
                 جميع مواد وتخصصات هذا السلك ({cycleQuestions.length} سؤالاً) – محاكاة شاملة
               </option>
-              {getSubjectsForCycle().map((key) => {
+              {availableSubjects.map((key) => {
                 const count = getSubjectCount(key);
                 const answeredCount = getAnsweredCountForSubject(key);
                 const weight = getSubjectWeight(selectedCycle, key);
@@ -430,6 +441,12 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
                 );
               })}
             </select>
+
+            {unavailableSubjects.length > 0 && (
+              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-900 font-semibold leading-relaxed">
+                ⚠️ مواد/تخصصات بدون أسئلة في بنك الأسئلة الحالي: {unavailableSubjects.map((key) => SUBJECT_NAMES[key] || key).join('، ')}. تم إخفاؤها من الاختيار بدل عرضها فارغة.
+              </div>
+            )}
 
             {/* ───── شريط العداد البصري للكوطة المجانية (الميزة المعتمدة 1) ───── */}
             {!isPremium && selectedSubject !== 'all' && (
@@ -468,7 +485,7 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                       <span>
-                        انتهت الكوطة المجانية لهذه المادة (20/20 سؤالاً). تم حجب باقي الأسئلة (+80 سؤالاً إضافياً).
+                        انتهت الكوطة المجانية لهذه المادة (20/20 سؤالاً). بقية أسئلة المادة محجوبة حتى الترقية.
                       </span>
                     </div>
                     <button
@@ -489,8 +506,39 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
               </div>
             )}
 
+            {/* عداد الكوطة الإجمالية عند اختيار المحاكاة الشاملة */}
+            {!isPremium && selectedSubject === 'all' && (
+              <div className="p-4 rounded-2xl border bg-slate-50/80 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-extrabold text-slate-800">الكوطة المجانية المتبقية للمحاكاة الشاملة:</span>
+                  <span className={`font-black ${isAllQuotaExhausted ? 'text-rose-600' : 'text-emerald-700'}`}>
+                    {remainingTrialTotal} سؤالاً
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  يُحتسب الحد الأقصى 20 سؤالاً مجانياً لكل مادة على حدة. لا يمكن تجاوز الكوطة المتبقية حتى مع اختيار «جميع المواد».
+                </p>
+                {isAllQuotaExhausted && (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex flex-col sm:flex-row items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>انتهت كوطة جميع المواد المتاحة. يلزم الترقية لفتح البنك كاملاً.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setUpgradeModalOpen(true)}
+                      className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs shrink-0 flex items-center gap-1 cursor-pointer shadow-xs"
+                    >
+                      <Crown className="w-3.5 h-3.5" />
+                      <span>ترقية الحساب الآن</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* عدد الأسئلة المراد اجتيازها */}
-            {!isSubjectQuotaExhausted && (
+            {!isSubjectQuotaExhausted && !isAllQuotaExhausted && (
               <div className="pt-2">
                 <label className="flex items-center justify-between text-xs font-bold text-slate-700 mb-2">
                   <span className="flex items-center gap-1.5">
@@ -499,7 +547,9 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
                   </span>
                   <span className="text-slate-500 font-normal">
                     {questionCount === 0 
-                      ? (!isPremium ? 'الحد الأقصى للتجربة (20 سؤالاً)' : `كامل الرصيد (${availableQuestionsCount})`) 
+                      ? (!isPremium
+                          ? `حسب الكوطة المتبقية (${selectedSubject === 'all' ? remainingTrialTotal : Math.max(0, TRIAL_LIMIT - currentSubjectAnswered)})`
+                          : `كامل الرصيد (${availableQuestionsCount})`) 
                       : `${questionCount} سؤالاً`}
                   </span>
                 </label>
@@ -541,19 +591,21 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
         <div className="pt-6 border-t border-slate-100">
           <button
             onClick={handleStartExam}
-            disabled={!selectedCycle || !phase || availableQuestionsCount === 0 || isSubjectQuotaExhausted}
+            // عند استنفاد الكوطة يبقى الزر قابلاً للنقر لفتح نافذة الترقية (aria-disabled للتقنية المساعدة).
+            disabled={!selectedCycle || !phase || availableQuestionsCount === 0}
+            aria-disabled={isSubjectQuotaExhausted || isAllQuotaExhausted}
             className={`w-full py-4 px-8 rounded-2xl font-black text-lg sm:text-xl transition-all flex items-center justify-center gap-3 cursor-pointer shadow-lg ${
-              selectedCycle && phase && availableQuestionsCount > 0 && !isSubjectQuotaExhausted
+              selectedCycle && phase && availableQuestionsCount > 0 && !isSubjectQuotaExhausted && !isAllQuotaExhausted
                 ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30 active:scale-[0.99]'
-                : isSubjectQuotaExhausted
+                : isSubjectQuotaExhausted || isAllQuotaExhausted
                 ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/30 cursor-pointer'
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
             }`}
           >
-            {isSubjectQuotaExhausted ? (
+            {isSubjectQuotaExhausted || isAllQuotaExhausted ? (
               <>
                 <Crown className="w-5 h-5 text-white" />
-                <span>انتهت الكوطة (20/20) – انقر للترقية وفتح المادة كاملة</span>
+                <span>انتهت الكوطة المجانية – انقر للترقية وفتح البنك كاملاً</span>
               </>
             ) : (
               <>

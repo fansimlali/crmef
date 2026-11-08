@@ -1,18 +1,41 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  ShieldAlert, 
-  Lock, 
-  Search, 
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  ShieldAlert,
+  Lock,
+  Search,
   Eye,
   Crown,
-  LogIn
+  LogIn,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
-import { SUMMARIES_DATA, type SummaryArticle } from '../data/summariesData';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { CYCLES, type CycleKey } from '../types';
+import { CYCLES, type CycleKey, type SummaryArticle } from '../types';
 
 interface SummariesViewerProps {
   onOpenAuth?: () => void;
+}
+
+interface SummaryRow {
+  id: string;
+  title: string;
+  category: string;
+  cycle: string;
+  read_time: string | null;
+  sections: SummaryArticle['sections'];
+}
+
+function mapSummaryRow(row: SummaryRow): SummaryArticle {
+  return {
+    id: row.id,
+    title: row.title,
+    category: row.category,
+    cycle: row.cycle,
+    readTime: row.read_time || '',
+    sections: Array.isArray(row.sections) ? row.sections : [],
+  };
 }
 
 export const SummariesViewer: React.FC<SummariesViewerProps> = ({ onOpenAuth }) => {
@@ -25,9 +48,12 @@ export const SummariesViewer: React.FC<SummariesViewerProps> = ({ onOpenAuth }) 
   const defaultFilter: 'all' | CycleKey = (user && !isAdmin && userCycle) ? userCycle : 'all';
 
   const [selectedCycleFilter, setSelectedCycleFilter] = useState<'all' | CycleKey>(defaultFilter);
-  const [selectedArticle, setSelectedArticle] = useState<SummaryArticle>(SUMMARIES_DATA[0]);
+  const [articles, setArticles] = useState<SummaryArticle[]>([]);
+  const [selectedArticle, setSelectedArticle] = useState<SummaryArticle | null>(null);
   const [search, setSearch] = useState('');
   const [fontSize, setFontSize] = useState<number>(16);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // تحديث الفلتر عند تحميل المستخدم
   useEffect(() => {
@@ -36,67 +62,149 @@ export const SummariesViewer: React.FC<SummariesViewerProps> = ({ onOpenAuth }) 
     }
   }, [user, isAdmin, userCycle]);
 
-  // تفعيل نظام حماية النسخ والطباعة
+  // جلب المحتوى من جدول summaries المحمي بـ RLS (وليس من حزمة JS العامة).
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // منع Ctrl+C, Ctrl+P, Ctrl+S, Ctrl+U
-      if (
-        (e.ctrlKey || e.metaKey) &&
-        ['c', 'p', 's', 'u'].includes(e.key.toLowerCase())
-      ) {
-        e.preventDefault();
-        alert('تنبيه أمني: هذه الملخصات محمية بحقوق التأليف داخل المنصة وغير قابلة للنسخ أو الطباعة.');
+    if (!isPremium) {
+      setArticles([]);
+      setSelectedArticle(null);
+      setLoadError(null);
+      return;
+    }
+
+    if (!isSupabaseConfigured() || !supabase) {
+      setLoadError('خدمة الملخصات غير مهيأة. يرجى ضبط إعدادات Supabase أولاً.');
+      return;
+    }
+
+    const client = supabase;
+    let cancelled = false;
+
+    const load = async () => {
+      setLoading(true);
+      setLoadError(null);
+
+      const { data, error } = await client
+        .from('summaries')
+        .select('id, title, category, cycle, read_time, sections')
+        .order('id', { ascending: true });
+
+      if (cancelled) return;
+
+      if (error) {
+        console.warn('summaries fetch error:', error.message);
+        setArticles([]);
+        setLoadError('تعذر تحميل الملخصات. قد يكون جدول summaries أو سياسات RLS غير مهيأة بعد.');
+      } else {
+        const mapped = ((data || []) as SummaryRow[]).map(mapSummaryRow);
+        setArticles(mapped);
+        setSelectedArticle((current) => current ?? mapped[0] ?? null);
       }
+
+      setLoading(false);
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [isPremium]);
 
   // تصفية المقالات حسب السلك والبحث
-  const filtered = SUMMARIES_DATA.filter((a) => {
-    // تصفية حسب السلك
+  const filtered = useMemo(() => articles.filter((a) => {
     if (selectedCycleFilter === 'primary' && !a.cycle.includes('ابتدائي')) return false;
     if (selectedCycleFilter === 'secondary_prep' && !a.cycle.includes('إعدادي')) return false;
     if (selectedCycleFilter === 'secondary_qual' && !a.cycle.includes('تأهيلي')) return false;
 
-    // بحث بالكلمة
     if (!search.trim()) return true;
     const term = search.trim().toLowerCase();
     return (
       a.title.toLowerCase().includes(term) ||
       a.category.toLowerCase().includes(term) ||
-      a.sections.some((s) => s.heading.toLowerCase().includes(term) || s.paragraphs.some(p => p.toLowerCase().includes(term)))
+      a.sections.some(
+        (s) =>
+          s.heading.toLowerCase().includes(term) ||
+          s.paragraphs.some((p) => p.toLowerCase().includes(term))
+      )
     );
-  });
+  }), [articles, selectedCycleFilter, search]);
 
-  // مزامنة المقال المختار إذا أصبح خارج الفلتر
-  useEffect(() => {
-    if (filtered.length > 0 && !filtered.some(a => a.id === selectedArticle.id)) {
-      setSelectedArticle(filtered[0]);
+  // المقال النشط: نُشتقه من الفلتر الحالي بدل مزامنة الحالة داخل effect.
+  const activeArticle = useMemo(() => {
+    if (selectedArticle && filtered.some((a) => a.id === selectedArticle.id)) {
+      return selectedArticle;
     }
-  }, [selectedCycleFilter, filtered, selectedArticle.id]);
+    return filtered[0] ?? null;
+  }, [selectedArticle, filtered]);
 
-  // نص العلامة المائية الديناميكية (الميزة المعتمدة 4)
-  const watermarkText = user 
+  // نص العلامة المائية الديناميكية
+  const watermarkText = user
     ? `${user.fullName || user.email} • ${user.email} • منصة CRMEF الحصرية`
     : 'منصة CRMEF – نسخة حصرية للقراءة فقط';
 
+  const renderPaywall = () => (
+    <div className="py-12 px-4 text-center space-y-5 animate-in fade-in">
+      <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto shadow-inner">
+        <Lock className="w-8 h-8" />
+      </div>
+
+      <div className="space-y-2 max-w-md mx-auto">
+        <h3 className="text-xl font-extrabold text-slate-900">
+          هذا الملخص متاح حصرياً للمشتركين الكاملين
+        </h3>
+        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+          يحتوي هذا الملف على ملخص ديداكتيكي وبيداغوجي مكثف بالدارجة المغربية يغطي جميع محاور المادة وتوصيفات المباراة.
+        </p>
+      </div>
+
+      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 max-w-sm mx-auto text-xs text-slate-700 space-y-2">
+        <div className="font-bold text-slate-900 flex items-center justify-center gap-1.5">
+          <Crown className="w-4 h-4 text-amber-500" />
+          <span>مزايا الترقية للمشترك الكامل:</span>
+        </div>
+        <ul className="text-right space-y-1 list-disc list-inside text-slate-600">
+          <li>الاطلاع على جميع الملخصات المدفوعة كاملة</li>
+          <li>فتح بنك الأسئلة بالكامل (2,284 سؤالاً)</li>
+          <li>إلغاء سقف الـ 20 سؤالاً التجريبي لكل مادة</li>
+        </ul>
+      </div>
+
+      <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+        {!user ? (
+          <button
+            onClick={onOpenAuth}
+            className="px-6 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition-all cursor-pointer flex items-center gap-2"
+          >
+            <LogIn className="w-4 h-4" />
+            <span>تسجيل الدخول / إنشاء حساب</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => setUpgradeModalOpen(true)}
+            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-black text-sm shadow-lg shadow-amber-500/20 transition-all cursor-pointer flex items-center gap-2"
+          >
+            <Crown className="w-4 h-4" />
+            <span>ترقية الحساب الآن (إرسال وصل الأداء)</span>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="max-w-5xl mx-auto space-y-6 select-none" onContextMenu={(e) => e.preventDefault()}>
+    <div className="max-w-5xl mx-auto space-y-6 select-none">
       {/* الترويسة وشريط الحماية */}
       <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-lg">
         <div className="relative z-10 space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30">
             <Lock className="w-3.5 h-3.5" />
-            <span>المكتبة التربوية المحمية (نسخة للمشتركين فقط)</span>
+            <span>المكتبة التربوية الخاصة (للمشتركين فقط)</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black">
             ملخصات ودلائل مراجعة مواد وتوصيفات المباراة
           </h2>
           <p className="text-slate-300 text-xs sm:text-sm max-w-2xl leading-relaxed">
-            تم تجهيز هذه الملخصات البيداغوجية الشاملة بالدارجة المغربية الفصيحة والمبسطة لمساعدتك على ترسيخ المعارف الأساسية في علوم التربية والديداكتيك وتخصصك. 
-            المحتوى محمي بعلامة مائية ديناميكية وتشفير يمنع النسخ والطباعة لحفظ الحقوق.
+            تم تجهيز هذه الملخصات البيداغوجية الشاملة بالدارجة المغربية الفصيحة والمبسطة لمساعدتك على ترسيخ المعارف الأساسية في علوم التربية والديداكتيك وتخصصك.
+            يُخزَّن المحتوى في قاعدة بيانات محمية ولا يُحمَّل إلا لحساب مشترك كامل، مع علامة مائية ديناميكية.
           </p>
         </div>
       </div>
@@ -104,7 +212,7 @@ export const SummariesViewer: React.FC<SummariesViewerProps> = ({ onOpenAuth }) 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* القائمة الجانبية للملخصات */}
         <div className="space-y-3">
-          {/* فلتر الأسلاك (يظهر فقط للمشرف أو إذا لم يكن هناك سلك مقيد) */}
+          {/* فلتر الأسلاك */}
           {(!user || isAdmin || !userCycle) ? (
             <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl text-xs font-bold text-slate-600">
               <button
@@ -144,7 +252,7 @@ export const SummariesViewer: React.FC<SummariesViewerProps> = ({ onOpenAuth }) 
             <div className="p-3 bg-emerald-50/80 rounded-xl border border-emerald-200 text-xs font-bold text-emerald-950 flex items-center justify-between">
               <span>ملخصات سلكك المعتمد:</span>
               <span className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-[11px] font-black">
-                {CYCLES.find(c => c.id === userCycle)?.name}
+                {CYCLES.find((c) => c.id === userCycle)?.name}
               </span>
             </div>
           )}
@@ -156,60 +264,73 @@ export const SummariesViewer: React.FC<SummariesViewerProps> = ({ onOpenAuth }) 
               placeholder="ابحث عن مادة أو مفهوم..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-xl pr-9 pl-3 py-2.5 text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+              disabled={!isPremium}
+              className="w-full bg-white border border-slate-200 rounded-xl pr-9 pl-3 py-2.5 text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-emerald-500 disabled:opacity-60"
             />
           </div>
 
           <div className="space-y-2 max-h-[650px] overflow-y-auto pr-1">
-            {filtered.map((item) => {
-              const isSelected = selectedArticle?.id === item.id;
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => setSelectedArticle(item)}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
-                    isSelected
-                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20'
-                      : 'bg-white border-slate-200 hover:border-slate-300 text-slate-800 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between text-[11px] mb-1 opacity-80">
-                    <span>{item.category}</span>
-                    <span>{item.readTime}</span>
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-10 text-slate-400 gap-2">
+                <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+                <span className="text-xs font-bold">جارٍ تحميل الملخصات...</span>
+              </div>
+            ) : !isPremium ? (
+              <div className="p-4 rounded-2xl border border-amber-200 bg-amber-50 text-xs font-bold text-amber-900 flex items-start gap-2">
+                <Lock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <span>قائمة الملخصات محجوبة حتى تفعيل الاشتراك الكامل.</span>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-600">
+                لا توجد ملخصات مطابقة.
+              </div>
+            ) : (
+              filtered.map((item) => {
+                const isSelected = activeArticle?.id === item.id;
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => setSelectedArticle(item)}
+                    className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20'
+                        : 'bg-white border-slate-200 hover:border-slate-300 text-slate-800 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-[11px] mb-1 opacity-80">
+                      <span>{item.category}</span>
+                      <span>{item.readTime}</span>
+                    </div>
+                    <h4 className="font-extrabold text-sm leading-snug">{item.title}</h4>
+                    <div className="mt-2 flex items-center justify-between text-[11px]">
+                      <span className={`px-2 py-0.5 rounded-md ${
+                        isSelected ? 'bg-emerald-700/60 text-emerald-100' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {item.cycle}
+                      </span>
+                      <span className="flex items-center gap-1 font-bold">
+                        <Eye className="w-3 h-3" />
+                        <span>قراءة</span>
+                      </span>
+                    </div>
                   </div>
-                  <h4 className="font-extrabold text-sm leading-snug">
-                    {item.title}
-                  </h4>
-                  <div className="mt-2 flex items-center justify-between text-[11px]">
-                    <span className={`px-2 py-0.5 rounded-md ${
-                      isSelected ? 'bg-emerald-700/60 text-emerald-100' : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      {item.cycle}
-                    </span>
-                    <span className="flex items-center gap-1 font-bold">
-                      {!isPremium ? <Lock className="w-3 h-3 text-amber-300" /> : <Eye className="w-3 h-3" />}
-                      <span>{!isPremium ? 'معاينة' : 'قراءة'}</span>
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
 
-        {/* قارئ الملخص المحمي */}
+        {/* قارئ الملخص */}
         <div className="md:col-span-2 bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs relative overflow-hidden flex flex-col justify-between">
-          
-          {/* محتوى القارئ */}
           <div>
             {/* شريط أدوات القارئ والتكبير */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-6 text-xs text-slate-500">
               <div className="flex items-center gap-2">
                 <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 font-bold">
-                  {selectedArticle?.category}
+                  {activeArticle?.category || 'المكتبة'}
                 </span>
                 <span>•</span>
-                <span className="font-semibold">{selectedArticle?.readTime}</span>
+                <span className="font-semibold">{activeArticle?.readTime || ''}</span>
               </div>
 
               <div className="flex items-center gap-2">
@@ -231,67 +352,38 @@ export const SummariesViewer: React.FC<SummariesViewerProps> = ({ onOpenAuth }) 
               </div>
             </div>
 
-            {/* حالة القفل إذا لم يكن المستخدم مشتركاً كاملاً */}
             {!isPremium ? (
-              <div className="py-12 px-4 text-center space-y-5 animate-in fade-in">
-                <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto shadow-inner">
-                  <Lock className="w-8 h-8" />
-                </div>
-
-                <div className="space-y-2 max-w-md mx-auto">
-                  <h3 className="text-xl font-extrabold text-slate-900">
-                    هذا الملخص متاح حصرياً للمشتركين الكاملين
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                    يحتوي هذا الملف على ملخص ديداكتيكي وبيداغوجي مكثف بالدارجة المغربية يغطي جميع محاور المادة وتوصيفات المباراة.
-                  </p>
-                </div>
-
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 max-w-sm mx-auto text-xs text-slate-700 space-y-2">
-                  <div className="font-bold text-slate-900 flex items-center justify-center gap-1.5">
-                    <Crown className="w-4 h-4 text-amber-500" />
-                    <span>مزايا الترقية للمشترك الكامل:</span>
-                  </div>
-                  <ul className="text-right space-y-1 list-disc list-inside text-slate-600">
-                    <li>الاطلاع على جميع الملخصات الـ 19 كاملة</li>
-                    <li>فتح بنك الأسئلة بالكامل (أكثر من 2,284 سؤالاً)</li>
-                    <li>إلغاء سقف الـ 20 سؤالاً التجريبي</li>
-                  </ul>
-                </div>
-
-                <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-                  {!user ? (
-                    <button
-                      onClick={onOpenAuth}
-                      className="px-6 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition-all cursor-pointer flex items-center gap-2"
-                    >
-                      <LogIn className="w-4 h-4" />
-                      <span>تسجيل الدخول / إنشاء حساب</span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setUpgradeModalOpen(true)}
-                      className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-black text-sm shadow-lg shadow-amber-500/20 transition-all cursor-pointer flex items-center gap-2"
-                    >
-                      <Crown className="w-4 h-4" />
-                      <span>ترقية الحساب الآن (إرسال وصل الأداء)</span>
-                    </button>
-                  )}
-                </div>
+              renderPaywall()
+            ) : loadError ? (
+              <div className="py-12 px-4 text-center space-y-4">
+                <AlertCircle className="w-10 h-10 text-rose-500 mx-auto" />
+                <h3 className="text-lg font-extrabold text-slate-900">تعذر تحميل المكتبة</h3>
+                <p className="text-sm text-slate-600 max-w-md mx-auto leading-relaxed">{loadError}</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm inline-flex items-center gap-2 cursor-pointer"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>إعادة المحاولة</span>
+                </button>
               </div>
-            ) : (
-              /* المحتوى المقروء للمشترك الكامل مع العلامة المائية الديناميكية */
+            ) : loading ? (
+              <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-2">
+                <Loader2 className="w-7 h-7 animate-spin text-emerald-600" />
+                <span className="text-sm font-bold">جارٍ تحميل المحتوى...</span>
+              </div>
+            ) : activeArticle ? (
               <div
                 className="space-y-6 relative"
                 style={{
                   fontSize: `${fontSize}px`,
                   lineHeight: '1.8',
                   userSelect: 'none',
-                  WebkitUserSelect: 'none'
+                  WebkitUserSelect: 'none',
                 }}
               >
-                {/* ───── العلامة المائية الشفافة الديناميكية (الميزة المعتمدة 4) ───── */}
-                <div 
+                {/* العلامة المائية الشفافة الديناميكية */}
+                <div
                   className="absolute inset-0 pointer-events-none select-none overflow-hidden z-10 flex flex-wrap items-center justify-around opacity-[0.05] text-slate-900 font-black text-xs sm:text-sm rotate-[-20deg]"
                   style={{ gap: '60px 40px' }}
                 >
@@ -303,10 +395,10 @@ export const SummariesViewer: React.FC<SummariesViewerProps> = ({ onOpenAuth }) 
                 </div>
 
                 <h3 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
-                  {selectedArticle?.title}
+                  {activeArticle.title}
                 </h3>
 
-                {selectedArticle?.sections.map((sec, i) => (
+                {activeArticle.sections.map((sec, i) => (
                   <div key={i} className="space-y-2 pt-2">
                     <h4 className="font-extrabold text-emerald-800 text-base sm:text-lg border-r-4 border-emerald-600 pr-3">
                       {sec.heading}
@@ -321,6 +413,10 @@ export const SummariesViewer: React.FC<SummariesViewerProps> = ({ onOpenAuth }) 
                   </div>
                 ))}
               </div>
+            ) : (
+              <div className="py-16 text-center text-sm text-slate-500 font-bold">
+                لا توجد ملخصات متاحة حالياً. تأكد من إدراج المحتوى في جدول summaries.
+              </div>
             )}
           </div>
 
@@ -328,7 +424,7 @@ export const SummariesViewer: React.FC<SummariesViewerProps> = ({ onOpenAuth }) 
           <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
             <span className="flex items-center gap-1.5">
               <ShieldAlert className="w-4 h-4 text-emerald-600" />
-              <span>المحتوى محمي ومشفر ضد النسخ والتحميل المباشر</span>
+              <span>محتوى خاص يُقدَّم عبر جلسة موثقة للمشتركين الكاملين</span>
             </span>
             <span className="text-slate-400">منصة CRMEF 2026</span>
           </div>
@@ -337,3 +433,4 @@ export const SummariesViewer: React.FC<SummariesViewerProps> = ({ onOpenAuth }) 
     </div>
   );
 };
+

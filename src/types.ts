@@ -91,6 +91,7 @@ export interface SubscriptionRequest {
   userName: string;
   cycle: CycleKey;
   receiptUrl: string;
+  receiptPath?: string;
   receiptName?: string;
   paymentMethod?: string;
   notes?: string;
@@ -110,6 +111,11 @@ export interface UserProfile {
   sessionId?: string;
 }
 
+/**
+ * سؤال كما يراه العميل.
+ * النموذج المدفوع: `correct_answer`/`explanation` تُرسَل للمشرف والكامل فقط،
+ * وتبقى فارغة للتجريبي (الإجابة تُتحقق منها خادمياً عبر دالة answer_question).
+ */
 export interface Question {
   id: string;
   cycles?: CycleKey[]; // إن لم تُحدد، يتم اشتقاقها من المادة. علوم التربية edu صالحة لجميع الأسلاك!
@@ -117,8 +123,24 @@ export interface Question {
   topic: string;
   question: string;
   options: string[];
-  correct_answer: string;
+  correct_answer?: string;
   explanation?: string;
+}
+
+/** نتيجة تحقق الخادم بعد الإجابة (من دالة answer_question). */
+export interface AnswerResult {
+  isCorrect: boolean;
+  correctAnswer: string;
+  explanation: string;
+}
+
+export interface SummaryArticle {
+  id: string;
+  title: string;
+  category: string;
+  cycle: string;
+  readTime: string;
+  sections: { heading: string; paragraphs: string[] }[];
 }
 
 export type ConfidenceLevel = 'متأكد' | 'متردد' | 'تخمين' | 'لا أعرف';

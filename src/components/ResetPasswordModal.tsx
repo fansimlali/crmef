@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { Lock, Eye, EyeOff, CheckCircle2, AlertCircle, X, ArrowRight } from 'lucide-react';
 
 interface ResetPasswordModalProps {
@@ -30,6 +30,10 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
       setErrorMsg('كلمة المرور يجب أن تتكون من 6 أحرف على الأقل.');
       return;
     }
+    if (newPassword.length > 128) {
+      setErrorMsg('كلمة المرور طويلة جداً (الحد الأقصى 128 حرفاً).');
+      return;
+    }
 
     if (newPassword !== confirmPassword) {
       setErrorMsg('كلمتا المرور غير متطابقتين.');
@@ -39,16 +43,32 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
     setLoading(true);
 
     try {
-      if (supabase) {
-        const { error } = await supabase.auth.updateUser({
-          password: newPassword,
-        });
+      if (!isSupabaseConfigured() || !supabase) {
+        setErrorMsg('خدمة استعادة كلمة المرور غير مهيأة. يرجى ضبط إعدادات Supabase أولاً.');
+        setLoading(false);
+        return;
+      }
 
-        if (error) {
-          setErrorMsg(error.message || 'فشل تحديث كلمة المرور. قد يكون الرابط قد انتهت صلاحيته.');
-          setLoading(false);
-          return;
-        }
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        setErrorMsg(error.message || 'فشل تحديث كلمة المرور. قد يكون الرابط قد انتهت صلاحيته.');
+        setLoading(false);
+        return;
+      }
+
+      // إنهاء كل الجلسات الأخرى، ثم تنظيف وصلة الاستعادة.
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch {
+        /* تجاهل */
+      }
+      try {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      } catch {
+        /* تجاهل */
       }
 
       setSuccess(true);
@@ -57,8 +77,8 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
         onSuccess();
         onClose();
       }, 2000);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'حدث خطأ غير متوقع');
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'حدث خطأ غير متوقع');
       setLoading(false);
     }
   };
@@ -152,3 +172,4 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
     </div>
   );
 };
+

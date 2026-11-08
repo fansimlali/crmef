@@ -31,7 +31,8 @@ export const UpgradeModal: React.FC = () => {
   } = useAuth();
 
   const [paymentTab, setPaymentTab] = useState<'bank' | 'agency'>('bank');
-  const [receiptImage, setReceiptImage] = useState<string | null>(null);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -67,8 +68,8 @@ export const UpgradeModal: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setErrorMsg('يرجى اختيار ملف صورة صالح (JPG أو PNG)');
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setErrorMsg('يرجى اختيار ملف صورة صالح (JPG أو PNG أو WEBP)');
       return;
     }
 
@@ -79,15 +80,21 @@ export const UpgradeModal: React.FC = () => {
 
     const reader = new FileReader();
     reader.onload = () => {
-      setReceiptImage(reader.result as string);
+      setReceiptFile(file);
+      setReceiptPreview(reader.result as string);
       setErrorMsg(null);
     };
     reader.readAsDataURL(file);
   };
 
+  const resetReceipt = () => {
+    setReceiptFile(null);
+    setReceiptPreview(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!receiptImage) {
+    if (!receiptFile) {
       setErrorMsg('يرجى إرفاق صورة واضحة لوصل التحويل أو الدفع');
       return;
     }
@@ -96,14 +103,15 @@ export const UpgradeModal: React.FC = () => {
     setErrorMsg(null);
 
     const res = await submitSubscriptionRequest(
-      receiptImage, 
-      paymentTab === 'bank' ? 'CIH Bank / Application' : 'Cash Plus / Wafacash', 
+      receiptFile,
+      paymentTab === 'bank' ? 'CIH Bank / Application' : 'Cash Plus / Wafacash',
       ''
     );
     setSubmitting(false);
 
     if (res.success) {
       setSuccessMsg(true);
+      resetReceipt();
     } else {
       setErrorMsg(res.error || 'حدث خطأ أثناء إرسال الطلب');
     }
@@ -117,6 +125,8 @@ export const UpgradeModal: React.FC = () => {
           onClick={() => {
             setUpgradeModalOpen(false);
             setSuccessMsg(false);
+            setErrorMsg(null);
+            resetReceipt();
           }}
           className="absolute top-5 left-5 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 transition-all cursor-pointer"
         >
@@ -203,7 +213,7 @@ export const UpgradeModal: React.FC = () => {
                 <span className="text-xs font-black text-slate-700 block mb-1">ماذا ستحصل عند التفعيل:</span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-bold text-slate-700">
                   {[
-                    'فتح بنك الـ 100 سؤال لكل مادة',
+                    'فتح كامل بنك الأسئلة (2,284 سؤالاً)',
                     'المحاكاة الشاملة الكاملة بلا حدود',
                     'فتح جميع الملخصات المحمية لسلكك',
                     'حفظ نتائجك ومتابعة تقدمك دائماً',
@@ -375,10 +385,10 @@ export const UpgradeModal: React.FC = () => {
                     صورة وصل التحويل أو الدفع <span className="text-rose-500">*</span>
                   </label>
                   
-                  {receiptImage ? (
+                  {receiptPreview ? (
                     <div className="relative rounded-2xl border border-emerald-300 bg-emerald-50/40 p-3 flex items-center gap-3">
                       <img 
-                        src={receiptImage} 
+                        src={receiptPreview} 
                         alt="إثبات الدفع" 
                         className="w-16 h-16 object-cover rounded-xl border border-emerald-200"
                       />
@@ -388,7 +398,7 @@ export const UpgradeModal: React.FC = () => {
                       </div>
                       <button
                         type="button"
-                        onClick={() => setReceiptImage(null)}
+                        onClick={resetReceipt}
                         className="text-xs px-2.5 py-1 rounded-lg bg-rose-100 text-rose-700 font-bold hover:bg-rose-200 cursor-pointer"
                       >
                         تغيير

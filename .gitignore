@@ -26,3 +26,15 @@ dist-ssr
 *.sw?
 qt/
 
+# ملفات ضخمة أو محتوى مدفوع لا يجب رفعه للمستودع العام
+*.exe
+molakhasat/
+examen_blanc_crmef*.html
+scripts/seed-data/
+supabase_summaries_seed.sql
+# بنك الأسئلة المدفوع: المصدر والبذور المحلية فقط (لا تُرفع أبداً)
+questions_seed.json
+supabase_questions_seed.sql
+dist/
+qt/
+

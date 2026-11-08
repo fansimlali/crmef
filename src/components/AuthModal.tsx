@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
-  X, Lock, Mail, User, ShieldCheck, ArrowRight, 
+  X, Lock, Mail, User, ArrowRight, 
   AlertCircle, GraduationCap, AlertTriangle, CheckCircle2,
   RefreshCw, Eye, EyeOff 
 } from 'lucide-react';
@@ -90,12 +90,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMo
         }
       }
     }
-  };
-
-  const handleFillAdminDemo = () => {
-    setEmail('admin@crmef.ma');
-    setPassword('admin123456');
-    switchMode('login');
   };
 
   return (
@@ -315,17 +309,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMo
               </button>
             )}
           </div>
-
-          {/* تجربة سريعة لدخول المشرف */}
-          <button
-            type="button"
-            onClick={handleFillAdminDemo}
-            className="text-slate-400 hover:text-slate-700 flex items-center gap-1 cursor-pointer shrink-0"
-            title="تجربة الدخول كمسؤول للمنصة"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span>حساب المشرف</span>
-          </button>
         </div>
       </div>
     </div>

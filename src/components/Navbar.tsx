@@ -1,7 +1,6 @@
 import React from 'react';
 import { 
   BookOpen, 
-  Database, 
   Sparkles, 
   FileText, 
   LogOut, 
@@ -81,31 +80,23 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>الملخصات {isPremium ? '(متاحة ⭐)' : '(محمية)'}</span>
             </button>
 
-            {/* بنك الأسئلة (مخصص للمشرف العام أو الاطلاع) */}
-            <button
-              onClick={() => {
-                if (!isAdmin && !user) {
-                  onOpenAuth();
-                } else {
-                  setActiveTab('manager');
-                }
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                activeTab === 'manager'
-                  ? 'bg-white text-emerald-800 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              {isAdmin ? (
+            {/* بنك الأسئلة / إدارة الأسئلة (للمشرف فقط) */}
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab('manager')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  activeTab === 'manager'
+                    ? 'bg-white text-emerald-800 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              ) : (
-                <Database className="w-3.5 h-3.5 text-slate-500" />
-              )}
-              <span>{isAdmin ? 'إدارة الأسئلة' : 'بنك الأسئلة'}</span>
-              <span className="bg-slate-200 text-slate-700 text-[11px] px-1.5 py-0.2 rounded-full">
-                {questionsCount}
-              </span>
-            </button>
+                <span>إدارة الأسئلة</span>
+                <span className="bg-slate-200 text-slate-700 text-[11px] px-1.5 py-0.2 rounded-full">
+                  {questionsCount}
+                </span>
+              </button>
+            )}
 
             {/* تبويب طلبات المشتركين (خاص بالمشرف العام فقط) */}
             {isAdmin && (
@@ -155,7 +146,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </span>
                 ) : (
                   <span className="px-1.5 py-0.5 rounded-md bg-slate-200 text-slate-700 font-bold text-[10px]">
-                    حساب تجريبي (20 سؤالاً)
+                    حساب تجريبي (20 سؤالاً/مادة)
                   </span>
                 )}
 

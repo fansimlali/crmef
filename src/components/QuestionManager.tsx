@@ -15,7 +15,7 @@ import {
   Copy,
   ExternalLink
 } from 'lucide-react';
-import { isSupabaseConfigured, addQuestion, bulkAddQuestions, removeQuestion } from '../lib/supabase';
+import { isSupabaseConfigured, addQuestion, bulkAddQuestions, removeQuestion, validateQuestion } from '../lib/supabase';
 
 interface QuestionManagerProps {
   questions: Question[];
@@ -49,10 +49,11 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
 
   const filteredQuestions = questions.filter((q) => {
     const matchSub = filterSubject === 'all' || q.subject === filterSubject;
+    const term = searchQuery.toLowerCase();
     const matchSearch =
-      q.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      q.topic.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (q.explanation && q.explanation.toLowerCase().includes(searchQuery.toLowerCase()));
+      (q.question || '').toLowerCase().includes(term) ||
+      (q.topic || '').toLowerCase().includes(term) ||
+      (q.explanation || '').toLowerCase().includes(term);
     return matchSub && matchSearch;
   });
 
@@ -81,7 +82,14 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
       explanation: formExplanation.trim() || undefined,
     };
 
-    const res = await addQuestion(newQ);
+    let res: Awaited<ReturnType<typeof addQuestion>>;
+    try {
+      res = await addQuestion(newQ);
+    } catch (err) {
+      setFormLoading(false);
+      setFormMsg({ type: 'err', text: err instanceof Error ? err.message : 'فشل الاتصال. تحقق من الاتصال ثم أعد المحاولة.' });
+      return;
+    }
     setFormLoading(false);
 
     if (res.success) {
@@ -117,28 +125,43 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
 
       // التحقق من صحة العناصر
       const validated: Question[] = parsed.map((item, index) => {
+        if (!item || typeof item !== 'object') {
+          throw new Error(`السؤال رقم ${index + 1} ليس كائناً صالحاً`);
+        }
         if (!item.subject || !item.topic || !item.question || !Array.isArray(item.options)) {
           throw new Error(`السؤال رقم ${index + 1} يفتقد لأحد الحقول الأساسية (subject, topic, question, options)`);
         }
-        return {
-          id: item.id || `q_${Date.now()}_${index}`,
+        const candidate: Question = {
+          id: item.id || `q_${crypto.randomUUID()}_${index}`,
           subject: item.subject,
           topic: item.topic,
           question: item.question,
           options: item.options,
-          correct_answer: item.correct_answer || item.options[0],
+          // لا نُخمّن الجواب الصحيح أبداً: التحقق أدناه سيُسقط الصف ناقص الجواب.
+          correct_answer: item.correct_answer || '',
           explanation: item.explanation || '',
         };
+        const validationError = validateQuestion(candidate);
+        if (validationError) {
+          throw new Error(`السؤال رقم ${index + 1}: ${validationError}`);
+        }
+        return candidate;
       });
 
       const res = await bulkAddQuestions(validated);
       setBulkLoading(false);
+
+      if (res.error) {
+        setBulkMsg({ type: 'err', text: res.error });
+        return;
+      }
+
       setBulkMsg({ type: 'ok', text: `تم رفع ${res.count} سؤالاً بنجاح إلى المنصة!` });
       setBulkJson('');
       onRefresh();
-    } catch (err: any) {
+    } catch (err) {
       setBulkLoading(false);
-      setBulkMsg({ type: 'err', text: `خطأ في صيغة البيانات: ${err.message}` });
+      setBulkMsg({ type: 'err', text: `خطأ في صيغة البيانات: ${err instanceof Error ? err.message : 'خطأ غير معروف'}` });
     }
   };
 
@@ -146,10 +169,21 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setBulkMsg({ type: 'err', text: 'حجم الملف كبير جداً (الحد الأقصى 5MB).' });
+      return;
+    }
 
     const reader = new FileReader();
+    reader.onerror = () => {
+      setBulkMsg({ type: 'err', text: 'تعذرت قراءة الملف.' });
+    };
     reader.onload = (event) => {
-      const content = event.target?.result as string;
+      const content = event.target?.result;
+      if (typeof content !== 'string') {
+        setBulkMsg({ type: 'err', text: 'صيغة الملف غير صالحة. اختر ملف JSON نصي.' });
+        return;
+      }
       setBulkJson(content);
     };
     reader.readAsText(file);
@@ -158,7 +192,17 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
   // حذف سؤال
   const handleDelete = async (id: string) => {
     if (window.confirm('هل أنت متأكد من حذف هذا السؤال من المنصة؟')) {
-      await removeQuestion(id);
+      let res: Awaited<ReturnType<typeof removeQuestion>>;
+      try {
+        res = await removeQuestion(id);
+      } catch (err) {
+        window.alert(err instanceof Error ? err.message : 'تعذر حذف السؤال.');
+        return;
+      }
+      if (!res.success) {
+        window.alert(res.error || 'تعذر حذف السؤال.');
+        return;
+      }
       onRefresh();
     }
   };
@@ -309,7 +353,7 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
                     <div className="flex items-center justify-between text-xs font-bold text-slate-500">
                       <div className="flex items-center gap-2">
                         <span className="px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
-                          {SUBJECT_NAMES[q.subject]}
+                          {SUBJECT_NAMES[q.subject] || q.subject}
                         </span>
                         <span>{q.topic}</span>
                       </div>
