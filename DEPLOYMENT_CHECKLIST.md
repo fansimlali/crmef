@@ -8,14 +8,22 @@
 
 - [ ] افتح **Supabase Dashboard > SQL Editor** لمشروع `lwicejthksskkhfsilky`.
 - [ ] نفّذ محتوى [`supabase_schema.sql`](./supabase_schema.sql) كاملاً (آمن لإعادة التشغيل).
-- [ ] تحقق من وجود الجداول: `profiles`، `questions`، `subscription_requests`، `question_progress`، `summaries`.
-- [ ] تحقق من أن `questions` يحتوي **2,284** صفاً:
+  - على القواعد القديمة: يرحّل الإجابات تلقائياً إلى `question_answers` ثم يحذف عمودَي `correct_answer`/`explanation` من `questions`. تحقق أنه لا يوجد عمود إجابة في `questions` بعد التنفيذ.
+- [ ] ولّد ونفّذ بذور الأسئلة (ملف محلي غير متتبع):
+  ```bash
+  npm run seed:questions   # يتطلب questions_seed.json محلياً
+  ```
+  ثم نفّذ `supabase_questions_seed.sql` في SQL Editor.
+- [ ] تحقق من وجود الجداول: `profiles`، `questions`، `question_answers`، `subscription_requests`، `question_progress`، `summaries`.
+- [ ] تحقق من أن `questions` يحتوي **2,284** صفاً وأن `question_answers` يحتوي **2,284** صفاً، وأن العينة المجانية 20 لكل مادة:
 
 ```sql
 SELECT count(*) FROM public.questions;
+SELECT count(*) FROM public.question_answers;
+SELECT count(*) FILTER (WHERE is_trial) AS trial, count(*) AS total FROM public.questions GROUP BY subject ORDER BY subject;
 ```
 
-- [ ] تحقق من أن عمود `cycles` موجود وأن قيمته الافتراضية `{primary}`.
+- [ ] تحقق من أن عمودَ `cycles` و`is_trial` موجودان.
 - [ ] تحقق من أن مخزن `receipts` **خاص**:
 
 ```sql
