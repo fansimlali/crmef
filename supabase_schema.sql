@@ -25,6 +25,30 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- قواعد قديمة قد تفتقد أعمدة (CREATE IF NOT EXISTS لا يضيفها):
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS full_name TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS subscription_status TEXT NOT NULL DEFAULT 'trial';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS cycle TEXT NOT NULL DEFAULT 'primary';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'profiles_role_check' AND conrelid = 'public.profiles'::regclass
+  ) THEN
+    ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('user', 'admin'));
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'profiles_subscription_status_check' AND conrelid = 'public.profiles'::regclass
+  ) THEN
+    ALTER TABLE public.profiles ADD CONSTRAINT profiles_subscription_status_check CHECK (subscription_status IN ('trial', 'premium'));
+  END IF;
+END $$;
+
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 -- دالة مساعدة: هل المستخدم الحالي مشرف؟ (SECURITY DEFINER لتجنب تكرار RLS)
@@ -164,6 +188,12 @@ CREATE TABLE IF NOT EXISTS public.subscription_requests (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   reviewed_at TIMESTAMPTZ
 );
+
+-- قواعد قديمة قد تفتقد أعمدة:
+ALTER TABLE public.subscription_requests ADD COLUMN IF NOT EXISTS receipt_path TEXT;
+ALTER TABLE public.subscription_requests ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
+ALTER TABLE public.subscription_requests ADD COLUMN IF NOT EXISTS reviewed_by UUID REFERENCES auth.users(id);
+ALTER TABLE public.subscription_requests ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS subscription_requests_user_idx
   ON public.subscription_requests (user_id, created_at DESC);
