@@ -71,19 +71,11 @@ rg "admin@crmef.ma|admin123456" dist
 - [ ] **غيّر أو احذف** أي حساب Supabase يطابق `admin@crmef.ma`، أو أي كلمة مرور كانت منشورة علناً.
 - [ ] راجع `auth.users` و`profiles` بحثاً عن حسابات مشرف غير متوقعة.
 - [ ] أعد نشر الواجهة الجديدة حتى يختفي الملف القديم من الشبكة.
-- [ ] **نظّف تاريخ Git** من المحتوى المدفوع والملفات القديمة:
-  - خذ نسخة احتياطية من المستودع أولاً.
-  - استخدم `git filter-repo` أو BFG لحذف:
-    - `src/data/summariesData.ts` (المحتوى المدفوع القديم)
-    - `molakhasat/` (إن كان لا يزال في التاريخ)
-  - مثال باستخدام `git filter-repo`:
-
-```bash
-git filter-repo --path src/data/summariesData.ts --invert-paths
-git filter-repo --path molakhasat --invert-paths
-git push --force --all
-git push --force --tags
-```
+- [x] **نظّف تاريخ Git** من المحتوى المدفوع والملفات القديمة (نُفِّذ في Nov 2026):
+  - خُزِّنت نسخة احتياطية محلية قبل إعادة الكتابة.
+  - حُذِف من التاريخ: `molakhasat/`، `examen_blanc*.html`، `src/data/summariesData.ts`، `questions_seed.json`، `src/data/initialQuestions.ts`، و**النسخة القديمة من `supabase_schema.sql` (كانت تحتوي بذور الإجابات)** — أُضيف بعدها ملف مخطط مُنظَّف (هيكل + أمان فقط).
+  - دُفع قسرياً إلى `origin/main`. تحقق: `git log --all -- <مسار>` يعيد صفراً.
+  - ⚠️ ملف CI (`.github/workflows/ci.yml`) لم يُضمَّن في الدفع القسري لأن الـ PAT الحالي بلا صلاحية `workflow` — أعِده من واجهة GitHub (Add file > Create new file) من النسخة المحلية.
 
 - [ ] أبلغ أي مساهمين بإعادة استنساخ المستودع بعد إعادة كتابة التاريخ.
 - [ ] إن كانت كلمات المرور القديمة مستخدمة في خدمات أخرى، غيّرها هناك أيضاً.
