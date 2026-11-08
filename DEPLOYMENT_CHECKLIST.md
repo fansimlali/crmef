@@ -49,9 +49,13 @@ npm run seed:summaries
 # نفّذ supabase_summaries_seed.sql في SQL Editor
 ```
 
-- [ ] في **Authentication > URL Configuration**، أضف:
-  - Site URL: `https://crmef.vercel.app` (أو النطاق النهائي)
-  - Redirect URLs: نفس النطاق + `http://localhost:5173` للتطوير
+- [ ] في **Authentication > URL Configuration**، أضف (إلزامي لعمل روابط البريد):
+  - Site URL: `https://crmef.vercel.app` (أو النطاق النهائي) — **احذف أي `localhost:3000`** قديم
+  - Redirect URLs:
+    - `https://crmef.vercel.app/**` (أو النطاق النهائي)
+    - `http://localhost:5173/**` (للتطوير المحلي)
+- [ ] في **Authentication > Providers > Email**: فعّل **"Confirm email"** (إلزامي — الدخول بلا تأكيد ممنوع في الكود أيضاً)، وحدّد حد كلمة المرور.
+- [ ] اختبر بعد التغيير: سجّل ببريد جديد → الرابط يفتح النطاق الإنتاجي → حسابك يدخل مباشرة. واختبر "نسيت كلمة المرور" بنفس الطريقة.
 - [ ] راجع **Authentication > Providers > Email**: تأكيد البريد مفعّل، وكلمة المرور بحد أدنى مناسب.
 
 ---
@@ -97,9 +101,12 @@ rg "admin@crmef.ma|admin123456" dist
 - [ ] اجتياز 20 سؤالاً في مادة → يُمنع السؤال 21 ويظهر زر الترقية.
 - [ ] اختيار «جميع المواد» → لا يتجاوز مجموع الأسئلة الكوطة المتبقية لكل مادة.
 - [ ] رفع وصل اشتراك → يُحفظ الطلب بحالة `pending` وتظهر المعاينة للمشرف.
-- [ ] موافقة المشرف → تصبح حالة الحساب `premium` وتُفتح الملخصات.
+- [ ] موافقة المشرف → تصبح حالة الحساب `premium` وتُفتح الملخصات **دون تحديث الصفحة** (تحديث تلقائي خلال 20 ثانية أو عند عودة التركيز، وتختفي دعوة الترقية).
 - [ ] فتح تبويب الملخصات بحساب `trial` → تظهر شاشة الحجب فقط، ولا تُحمّل أي نصوص مدفوعة من الشبكة.
 - [ ] تسجيل الخروج والعودة → يُستعاد التقدم من `question_progress` وليس من `localStorage` وحده.
+- [ ] الدخول ببريد غير مؤكَّد → يُرفض مع رسالة "أكّد بريدك أولاً" ولا تُنشأ له جلسة.
+- [ ] إيقاف الاختبار مؤقتاً → متابعة من نفس السؤال بعد العودة؛ "عرض النتيجة الآن" يعرض تقييم المُجاب فقط؛ "إعادة من الصفر" يبدأ اختباراً جديداً.
+- [ ] تبويب إدارة الأسئلة غير ظاهر لحساب غير مشرف (لا زر ولا عدد بنك).
 
 ---
 
@@ -109,11 +116,15 @@ rg "admin@crmef.ma|admin123456" dist
 
 ```sql
 -- يجب أن يفشل: anon لا يكتب الأسئلة
-INSERT INTO public.questions (id, subject, topic, question, options, correct_answer, explanation)
-VALUES ('hack', 'ar', 'x', 'x', '["a","b"]'::jsonb, 'a', '');
+INSERT INTO public.questions (id, subject, topic, question, options)
+VALUES ('hack', 'ar', 'x', 'x', '["a","b"]'::jsonb);
 
--- لمستخدم trial: يجب أن يعيد 0 صفوف
+-- لمستخدم trial: يجب أن يعيد 0 صفوف (المحتوى مدفوع)
 SELECT * FROM public.summaries;
+SELECT * FROM public.question_answers;
+
+-- لمستخدم trial في سلك الابتدائي: لا يستطيع قراءة أسئلة سلك آخر
+SELECT count(*) FROM public.questions WHERE cycles @> ARRAY['secondary_prep'];
 
 -- لمستخدم غير مشرف: يجب أن يفشل تعديل دوره
 UPDATE public.profiles SET role = 'admin' WHERE id = auth.uid();

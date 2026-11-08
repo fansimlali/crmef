@@ -381,15 +381,22 @@ ALTER TABLE public.questions ADD CONSTRAINT questions_structure_check
     AND cycles <@ ARRAY['primary', 'secondary_prep', 'secondary_qual']
   ) NOT VALID;
 
--- التجريبي يقرأ فقط الأسئلة المجانية (أول 20 لكل مادة)؛ الكامل/المشرف يقرأ كل شيء.
+-- التجريبي يقرأ فقط الأسئلة المجانية (أول 20 لكل مادة) في سلكه؛
+-- الكامل يقرأ أسئلة سلكه فقط (الخيار أ: حصر بالسلك المسجل)؛ المشرف يقرأ الكل.
 DROP POLICY IF EXISTS "Allow public read" ON public.questions;
 DROP POLICY IF EXISTS "Questions read trial or premium" ON public.questions;
 CREATE POLICY "Questions read trial or premium" ON public.questions
   FOR SELECT TO authenticated
   USING (
     public.is_admin(auth.uid())
-    OR public.is_premium(auth.uid())
-    OR is_trial
+    OR EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid()
+        AND (
+          (is_trial AND p.cycle = ANY(questions.cycles))
+          OR (p.subscription_status = 'premium' AND p.cycle = ANY(questions.cycles))
+        )
+    )
   );
 
 -- الإجابات: المشترك الكامل أو المشرف فقط (التجريبي لا يقرأها مباشرة أبداً).
@@ -550,6 +557,17 @@ BEGIN
 
   SELECT (subscription_status = 'premium' OR role = 'admin') INTO v_premium
   FROM public.profiles WHERE id = v_uid;
+
+  -- حصر بالسلك المسجل: التجريبي والكامل لا يجيبان إلا عن أسئلة سلكهما.
+  IF NOT public.is_admin(v_uid) THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM public.profiles p
+      JOIN public.questions q ON q.id = p_question_id
+      WHERE p.id = v_uid AND p.cycle = ANY(q.cycles)
+    ) THEN
+      RAISE EXCEPTION 'TRIAL_QUESTION_LOCKED';
+    END IF;
+  END IF;
 
   IF NOT COALESCE(v_premium, FALSE) THEN
     IF NOT v_trial THEN

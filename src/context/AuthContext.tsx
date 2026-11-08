@@ -9,6 +9,11 @@ import {
   resetLoginAttempts
 } from '../lib/security';
 
+/** هل أكّد المستخدم بريده؟ (إلزامي للدخول — لا دخول ببريد غير مؤكَّد). */
+function isEmailConfirmed(authUser: User): boolean {
+  return !!authUser.email_confirmed_at;
+}
+
 interface AuthContextType {
   user: UserProfile | null;
   loading: boolean;
@@ -294,7 +299,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!isSupabaseConfigured() || !supabase) return;
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') setPasswordRecoveryOpen(true);
+      if (event === 'PASSWORD_RECOVERY') {
+        setPasswordRecoveryOpen(true);
+        // تنظيف الهاش حتى لا يُعاد فتح نافذة الاستعادة عند تحديث الصفحة.
+        try {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        } catch {
+          /* تجاهل */
+        }
+      }
       if (event === 'SIGNED_OUT') {
         setUser(null);
         setAnsweredQuestionIds(new Set());
@@ -324,6 +337,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (cancelled) return;
 
         if (data?.session?.user) {
+          // جلسة غير مؤكَّدة البريد لا تُمنح دخولاً.
+          if (!isEmailConfirmed(data.session.user)) {
+            try {
+              await supabase.auth.signOut();
+            } catch {
+              /* تجاهل */
+            }
+            return;
+          }
           const profile = await loadProfile(data.session.user);
           if (cancelled) return;
           setUser(profile);
@@ -349,6 +371,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: listener } = client.auth.onAuthStateChange(async (event, session) => {
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
         try {
+          if (!isEmailConfirmed(session.user)) {
+            await client.auth.signOut();
+            return;
+          }
           const profile = await loadProfile(session.user);
           setUser(profile);
           await loadUserProgress(profile.id);
@@ -367,6 +393,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user) void refreshSubscriptions(user);
     else setSubscriptionRequests([]);
   }, [user, refreshSubscriptions]);
+
+  // انعكاس الترقية فوراً: إعادة جلب الملف دورياً وعند عودة التركيز.
+  useEffect(() => {
+    if (!user?.id) return;
+    const userId = user.id;
+
+    const refetchProfile = async () => {
+      if (!isSupabaseConfigured() || !supabase) return;
+      try {
+        const { data } = await supabase.auth.getSession();
+        const sessUser = data?.session?.user;
+        if (!sessUser || sessUser.id !== userId || !sessUser.email_confirmed_at) return;
+        const fresh = await loadProfile(sessUser);
+        if (!fresh) return;
+        setUser((prev) => {
+          if (!prev || prev.id !== userId) return prev;
+          if (
+            prev.role === fresh.role &&
+            prev.subscriptionStatus === fresh.subscriptionStatus &&
+            prev.cycle === fresh.cycle
+          ) {
+            return prev;
+          }
+          // عند الترقية نُغلق نافذة الترقية حتى لا تبدو "عابرة" الغرض.
+          if (prev.subscriptionStatus !== 'premium' && fresh.subscriptionStatus === 'premium') {
+            setUpgradeModalOpen(false);
+          }
+          return { ...prev, ...fresh };
+        });
+        await refreshSubscriptions(fresh);
+      } catch (err) {
+        console.warn('profile refetch error:', err);
+      }
+    };
+
+    const timer = window.setInterval(() => void refetchProfile(), 20000);
+    const onFocus = () => void refetchProfile();
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
+    };
+  }, [user?.id, loadProfile, refreshSubscriptions]);
 
   // ───────────────────────────── تسجيل الإجابات ─────────────────────────────
   // العميل يرسل خياره فقط؛ الخادم يتحقق منه ويعيد الصحيح والشرح.
@@ -448,6 +519,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!data.user) {
         recordFailedLogin();
         return { success: false, error: 'تعذر إنشاء الجلسة. يرجى المحاولة مجدداً.' };
+      }
+
+      // إلزام تأكيد البريد: لا دخول قبل الضغط على رابط التأكيد في الرسالة.
+      if (!isEmailConfirmed(data.user)) {
+        try {
+          await supabase.auth.signOut();
+        } catch {
+          /* تجاهل */
+        }
+        recordFailedLogin();
+        return {
+          success: false,
+          error: 'email_not_confirmed: لم يتم تأكيد بريدك الإلكتروني بعد. افتح رسالة التأكيد واضغط على الرابط أولاً.',
+        };
       }
 
       resetLoginAttempts();

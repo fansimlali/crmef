@@ -54,7 +54,7 @@ function AppContent() {
 
   // حالة جلسة الاختبار (تُحفظ في sessionStorage حتى لا تضيع عند تبديل التبويب أو تحديث الصفحة)
   const EXAM_STORAGE_KEY = 'crmef_exam_session_v1';
-  const [quizStatus, setQuizStatus] = useState<'setup' | 'running' | 'results'>('setup');
+  const [quizStatus, setQuizStatus] = useState<'setup' | 'running' | 'paused' | 'results'>('setup');
   const [examCycle, setExamCycle] = useState<CycleKey>('primary');
   const [examPhase, setExamPhase] = useState<'قبلي' | 'بعدي'>('قبلي');
   const [examQuestions, setExamQuestions] = useState<Question[]>([]);
@@ -62,9 +62,9 @@ function AppContent() {
   const [records, setRecords] = useState<ExamRecord[]>([]);
   const [restored, setRestored] = useState(false);
 
-  // حفظ جلسة الاختبار الجارية.
+  // حفظ جلسة الاختبار الجارية (تشمل الإيقاف المؤقت للمتابعة لاحقاً).
   useEffect(() => {
-    if (quizStatus !== 'running' || examQuestions.length === 0) return;
+    if ((quizStatus !== 'running' && quizStatus !== 'paused') || examQuestions.length === 0) return;
     try {
       sessionStorage.setItem(
         EXAM_STORAGE_KEY,
@@ -82,9 +82,9 @@ function AppContent() {
     }
   }, [quizStatus, examCycle, examPhase, examQuestions, currentIndex, records]);
 
-  // مسح الجلسة عند الإنهاء أو إعادة التعيين.
+  // مسح الجلسة عند الإنهاء أو إعادة التعيين (لا نمسح عند الإيقاف المؤقت).
   useEffect(() => {
-    if (quizStatus !== 'running') {
+    if (quizStatus === 'setup' || quizStatus === 'results') {
       try {
         sessionStorage.removeItem(EXAM_STORAGE_KEY);
       } catch {
@@ -261,6 +261,8 @@ function AppContent() {
 
   // ───── تغيير التبويب مع معالجة خاصة ─────
   const handleSetActiveTab = (tab: 'quiz' | 'manager' | 'summaries' | 'subscriptions') => {
+    // تبويب إدارة الأسئلة للمشرف فقط.
+    if (tab === 'manager' && !isAdmin) return;
     setActiveTab(tab);
     if (tab === 'quiz' && quizStatus === 'results') {
       setQuizStatus('setup');
@@ -390,13 +392,71 @@ function AppContent() {
         )}
 
         {quizStatus === 'running' && examQuestions.length > 0 && (
-          <QuizQuestion
-            phase={examPhase}
-            currentIndex={currentIndex}
-            totalQuestions={examQuestions.length}
-            question={examQuestions[currentIndex]}
-            onNext={handleNextQuestion}
-          />
+          <>
+            <div className="max-w-3xl mx-auto flex items-center justify-between gap-2 mb-4">
+              <span className="text-xs font-bold text-slate-500">
+                أجبت على {records.length} من {examQuestions.length} سؤالاً
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setQuizStatus('paused')}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold cursor-pointer"
+                >
+                  إيقاف مؤقت
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQuizStatus('results')}
+                  disabled={records.length === 0}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold cursor-pointer"
+                >
+                  عرض النتيجة الآن
+                </button>
+              </div>
+            </div>
+            <QuizQuestion
+              phase={examPhase}
+              currentIndex={currentIndex}
+              totalQuestions={examQuestions.length}
+              question={examQuestions[currentIndex]}
+              onNext={handleNextQuestion}
+            />
+          </>
+        )}
+
+        {quizStatus === 'paused' && examQuestions.length > 0 && (
+          <div className="max-w-lg mx-auto bg-white rounded-3xl border border-slate-200 p-8 text-center space-y-4 shadow-xs">
+            <h2 className="text-xl font-extrabold text-slate-900">الاختبار متوقف مؤقتاً</h2>
+            <p className="text-sm text-slate-600">
+              أجبت على <strong>{records.length}</strong> من <strong>{examQuestions.length}</strong> سؤالاً.
+              يمكنك متابعة لاحقاً من حيث توقفت، أو عرض تقييم ما أجبت عنه، أو إعادة الاختبار من الصفر.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <button
+                type="button"
+                onClick={() => setQuizStatus('running')}
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold cursor-pointer"
+              >
+                متابعة من حيث توقفت
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuizStatus('results')}
+                disabled={records.length === 0}
+                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-800 text-sm font-bold cursor-pointer"
+              >
+                عرض النتيجة (المُجاب فقط)
+              </button>
+              <button
+                type="button"
+                onClick={handleRestart}
+                className="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-sm font-bold cursor-pointer"
+              >
+                إعادة الاختبار من الصفر
+              </button>
+            </div>
+          </div>
         )}
 
         {quizStatus === 'results' && (
@@ -459,7 +519,6 @@ function AppContent() {
               <Navbar
                 activeTab={activeTab}
                 setActiveTab={handleSetActiveTab}
-                questionsCount={allQuestions.length}
                 onOpenAuth={() => setAuthModalOpen(true)}
               />
 

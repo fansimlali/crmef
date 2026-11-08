@@ -14,14 +14,12 @@ import { useAuth } from '../context/AuthContext';
 interface NavbarProps {
   activeTab: 'quiz' | 'manager' | 'summaries' | 'subscriptions';
   setActiveTab: (tab: 'quiz' | 'manager' | 'summaries' | 'subscriptions') => void;
-  questionsCount: number;
   onOpenAuth: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   setActiveTab,
-  questionsCount,
   onOpenAuth,
 }) => {
   const { user, isAdmin, isPremium, logout, subscriptionRequests, setUpgradeModalOpen } = useAuth();
@@ -80,7 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>الملخصات {isPremium ? '(متاحة ⭐)' : '(محمية)'}</span>
             </button>
 
-            {/* بنك الأسئلة / إدارة الأسئلة (للمشرف فقط) */}
+            {/* إدارة الأسئلة (للمشرف فقط — لا تُعرض إطلاقاً لغير المشرف) */}
             {isAdmin && (
               <button
                 onClick={() => setActiveTab('manager')}
@@ -92,9 +90,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                 <span>إدارة الأسئلة</span>
-                <span className="bg-slate-200 text-slate-700 text-[11px] px-1.5 py-0.2 rounded-full">
-                  {questionsCount}
-                </span>
               </button>
             )}
 

@@ -53,6 +53,13 @@ export const UpgradeModal: React.FC = () => {
       .catch(() => setNameQrUrl('/name_qr.png'));
   }, []);
 
+  // بعد التفعيل لا معنى لفتح نافذة الترقية: نُغلقها ونعرض رسالة نجاح.
+  useEffect(() => {
+    if (isPremium && upgradeModalOpen) {
+      setUpgradeModalOpen(false);
+    }
+  }, [isPremium, upgradeModalOpen, setUpgradeModalOpen]);
+
   if (!upgradeModalOpen) return null;
 
   const cycleName = CYCLES.find(c => c.id === user?.cycle)?.name || 'السلك المختار';
