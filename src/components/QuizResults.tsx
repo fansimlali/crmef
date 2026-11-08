@@ -31,23 +31,6 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
 }) => {
   const cycleInfo = CYCLES.find((c) => c.id === cycle);
 
-  // نتيجة مبكرة بلا إجابات: لا حساب ولا احتفال.
-  if (records.length === 0) {
-    return (
-      <div className="max-w-lg mx-auto bg-white rounded-3xl border border-slate-200 p-8 text-center space-y-3">
-        <h2 className="text-xl font-extrabold text-slate-900">لم تُجِب على أي سؤال بعد</h2>
-        <p className="text-sm text-slate-600">ارجع إلى الاختبار وأجب على سؤال واحد على الأقل لعرض التقييم.</p>
-        <button
-          type="button"
-          onClick={onRestart}
-          className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold cursor-pointer"
-        >
-          بدء الاختبار
-        </button>
-      </div>
-    );
-  }
-
   // تجميع السجلات حسب المادة وحساب النسب
   const subjectGroups: Record<string, ExamRecord[]> = {};
   records.forEach((r) => {
@@ -97,14 +80,31 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
 
   // إطلاق الاحتفال إذا كانت النتيجة جيدة وبدون رسوب إقصائي (مع احترام تقليل الحركة).
   useEffect(() => {
-    if (isPassed && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (records.length > 0 && isPassed && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       confetti({
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 }
       });
     }
-  }, [isPassed]);
+  }, [isPassed, records.length]);
+
+  // نتيجة مبكرة بلا إجابات: لا حساب ولا احتفال.
+  if (records.length === 0) {
+    return (
+      <div className="max-w-lg mx-auto bg-white rounded-3xl border border-slate-200 p-8 text-center space-y-3">
+        <h2 className="text-xl font-extrabold text-slate-900">لم تُجِب على أي سؤال بعد</h2>
+        <p className="text-sm text-slate-600">ارجع إلى الاختبار وأجب على سؤال واحد على الأقل لعرض التقييم.</p>
+        <button
+          type="button"
+          onClick={onRestart}
+          className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold cursor-pointer"
+        >
+          بدء الاختبار
+        </button>
+      </div>
+    );
+  }
 
   // تصدير النتيجة كملف JSON
   const handleDownload = () => {
