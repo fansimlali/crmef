@@ -29,3 +29,7 @@ jobs:
 
       - name: Type-check and build
         run: npm run build
+        env:
+          # قيمة وهمية للبناء فقط (لا تُستخدم فعلياً في الاختبار)
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: ci-placeholder-anon-key-for-build-verification-only
