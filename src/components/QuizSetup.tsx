@@ -157,11 +157,11 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart }) => {
           ? remainingTrialTotal
           : Math.min(effectiveMax, remainingTrialTotal);
       }
-    }
 
-    if (effectiveMax <= 0) {
-      setUpgradeModalOpen(true);
-      return;
+      if (effectiveMax <= 0) {
+        setUpgradeModalOpen(true);
+        return;
+      }
     }
 
     onStart(selectedCycle, phase, selectedSubject, effectiveMax, onlyUnanswered);
