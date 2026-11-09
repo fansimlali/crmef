@@ -4,6 +4,8 @@ declare global {
   }
 }
 
+export const PIXEL_ID = '1174663541558187'; // CRMEF Prep Pixel
+
 export const trackCompleteRegistration = (method = 'email') => {
   if (typeof window !== 'undefined' && window.fbq) {
     window.fbq('track', 'CompleteRegistration', {
