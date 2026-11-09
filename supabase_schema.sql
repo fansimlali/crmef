@@ -182,7 +182,7 @@ CREATE TABLE IF NOT EXISTS public.subscription_requests (
   receipt_path TEXT,
   payment_method TEXT,
   notes TEXT,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'suspended')),
   rejection_reason TEXT,
   reviewed_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

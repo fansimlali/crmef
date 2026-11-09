@@ -28,6 +28,8 @@ qt/
 
 # ملفات ضخمة أو محتوى مدفوع لا يجب رفعه للمستودع العام
 *.exe
+*.apk
+android/
 molakhasat/
 examen_blanc_crmef*.html
 scripts/seed-data/

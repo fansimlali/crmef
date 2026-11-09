@@ -12,7 +12,8 @@ import {
   Building2,
   Smartphone,
   Copy,
-  Check
+  Check,
+  PauseCircle
 } from 'lucide-react';
 import { CYCLES } from '../types';
 import QRCode from 'qrcode';
@@ -197,6 +198,27 @@ export const UpgradeModal: React.FC = () => {
                 سبب الرفض: <strong>{currentRequest.rejectionReason || 'صورة الوصل غير واضحة أو المبلغ ناقص'}</strong>
               </p>
               <p className="text-[11px] text-rose-700">يرجى إعادة رفع وصل سليم ومطابق عبر النموذج أسفله.</p>
+            </div>
+          </div>
+        )}
+
+        {/* إذا كان الحساب معلقاً مؤقتاً */}
+        {currentRequest?.status === 'suspended' && (
+          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 text-xs sm:text-sm font-bold flex items-start gap-3 mb-6">
+            <PauseCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-extrabold text-sm mb-1">حسابك معلّق مؤقتاً</p>
+              <p className="font-medium text-amber-800 leading-relaxed mb-2">
+                {currentRequest.rejectionReason || 'تم تعليق هذا الحساب مؤقتاً من قِبل إدارة المنصة.'}
+              </p>
+              <a 
+                href="https://web.facebook.com/profile.php?id=61596296884826" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-sky-700 hover:text-sky-800 underline font-bold"
+              >
+                تواصل مع الإدارة عبر صفحة فيسبوك لطلب إعادة التفعيل
+              </a>
             </div>
           </div>
         )}
@@ -444,6 +466,21 @@ export const UpgradeModal: React.FC = () => {
                   <Sparkles className="w-4 h-4" />
                   <span>{submitting ? 'جارٍ إرسال الوصل...' : 'إرسال إثبات الدفع لطلب التفعيل'}</span>
                 </button>
+
+                {/* رابط التواصل المباشر عبر صفحة فيسبوك */}
+                <div className="pt-2 text-center border-t border-slate-100">
+                  <a
+                    href="https://web.facebook.com/profile.php?id=61596296884826"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-xs font-bold text-sky-600 hover:text-sky-700 transition-colors"
+                  >
+                    <svg className="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                    <span>لديك أي استفسار حول الدفع أو التفعيل؟ تواصل معنا مباشرة عبر صفحة فيسبوك</span>
+                  </a>
+                </div>
               </form>
             </div>
           )

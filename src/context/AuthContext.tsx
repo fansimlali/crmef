@@ -43,6 +43,8 @@ interface AuthContextType {
   ) => Promise<{ success: boolean; error?: string }>;
   approveSubscription: (requestId: string) => Promise<boolean>;
   rejectSubscription: (requestId: string, reason: string) => Promise<boolean>;
+  suspendSubscription: (requestId: string) => Promise<boolean>;
+  deleteSubscription: (requestId: string) => Promise<boolean>;
   // نافذة الترقية
   upgradeModalOpen: boolean;
   setUpgradeModalOpen: (open: boolean) => void;
@@ -149,7 +151,7 @@ function mapSubscriptionRow(row: SubscriptionRow): SubscriptionRequest {
     receiptPath: row.receipt_path || undefined,
     paymentMethod: row.payment_method || undefined,
     notes: row.notes || undefined,
-    status: (['approved', 'rejected'].includes(row.status) ? row.status : 'pending') as SubscriptionRequest['status'],
+    status: (['approved', 'rejected', 'suspended'].includes(row.status) ? row.status : 'pending') as SubscriptionRequest['status'],
     rejectionReason: row.rejection_reason || undefined,
     createdAt: row.created_at,
     reviewedAt: row.reviewed_at || undefined,
@@ -822,6 +824,97 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // ───────────────────────────── تعليق الاشتراك مؤقتاً ─────────────────────────────
+  const suspendSubscription = async (requestId: string): Promise<boolean> => {
+    if (!user || user.role !== 'admin' || !supabase) return false;
+
+    const request = subscriptionRequests.find((r) => r.id === requestId);
+    if (!request) return false;
+
+    try {
+      const reviewedAt = new Date().toISOString();
+      // تحديث حالة الطلب إلى معلق
+      const { error: requestError } = await supabase
+        .from('subscription_requests')
+        .update({
+          status: 'suspended',
+          rejection_reason: 'تم تعليق الاشتراك مؤقتاً من قِبل المشرف العام.',
+          reviewed_at: reviewedAt,
+          reviewed_by: user.id,
+        })
+        .eq('id', requestId);
+
+      if (requestError) {
+        console.warn('suspend request error:', requestError.message);
+        return false;
+      }
+
+      // إلغاء صلاحية المشترك الكامل في جدول profiles فوراً
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ subscription_status: 'trial', updated_at: reviewedAt })
+        .eq('id', request.userId);
+
+      if (profileError) {
+        console.warn('suspend profile error:', profileError.message);
+        return false;
+      }
+
+      await refreshSubscriptions(user);
+      if (user.id === request.userId) {
+        setUser({ ...user, subscriptionStatus: 'trial' });
+      }
+      return true;
+    } catch (err) {
+      console.warn('suspendSubscription error:', err);
+      return false;
+    }
+  };
+
+  // ───────────────────────────── حذف مشترك أو طلب نهائياً ─────────────────────────────
+  const deleteSubscription = async (requestId: string): Promise<boolean> => {
+    if (!user || user.role !== 'admin' || !supabase) return false;
+
+    const request = subscriptionRequests.find((r) => r.id === requestId);
+    if (!request) return false;
+
+    try {
+      // 1. حذف صورة الوصل من التخزين السحابي إذا وُجدت
+      if (request.receiptPath) {
+        try {
+          await supabase.storage.from('receipts').remove([request.receiptPath]);
+        } catch (storageErr) {
+          console.warn('delete receipt storage warning:', storageErr);
+        }
+      }
+
+      // 2. إذا كان المشترك مفعلاً سابقاً، نعيده إلى الوضع التجريبي
+      if (request.status === 'approved') {
+        await supabase
+          .from('profiles')
+          .update({ subscription_status: 'trial', updated_at: new Date().toISOString() })
+          .eq('id', request.userId);
+      }
+
+      // 3. حذف السجل نهائياً من قاعدة البيانات
+      const { error: deleteError } = await supabase
+        .from('subscription_requests')
+        .delete()
+        .eq('id', requestId);
+
+      if (deleteError) {
+        console.warn('delete subscription error:', deleteError.message);
+        return false;
+      }
+
+      await refreshSubscriptions(user);
+      return true;
+    } catch (err) {
+      console.warn('deleteSubscription error:', err);
+      return false;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -840,6 +933,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         submitSubscriptionRequest,
         approveSubscription,
         rejectSubscription,
+        suspendSubscription,
+        deleteSubscription,
         upgradeModalOpen,
         setUpgradeModalOpen,
         passwordRecoveryOpen,

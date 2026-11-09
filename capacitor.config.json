@@ -1,0 +1,11 @@
+{
+  "appId": "ma.crmef.prep",
+  "appName": "CRMEF مباراة التعليم",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  }
+}
+

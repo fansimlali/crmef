@@ -12,17 +12,27 @@ import {
   CreditCard, 
   ShieldCheck, 
   GraduationCap,
-  AlertCircle
+  AlertCircle,
+  PauseCircle,
+  Trash2
 } from 'lucide-react';
 import { CYCLES } from '../types';
 
 export const SubscriptionManager: React.FC = () => {
-  const { subscriptionRequests, approveSubscription, rejectSubscription } = useAuth();
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const { 
+    subscriptionRequests, 
+    approveSubscription, 
+    rejectSubscription,
+    suspendSubscription,
+    deleteSubscription
+  } = useAuth();
+  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'suspended' | 'rejected'>('all');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [rejectingReqId, setRejectingReqId] = useState<string | null>(null);
+  const [deletingReqId, setDeletingReqId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('صورة الوصل غير واضحة أو المبلغ غير مطابق');
   const [actionError, setActionError] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   const filteredRequests = subscriptionRequests.filter(r => {
     if (filter === 'all') return true;
@@ -30,21 +40,52 @@ export const SubscriptionManager: React.FC = () => {
   });
 
   const pendingCount = subscriptionRequests.filter(r => r.status === 'pending').length;
+  const approvedCount = subscriptionRequests.filter(r => r.status === 'approved').length;
+  const suspendedCount = subscriptionRequests.filter(r => r.status === 'suspended').length;
+  const rejectedCount = subscriptionRequests.filter(r => r.status === 'rejected').length;
 
   const handleApprove = async (id: string) => {
     if (confirm('هل أنت متأكد من تفعيل هذا المشترك كمشترك كامل في المنصة؟')) {
       setActionError(null);
+      setProcessingId(id);
       const ok = await approveSubscription(id);
+      setProcessingId(null);
       if (!ok) {
         setActionError('تعذر تفعيل الاشتراك. تحقق من صلاحيات المشرف ومن وجود جدول profiles ثم أعد المحاولة.');
       }
     }
   };
 
+  const handleSuspend = async (id: string) => {
+    if (confirm('هل أنت متأكد من تعليق هذا المشترك مؤقتاً؟ سيعود حسابه تجريبياً وتُحجب عنه الملخصات وبنك الأسئلة الكامل.')) {
+      setActionError(null);
+      setProcessingId(id);
+      const ok = await suspendSubscription(id);
+      setProcessingId(null);
+      if (!ok) {
+        setActionError('تعذر تعليق الاشتراك. تحقق من الصلاحيات.');
+      }
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingReqId) return;
+    setActionError(null);
+    setProcessingId(deletingReqId);
+    const ok = await deleteSubscription(deletingReqId);
+    setProcessingId(null);
+    if (!ok) {
+      setActionError('تعذر حذف المشترك. تحقق من صلاحيات المشرف.');
+    }
+    setDeletingReqId(null);
+  };
+
   const handleConfirmReject = async () => {
     if (!rejectingReqId) return;
     setActionError(null);
+    setProcessingId(rejectingReqId);
     const ok = await rejectSubscription(rejectingReqId, rejectionReason);
+    setProcessingId(null);
     if (!ok) {
       setActionError('تعذر رفض الطلب. تحقق من صلاحيات المشرف ثم أعد المحاولة.');
     }
@@ -63,21 +104,24 @@ export const SubscriptionManager: React.FC = () => {
             </div>
             <h2 className="text-2xl sm:text-3xl font-black">إدارة طلبات الاشتراكات وإثباتات الدفع</h2>
             <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
-              راجع وصولات التحويل البنكي وفعّل حسابات المشتركين الجدد بضغطة زر لفتح كامل بنك الأسئلة والملخصات.
+              راجع وصولات التحويل، فعّل الحسابات، علّق أو احذف الاشتراكات التجريبية بضغطة زر واحدة.
             </p>
           </div>
 
-          <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/10 self-stretch sm:self-auto justify-center">
-            <div className="text-center px-3">
-              <span className="block text-2xl font-black text-amber-400">{pendingCount}</span>
-              <span className="text-[11px] text-slate-300 font-bold">طلبات جديدة</span>
+          <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/10 self-stretch sm:self-auto justify-center flex-wrap">
+            <div className="text-center px-2">
+              <span className="block text-xl font-black text-amber-400">{pendingCount}</span>
+              <span className="text-[10px] text-slate-300 font-bold">طلبات جديدة</span>
             </div>
-            <div className="w-px h-8 bg-white/20" />
-            <div className="text-center px-3">
-              <span className="block text-2xl font-black text-emerald-400">
-                {subscriptionRequests.filter(r => r.status === 'approved').length}
-              </span>
-              <span className="text-[11px] text-slate-300 font-bold">مشتركون مفعلون</span>
+            <div className="w-px h-7 bg-white/20" />
+            <div className="text-center px-2">
+              <span className="block text-xl font-black text-emerald-400">{approvedCount}</span>
+              <span className="text-[10px] text-slate-300 font-bold">مشتركون مفعلون</span>
+            </div>
+            <div className="w-px h-7 bg-white/20" />
+            <div className="text-center px-2">
+              <span className="block text-xl font-black text-amber-300">{suspendedCount}</span>
+              <span className="text-[10px] text-slate-300 font-bold">معلقون مؤقتاً</span>
             </div>
           </div>
         </div>
@@ -92,8 +136,8 @@ export const SubscriptionManager: React.FC = () => {
       )}
 
       {/* أزرار الفلترة */}
-      <div className="flex items-center justify-between flex-wrap gap-3 bg-white p-2 rounded-2xl border border-slate-200">
-        <div className="flex items-center gap-1 text-xs font-bold">
+      <div className="flex items-center justify-between flex-wrap gap-2 bg-white p-2 rounded-2xl border border-slate-200">
+        <div className="flex items-center gap-1 text-xs font-bold flex-wrap">
           <button
             onClick={() => setFilter('all')}
             className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
@@ -121,7 +165,15 @@ export const SubscriptionManager: React.FC = () => {
               filter === 'approved' ? 'bg-emerald-600 text-white shadow-xs' : 'text-emerald-700 hover:bg-emerald-50'
             }`}
           >
-            المقبولة ({subscriptionRequests.filter(r => r.status === 'approved').length})
+            المقبولة ({approvedCount})
+          </button>
+          <button
+            onClick={() => setFilter('suspended')}
+            className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+              filter === 'suspended' ? 'bg-amber-500 text-white shadow-xs' : 'text-amber-700 hover:bg-amber-50'
+            }`}
+          >
+            المعلقة ({suspendedCount})
           </button>
           <button
             onClick={() => setFilter('rejected')}
@@ -129,7 +181,7 @@ export const SubscriptionManager: React.FC = () => {
               filter === 'rejected' ? 'bg-rose-600 text-white shadow-xs' : 'text-rose-700 hover:bg-rose-50'
             }`}
           >
-            المرفوضة ({subscriptionRequests.filter(r => r.status === 'rejected').length})
+            المرفوضة ({rejectedCount})
           </button>
         </div>
       </div>
@@ -155,14 +207,25 @@ export const SubscriptionManager: React.FC = () => {
                   <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black ${
                     req.status === 'approved' 
                       ? 'bg-emerald-100 text-emerald-800'
+                      : req.status === 'suspended'
+                      ? 'bg-amber-100 text-amber-900 border border-amber-300'
                       : req.status === 'rejected'
                       ? 'bg-rose-100 text-rose-800'
-                      : 'bg-amber-100 text-amber-800'
+                      : 'bg-blue-100 text-blue-800'
                   }`}>
                     {req.status === 'approved' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                    {req.status === 'suspended' && <PauseCircle className="w-3.5 h-3.5 text-amber-600" />}
                     {req.status === 'rejected' && <XCircle className="w-3.5 h-3.5 text-rose-600" />}
-                    {req.status === 'pending' && <Clock className="w-3.5 h-3.5 text-amber-600" />}
-                    <span>{req.status === 'approved' ? 'مفعل ومشترك' : req.status === 'rejected' ? 'مرفوض' : 'قيد المراجعة'}</span>
+                    {req.status === 'pending' && <Clock className="w-3.5 h-3.5 text-blue-600" />}
+                    <span>
+                      {req.status === 'approved' 
+                        ? 'مفعل ومشترك' 
+                        : req.status === 'suspended'
+                        ? 'معلق مؤقتاً'
+                        : req.status === 'rejected' 
+                        ? 'مرفوض' 
+                        : 'قيد المراجعة'}
+                    </span>
                   </span>
 
                   <span className="text-[11px] text-slate-400 font-semibold flex items-center gap-1">
@@ -195,8 +258,11 @@ export const SubscriptionManager: React.FC = () => {
                     </div>
                   )}
                   {req.rejectionReason && (
-                    <div className="p-2 rounded-xl bg-rose-50 text-[11px] text-rose-700 font-medium">
-                      سبب الرفض المسجل: {req.rejectionReason}
+                    <div className={`p-2 rounded-xl text-[11px] font-medium ${
+                      req.status === 'suspended' ? 'bg-amber-50 text-amber-900' : 'bg-rose-50 text-rose-700'
+                    }`}>
+                      {req.status === 'suspended' ? 'سبب التعليق: ' : 'سبب الرفض: '}
+                      {req.rejectionReason}
                     </div>
                   )}
                 </div>
@@ -224,30 +290,58 @@ export const SubscriptionManager: React.FC = () => {
                   ) : (
                     <div className="flex items-center gap-2 p-1.5 rounded-xl border border-dashed border-slate-300 text-[11px] text-slate-500">
                       <AlertCircle className="w-4 h-4 text-amber-500" />
-                      <span>تعذر توليد رابط آمن للوصل. تحقق من مخزن receipts.</span>
+                      <span>لا يوجد وصل أو تم حذفه</span>
                     </div>
                   )}
 
                   {/* أزرار الإجراء للمشرف */}
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                    {/* زر التفعيل / إعادة التفعيل */}
                     {req.status !== 'approved' && (
                       <button
                         onClick={() => handleApprove(req.id)}
-                        className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-sm transition-all cursor-pointer"
+                        disabled={processingId === req.id}
+                        className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                        title={req.status === 'suspended' ? 'إلغاء التعليق وتفعيل الحساب' : 'تفعيل الحساب كمشترك كامل'}
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>تفعيل الحساب</span>
+                        <span>{req.status === 'suspended' ? 'إلغاء التعليق' : 'تفعيل'}</span>
                       </button>
                     )}
 
+                    {/* زر التعليق المؤقت للمشتركين المفعلين */}
+                    {req.status === 'approved' && (
+                      <button
+                        onClick={() => handleSuspend(req.id)}
+                        disabled={processingId === req.id}
+                        className="px-2.5 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50 border border-amber-300"
+                        title="تعليق اشتراك هذا المستخدم مؤقتاً"
+                      >
+                        <PauseCircle className="w-3.5 h-3.5 text-amber-700" />
+                        <span>تعليق مؤقت</span>
+                      </button>
+                    )}
+
+                    {/* زر الرفض للطلبات الجديدة */}
                     {req.status === 'pending' && (
                       <button
                         onClick={() => setRejectingReqId(req.id)}
-                        className="px-2.5 py-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-xs transition-all cursor-pointer"
+                        disabled={processingId === req.id}
+                        className="px-2.5 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-xs transition-all cursor-pointer disabled:opacity-50"
                       >
                         رفض
                       </button>
                     )}
+
+                    {/* زر الحذف النهائي للحسابات التجريبية أو الوهمية */}
+                    <button
+                      onClick={() => setDeletingReqId(req.id)}
+                      disabled={processingId === req.id}
+                      className="p-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-all cursor-pointer disabled:opacity-50 border border-transparent hover:border-rose-200"
+                      title="حذف هذا المشترك وسجله نهائياً"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -274,6 +368,35 @@ export const SubscriptionManager: React.FC = () => {
               alt="صورة الوصل المكبرة" 
               className="max-h-[85vh] w-auto mx-auto rounded-2xl object-contain"
             />
+          </div>
+        </div>
+      )}
+
+      {/* نافذة تأكيد حذف المشترك نهائياً */}
+      {deletingReqId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center gap-2 text-rose-700 font-black text-lg">
+              <Trash2 className="w-5 h-5" />
+              <span>تأكيد حذف المشترك نهائياً</span>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              هل أنت متأكد من حذف هذا السجل نهائياً؟ سيتم مسح بيانات الطلب وصورة الوصل من السحابة تماماً (مفيد جداً لتنظيف الحسابات التجريبية أو الوهمية).
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                onClick={() => setDeletingReqId(null)}
+                className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 cursor-pointer"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 cursor-pointer"
+              >
+                نعم، حذف نهائي
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -3,7 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite",
     "predev": "node scripts/check_env.mjs",
@@ -16,6 +18,9 @@
     "seed:questions": "node scripts/generate_supabase_sql.cjs"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/cli": "^8.6.0",
+    "@capacitor/core": "^8.6.0",
     "@supabase/supabase-js": "^2.119.0",
     "canvas-confetti": "^1.9.4",
     "lucide-react": "^1.70.0",

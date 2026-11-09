@@ -82,7 +82,7 @@ export type SubjectKey =
   | 'sec_pe'           // التربية البدنية والرياضية
   | 'sec_te';          // التكنولوجيا
 
-export type SubscriptionStatus = 'trial' | 'premium';
+export type SubscriptionStatus = 'trial' | 'premium' | 'suspended';
 
 export interface SubscriptionRequest {
   id: string;
@@ -95,7 +95,7 @@ export interface SubscriptionRequest {
   receiptName?: string;
   paymentMethod?: string;
   notes?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'suspended';
   rejectionReason?: string;
   createdAt: string;
   reviewedAt?: string;
