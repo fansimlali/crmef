@@ -6,6 +6,7 @@ import {
   RefreshCw, Eye, EyeOff 
 } from 'lucide-react';
 import type { CycleKey } from '../types';
+import { trackCompleteRegistration } from '../lib/pixel';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -75,6 +76,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMo
       const res = await signup(email, password, fullName, cycle);
       setLoading(false);
       if (res.success) {
+        trackCompleteRegistration('email');
         // في حالة Supabase يوجد تأكيد بريد إلكتروني إلزامي
         if (res.needsEmailConfirmation) {
           setSuccessMsg(`تم إنشاء حسابك بنجاح! 🎉\n\nتم إرسال رسالة تأكيد إلى "${email}". يرجى فتح رسالة التأكيد والضغط على الرابط لتفعيل حسابك قبل تسجيل الدخول.\n\nتحقق من مجلد SPAM إذا لم تجد الرسالة.`);

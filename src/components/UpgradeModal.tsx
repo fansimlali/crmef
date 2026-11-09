@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { CYCLES } from '../types';
 import QRCode from 'qrcode';
+import { trackInitiateCheckout, trackPurchase } from '../lib/pixel';
 
 const SUBSCRIPTION_AMOUNT = 50;
 const BENEFICIARY_NAME = 'FADEL SIMLALI';
@@ -59,6 +60,13 @@ export const UpgradeModal: React.FC = () => {
       setUpgradeModalOpen(false);
     }
   }, [isPremium, upgradeModalOpen, setUpgradeModalOpen]);
+
+  // تتبع حدث بدء إجراء الدفع عند فتح نافذة الترقية
+  useEffect(() => {
+    if (upgradeModalOpen) {
+      trackInitiateCheckout();
+    }
+  }, [upgradeModalOpen]);
 
   if (!upgradeModalOpen) return null;
 
@@ -117,6 +125,7 @@ export const UpgradeModal: React.FC = () => {
     setSubmitting(false);
 
     if (res.success) {
+      trackPurchase(paymentTab === 'bank' ? 'CIH Bank' : 'Cash Agency');
       setSuccessMsg(true);
       resetReceipt();
     } else {
