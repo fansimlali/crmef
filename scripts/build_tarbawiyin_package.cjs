@@ -186,7 +186,8 @@ sql.push(`  is_active = EXCLUDED.is_active, sort_order = EXCLUDED.sort_order;`);
 sql.push('');
 sql.push(`INSERT INTO public.subjects (exam_id, key, name, cycles, weight) VALUES`);
 const subjRows = subjectsForPackage.map((s, i) => {
-  const tail = (i < subjectsForPackage.length - 1 ? ',' : ';');
+  // لا فاصلة منقوطة على الصف الأخير — يتبعها ON CONFLICT ضمن نفس الجملة.
+  const tail = (i < subjectsForPackage.length - 1 ? ',' : '');
   return `('${EXAM.slug}', '${s.key}', '${esc(s.name)}', ${cyclesLit}, ${s.weight})${tail}`;
 });
 sql.push(...subjRows);
@@ -213,7 +214,8 @@ sql.push('-- الإجابات والشروح (جدول محمي — المشتر
 for (const part of chunk(questions, 20)) {
   sql.push(`INSERT INTO public.question_answers (question_id, correct_answer, explanation) VALUES`);
   const rows = part.map((q, i) => {
-    const tail = (i < part.length - 1 ? ',' : ';');
+    // لا فاصلة منقوطة على الصف الأخير — يتبعها ON CONFLICT ضمن نفس الجملة.
+    const tail = (i < part.length - 1 ? ',' : '');
     return `('${q.id}', '${esc(q.correct_answer)}', '${esc(q.explanation)}')${tail}`;
   });
   sql.push(...rows);
