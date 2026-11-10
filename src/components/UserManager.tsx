@@ -20,7 +20,7 @@ import {
   Printer,
   Timer
 } from 'lucide-react';
-import { CYCLES, type CycleKey } from '../types';
+import { CYCLES, EXAM_TRACKS, type CycleKey } from '../types';
 
 interface ExtendedUserRow {
   id: string;
@@ -30,6 +30,10 @@ interface ExtendedUserRow {
   subscriptionStatus: 'trial' | 'premium' | 'suspended';
   cycle: CycleKey;
   examId?: string;
+  /** المسلك/السلك المختار لكل مباراة (مباراة → سلك). */
+  examTracks?: Record<string, string>;
+  /** نطاق الاشتراك: 'all' أو معرّف مباراة واحدة. */
+  premiumScope?: string;
   createdAt: string;
   questionsViewedCount: number;
   upgradeClicksCount: number;
@@ -193,6 +197,10 @@ export const UserManager: React.FC = () => {
           timeSpentMinutes: p.time_spent_minutes || 0,
           lastSeenAt: p.last_seen_at || null,
           examId: p.exam_id || 'crmef',
+          examTracks: (p.exam_tracks && typeof p.exam_tracks === 'object' && !Array.isArray(p.exam_tracks))
+            ? (p.exam_tracks as Record<string, string>)
+            : {},
+          premiumScope: p.premium_scope || 'all',
         };
       });
 
@@ -416,6 +424,41 @@ export const UserManager: React.FC = () => {
   const getCycleTitle = (cycleKey: CycleKey) => {
     return CYCLES.find(c => c.id === cycleKey)?.name || cycleKey;
   };
+
+  // ─── تعديل مسلك مستخدم داخل مباراة (المشرف) ───
+  const [trackEdit, setTrackEdit] = useState<{ userId: string; examId: string } | null>(null);
+  const [trackValue, setTrackValue] = useState<CycleKey>('primary');
+  const [trackSaving, setTrackSaving] = useState(false);
+
+  const startTrackEdit = (u: ExtendedUserRow) => {
+    const examId = u.examId || 'crmef';
+    const current = (u.examTracks?.[examId] as CycleKey) || u.cycle;
+    setTrackValue(current);
+    setTrackEdit({ userId: u.id, examId });
+  };
+
+  const saveTrackEdit = async () => {
+    if (!trackEdit || !supabase) return;
+    setTrackSaving(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        exam_tracks: { [trackEdit.examId]: trackValue },
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', trackEdit.userId);
+    setTrackSaving(false);
+    if (error) {
+      setErrorMsg(`تعذر تعديل المسلك: ${error.message}`);
+    } else {
+      setTrackEdit(null);
+      await loadUsersData();
+    }
+  };
+
+  /** المسالك المتاحة لمباراة (مسالك رسمية أو أسلاك تعليمية). */
+  const trackOptionsFor = (examId: string) =>
+    EXAM_TRACKS[examId] || CYCLES.filter(c => c.available);
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in pb-12">
@@ -674,12 +717,48 @@ export const UserManager: React.FC = () => {
                           </div>
                         </td>
 
-                        {/* السلك */}
+                        {/* السلك / المسلك (قابل للتعديل من المشرف) */}
                         <td className="py-3.5 px-4">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100 text-slate-800 text-[11px] font-bold">
-                            <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
-                            <span>{getCycleTitle(u.cycle)}</span>
-                          </span>
+                          {trackEdit?.userId === u.id ? (
+                            <div className="flex items-center gap-1.5">
+                              <select
+                                value={trackValue}
+                                onChange={(e) => setTrackValue(e.target.value as CycleKey)}
+                                className="px-2 py-1 rounded-lg border border-slate-200 text-[11px] font-bold bg-white"
+                              >
+                                {trackOptionsFor(trackEdit.examId).map((t) => (
+                                  <option key={t.id} value={t.id}>{t.name}</option>
+                                ))}
+                              </select>
+                              <button
+                                onClick={() => void saveTrackEdit()}
+                                disabled={trackSaving}
+                                className="px-2 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-black disabled:opacity-50"
+                              >
+                                {trackSaving ? '…' : 'حفظ'}
+                              </button>
+                              <button
+                                onClick={() => setTrackEdit(null)}
+                                className="px-2 py-1 rounded-lg bg-slate-100 text-slate-600 text-[10px] font-black"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => startTrackEdit(u)}
+                              title="تعديل المسلك/السلك"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100 text-slate-800 text-[11px] font-bold hover:bg-slate-200 cursor-pointer"
+                            >
+                              <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
+                              <span>
+                                {EXAM_TRACKS[u.examId || 'crmef']
+                                  ? (EXAM_TRACKS[u.examId || 'crmef'].find(t => t.id === ((u.examTracks?.[u.examId || 'crmef'] as CycleKey) || u.cycle))?.name
+                                    || getCycleTitle(u.cycle))
+                                  : getCycleTitle(u.cycle)}
+                              </span>
+                            </button>
+                          )}
                         </td>
 
                         {/* تاريخ التسجيل بتوقيت الدار البيضاء */}

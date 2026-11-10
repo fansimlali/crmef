@@ -184,6 +184,8 @@ export interface UserProfile {
   /** نطاق الاشتراك المدفوع: 'all' لكل المباريات أو معرّف مباراة واحدة. */
   premiumScope?: string;
   cycle?: CycleKey;
+  /** المسلك/السلك المختار لكل مباراة: { exam_id: cycle_key } — يسقط إلى `cycle` عند غيابه. */
+  examTracks?: Record<string, string>;
   sessionId?: string;
 }
 

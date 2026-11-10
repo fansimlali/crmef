@@ -19,6 +19,8 @@ import {
   GraduationCap
 } from 'lucide-react';
 import { getExamConfigs } from '../lib/supabase';
+import { EXAM_TRACKS, isTrackExam } from '../types';
+import type { CycleKey } from '../types';
 import QRCode from 'qrcode';
 import { trackInitiateCheckout, trackPurchase } from '../lib/pixel';
 import { compressAndNormalizeReceiptImage } from '../lib/imageCompressor';
@@ -51,6 +53,8 @@ export const UpgradeModal: React.FC = () => {
   // اختيار الخطة: شامل (100 درهم لكل المباريات) أو مباراة واحدة (50 درهم)
   const [plan, setPlan] = useState<'all' | 'single'>('all');
   const [scopeExamId, setScopeExamId] = useState('crmef');
+  // المسلك المطلوب داخل المباراة المشتركة (للمباريات ذات المسالك فقط).
+  const [scopeTrack, setScopeTrack] = useState<CycleKey>('primary');
 
   // قائمة المباريات النشطة تلقائياً من جدول exams (أي مباراة جديدة تظهر هنا)
   const [examOptions, setExamOptions] = useState<Array<{ id: string; name: string }>>([]);
@@ -73,6 +77,9 @@ export const UpgradeModal: React.FC = () => {
   const planPrice = plan === 'single' ? PLAN_SINGLE_PRICE_MAD : PLAN_ALL_PRICE_MAD;
   const scopeExamName =
     examOptions.find((e) => e.id === scopeExamId)?.name || scopeExamId.toUpperCase();
+  // المباراة المشتركة لها مسالك؟ (مباراة أطر المختصين) — عندها يُختار المسلك المطلوب.
+  const scopeHasTracks = isTrackExam(scopeExamId, scopeExamName);
+  const scopeTrackOptions = EXAM_TRACKS[scopeExamId] || EXAM_TRACKS.tarbawiyin;
 
   // رابط واتساب الرسمي والمباشر مع التعبئة التلقائية لبريد المستخدم (Task 2)
   const userEmail = user?.email || '';
@@ -161,7 +168,8 @@ export const UpgradeModal: React.FC = () => {
       receiptFile,
       paymentTab === 'bank' ? 'CIH Bank / Application' : 'Cash Plus / Wafacash',
       plan,
-      plan === 'single' ? scopeExamId : null
+      plan === 'single' ? scopeExamId : null,
+      plan === 'single' && scopeHasTracks ? scopeTrack : null
     );
     setSubmitting(false);
 
@@ -393,6 +401,27 @@ export const UpgradeModal: React.FC = () => {
                   <p className="text-[11px] text-slate-400 font-bold mt-1">
                     المبلغ المطلوب إرساله: 50 درهم — يقتصر الوصول على هذه المباراة فقط.
                   </p>
+
+                  {/* اختيار المسلك داخل المباراة (للمباريات ذات المسالك) */}
+                  {scopeHasTracks && (
+                    <div className="mt-3">
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        المسلك المطلوب داخل المباراة <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        value={scopeTrack}
+                        onChange={(e) => setScopeTrack(e.target.value as CycleKey)}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold bg-white text-slate-800 cursor-pointer focus:ring-2 focus:ring-emerald-500"
+                      >
+                        {scopeTrackOptions.map((t) => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                      <p className="text-[11px] text-slate-400 font-bold mt-1">
+                        اشتراك «مباراة واحدة» يقتصر على مسلك واحد داخلها: بنك أسئلة المسلك كاملاً + ملخصاته.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 

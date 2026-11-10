@@ -1,17 +1,25 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
   X, Lock, Mail, User, ArrowRight, 
   AlertCircle, GraduationCap, AlertTriangle, CheckCircle2,
-  RefreshCw, Eye, EyeOff 
+  RefreshCw, Eye, EyeOff, BookOpen, Route
 } from 'lucide-react';
 import type { CycleKey } from '../types';
+import { CYCLES, EXAM_TRACKS, isTrackExam } from '../types';
+import { getExamConfigs } from '../lib/supabase';
 import { trackCompleteRegistration } from '../lib/pixel';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultMode?: 'login' | 'signup';
+}
+
+/** عنصر قائمة مباراة بسيط للتسجيل. */
+interface SignupExamOption {
+  id: string;
+  name: string;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMode = 'login' }) => {
@@ -22,9 +30,37 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMo
   const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [cycle, setCycle] = useState<CycleKey>('primary');
+  // المباراة المستهدفة عند التسجيل (وحدة الاشتراك: مباراة + مسلك).
+  const [examId, setExamId] = useState<string>('crmef');
+  const [examOptions, setExamOptions] = useState<SignupExamOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // المباريات النشطة (لاختيارها عند التسجيل).
+  useEffect(() => {
+    if (!isOpen || mode !== 'signup') return;
+    let alive = true;
+    getExamConfigs()
+      .then(({ exams, fromDb }) => {
+        if (!alive) return;
+        const list = fromDb
+          ? exams.filter((e) => e.isActive).map((e) => ({ id: e.id, name: e.name || e.shortName || e.id }))
+          : [{ id: 'crmef', name: 'مباراة التعليم' }];
+        if (list.length > 0) {
+          setExamOptions(list);
+          // نُبقي أول مباراة مسالك (إن وُجدت) افتراضياً لأنها تحتاج اختيار مسلك.
+          const trackExam = list.find((e) => isTrackExam(e.id, e.name));
+          setExamId((prev) => (list.some((e) => e.id === prev) ? prev : trackExam?.id || list[0].id));
+        }
+      })
+      .catch(() => { /* القائمة الثابتة تكفي */ });
+    return () => { alive = false; };
+  }, [isOpen, mode]);
+
+  // المسالك بدل الأسلاك التعليمية إذا كانت المباراة المختارة من تنظيم المسالك.
+  const trackMode = isTrackExam(examId, examOptions.find((e) => e.id === examId)?.name);
+  const trackOptions = EXAM_TRACKS[examId] || EXAM_TRACKS.tarbawiyin;
 
   if (!isOpen) return null;
 
@@ -73,7 +109,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMo
         }
       }
     } else {
-      const res = await signup(email, password, fullName, cycle);
+      const res = await signup(email, password, fullName, cycle, examId);
       setLoading(false);
       if (res.success) {
         trackCompleteRegistration('email');
@@ -171,22 +207,51 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMo
                   </div>
                 </div>
 
-                {/* اختيار السلك الدراسي */}
+                {/* اختيار المباراة المستهدفة */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    السلك الدراسي المستهدف <span className="text-rose-500">*</span>
+                    المباراة المستهدفة <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
-                    <GraduationCap className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5" />
+                    <BookOpen className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5" />
+                    <select
+                      value={examId}
+                      onChange={(e) => setExamId(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pr-10 pl-3 py-2.5 text-xs sm:text-sm font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                      required
+                    >
+                      {examOptions.length === 0 && <option value="crmef">مباراة التعليم</option>}
+                      {examOptions.map((e) => (
+                        <option key={e.id} value={e.id}>{e.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* اختيار المسلك/السلك المستهدف */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    {trackMode ? 'المسلك المستهدف' : 'السلك الدراسي المستهدف'} <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    {trackMode ? (
+                      <Route className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5" />
+                    ) : (
+                      <GraduationCap className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5" />
+                    )}
                     <select
                       value={cycle}
                       onChange={(e) => setCycle(e.target.value as CycleKey)}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl pr-10 pl-3 py-2.5 text-xs sm:text-sm font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                       required
                     >
-                      <option value="primary">سلك التعليم الابتدائي – التخصص المزدوج</option>
-                      <option value="secondary_prep">سلك التعليم الثانوي الإعدادي</option>
-                      <option value="secondary_qual">سلك التعليم الثانوي التأهيلي</option>
+                      {trackMode
+                        ? trackOptions.map((t) => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                          ))
+                        : CYCLES.filter((c) => c.available).map((c) => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
                     </select>
                   </div>
                 </div>
@@ -196,7 +261,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMo
                   <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                   <div>
                     <span className="font-extrabold text-amber-900 block mb-0.5">⚠️ تنبيه هام وإلزامي:</span>
-                    السلك الذي تختاره الآن هو الذي سيتم تفعيل حسابك فيه بشكل دائم، ولن يكون بإمكانك الاطلاع على أسئلة أو ملخصات باقي الأسلاك بعد التسجيل.
+                    {trackMode
+                      ? 'المباراة والمسلك اللذان تختارهما الآن هما ما يُفعَّل حسابك عليهما: النسخة المجانية تتيح لك 20 سؤالاً لكل موضوع داخل هذا المسلك فقط. لتوسيع الوصول إلى بقية المسالك أو المباريات، اشترك (مباراة واحدة 50 درهماً، أو اشتراك شامل 100 درهم).'
+                      : 'السلك الذي تختاره الآن هو الذي سيتم تفعيل حسابك فيه بشكل دائم، ولن يكون بإمكانك الاطلاع على أسئلة أو ملخصات باقي الأسلاك بعد التسجيل.'}
                   </div>
                 </div>
               </>

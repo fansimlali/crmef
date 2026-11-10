@@ -25,7 +25,8 @@ interface AuthContextType {
     email: string,
     password: string,
     fullName: string,
-    cycle: CycleKey
+    cycle: CycleKey,
+    examId?: string
   ) => Promise<{ success: boolean; error?: string; needsEmailConfirmation?: boolean }>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
@@ -41,7 +42,8 @@ interface AuthContextType {
     receipt: File,
     paymentMethod: string,
     plan: 'all' | 'single',
-    examId?: string | null
+    examId?: string | null,
+    trackCycle?: CycleKey | null
   ) => Promise<{ success: boolean; error?: string }>;
   approveSubscription: (requestId: string) => Promise<boolean>;
   rejectSubscription: (requestId: string, reason: string) => Promise<boolean>;
@@ -64,6 +66,8 @@ interface ProfileRow {
   subscription_status: string | null;
   cycle: string | null;
   premium_scope: string | null;
+  /** المسلك/السلك المختار لكل مباراة: { exam_id: cycle_key } */
+  exam_tracks: Record<string, string> | null;
 }
 
 interface SubscriptionRow {
@@ -150,8 +154,20 @@ function buildProfile(authUser: User, row?: ProfileRow | null): UserProfile {
     subscriptionStatus: row?.subscription_status === 'premium' ? 'premium' : 'trial',
     premiumScope: row?.premium_scope || 'all',
     cycle: normalizeCycle(row?.cycle ?? authUser.user_metadata?.cycle),
+    // المسلك/السلك المختار لكل مباراة (مباراة → سلك). يسقط إلى `cycle` عند غيابه.
+    examTracks: normalizeExamTracks(row?.exam_tracks),
     sessionId: generateSecureSessionId(),
   };
+}
+
+/** خريطة المسالك per exam: تُقبل القيم المعروفة فقط (وإلا تُهمَل). */
+function normalizeExamTracks(value: unknown): Record<string, string> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const out: Record<string, string> = {};
+  Object.entries(value as Record<string, unknown>).forEach(([examId, cycle]) => {
+    if (VALID_CYCLES.includes(cycle as CycleKey)) out[examId] = cycle as string;
+  });
+  return out;
 }
 
 function mapSubscriptionRow(row: SubscriptionRow): SubscriptionRequest {
@@ -199,7 +215,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, full_name, role, subscription_status, cycle, premium_scope')
+        .select('id, email, full_name, role, subscription_status, cycle, premium_scope, exam_tracks')
         .eq('id', authUser.id)
         .maybeSingle();
 
@@ -223,12 +239,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         subscription_status: 'trial',
         premium_scope: 'all',
         cycle: normalizeCycle(authUser.user_metadata?.cycle),
+        exam_tracks: normalizeExamTracks(
+          authUser.user_metadata?.exam_id
+            ? { [String(authUser.user_metadata.exam_id)]: normalizeCycle(authUser.user_metadata?.cycle) }
+            : null
+        ),
       };
 
       const { data: inserted, error: insertError } = await supabase
         .from('profiles')
         .insert(seed)
-        .select('id, email, full_name, role, subscription_status, cycle')
+        .select('id, email, full_name, role, subscription_status, cycle, premium_scope, exam_tracks')
         .maybeSingle();
 
       if (insertError) {
@@ -441,7 +462,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (
             prev.role === fresh.role &&
             prev.subscriptionStatus === fresh.subscriptionStatus &&
-            prev.cycle === fresh.cycle
+            prev.cycle === fresh.cycle &&
+            prev.premiumScope === fresh.premiumScope &&
+            JSON.stringify(prev.examTracks || {}) === JSON.stringify(fresh.examTracks || {})
           ) {
             return prev;
           }
@@ -581,7 +604,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     email: string,
     password: string,
     fullName: string,
-    cycle: CycleKey
+    cycle: CycleKey,
+    examId?: string
   ): Promise<{ success: boolean; error?: string; needsEmailConfirmation?: boolean }> => {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@')) {
@@ -608,7 +632,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         options: {
           emailRedirectTo: window.location.origin,
           // لا نرسل role أو subscription_status: يُحدَّدان على الخادم فقط.
-          data: { full_name: fullName.trim(), cycle: normalizeCycle(cycle) },
+          // exam_id + cycle = «المباراة والمسلك» المختاران عند التسجيل (يكتبهما trigger).
+          data: {
+            full_name: fullName.trim(),
+            cycle: normalizeCycle(cycle),
+            ...(examId ? { exam_id: String(examId).trim().toLowerCase() } : {}),
+          },
         },
       });
 
@@ -711,7 +740,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     receipt: File,
     paymentMethod: string,
     plan: 'all' | 'single',
-    examId?: string | null
+    examId?: string | null,
+    trackCycle?: CycleKey | null
   ): Promise<{ success: boolean; error?: string }> => {
     if (!user) {
       return { success: false, error: 'يجب تسجيل الدخول أولاً لتقديم طلب الاشتراك' };
@@ -797,7 +827,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           user_id: user.id,
           user_email: user.email,
           user_name: user.fullName,
-          cycle: user.cycle || 'primary',
+          // المسلك المطلوب للاشتراك الفردي (يُخزَّن ويكتبه المشرف عند الاعتماد).
+          cycle: plan === 'single' && trackCycle ? trackCycle : user.cycle || 'primary',
           plan,
           premium_scope: requestedScope,
           amount_mad: requestedAmount,
@@ -901,6 +932,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (profileError) {
         console.warn('approve profile error:', profileError.message);
         return false;
+      }
+
+      // للاشتراك الفردي: نثبّت المسلك المطلوب في خريطة المسالك (profiles.exam_tracks)
+      // حتى يقصر المشترك على مسلك واحد داخل مباراته. يُكتب عبر RPC آمن
+      // (تحديث profiles محمي للمشرف فقط) — وإن لم يكن الـ RPC متاحاً نتجاهله
+      // (يبقى السلك العام profiles.cycle سارياً).
+      if (approvedScope !== 'all') {
+        try {
+          await supabase.rpc('apply_subscription_scope', {
+            p_user_id: request.userId,
+            p_exam_id: approvedScope,
+            p_cycle: request.cycle || 'primary',
+          });
+        } catch (rpcErr) {
+          console.warn('apply_subscription_scope failed (non-blocking):', rpcErr);
+        }
       }
 
       await refreshSubscriptions(user);

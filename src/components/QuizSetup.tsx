@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { SubjectKey, Question, CycleKey, ExamTitle } from '../types';
-import { CYCLES, SUBJECT_NAMES, getSubjectWeight, getCyclesForExam, isTrackExam } from '../types';
+import { SUBJECT_NAMES, getSubjectWeight, getCyclesForExam, isTrackExam } from '../types';
 import { getSubjectConfigs } from '../lib/supabase';
 import type { SubjectRowConfig } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -47,23 +47,44 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
   const levelWord = trackMode ? 'المسلك' : 'السلك';
   const subjectWord = trackMode ? 'الموضوع' : 'المادة';
 
-  // إذا كان المستخدم مسجلاً وله سلك محدد، نقفل السلك تلقائياً على سلكه
-  // (في المباريات ذات المسالك يُترك الاختيار حراً — المسالك ليست تخصص تسجيل).
-  const userCycle = user?.cycle || null;
+  // ─── نموذج الصلاحيات: مباراة + مسلك ───
+  // مشترك شامل (100 د.م): كل المباريات وكل المسالك.
+  // مشترك مباراة واحدة (50 د.م): مباراته فقط، وفيها مسلك واحد (ما اختاره).
+  // مجاني: مسلك واحد (ما اختاره عند التسجيل) وبنفس الكوطة.
+  const premiumScope = user?.premiumScope || 'all';
+  const isFullPremium = isAdmin || (isPremium && premiumScope === 'all');
+  // المسلك الفعّال للمستخدم في هذه المباراة: من خريطة المسالك per exam، وإلا سلكه العام.
+  const userCycle = (user?.examTracks?.[selectedExam || ''] as CycleKey | undefined) || user?.cycle || null;
 
-  // المراحل التدريجية (Stepper)
-  const [selectedCycle, setSelectedCycle] = useState<CycleKey | null>(trackMode ? null : userCycle);
+  // هل يقصر خطته/اشتراكه على مسلك واحد في هذه المباراة؟
+  const trackLocked = !isFullPremium && Boolean(userCycle);
+
+  // المسالك المتاحة لهذا المستخدم في هذه المباراة.
+  const visibleCycles = trackLocked
+    ? cycleDefs.filter((c) => c.id === userCycle)
+    : cycleDefs;
+
+  // إذا كان المستخدم مسجلاً وله سلك محدد، نقفل السلك تلقائياً على سلكه
+  // (في المباريات ذات المسالك: المشترك الشامل وحده يختار بحرية).
+  const effectiveCycles = trackLocked
+    ? visibleCycles
+    : user && !isAdmin && userCycle && !trackMode
+    ? visibleCycles.filter((c) => c.id === userCycle)
+    : visibleCycles;
+
+  // المراحل التدريجية (Stepper) — المسلك المقفل يُختار تلقائياً، والمشترك الشامل يختار بحرية.
+  const [selectedCycle, setSelectedCycle] = useState<CycleKey | null>(trackLocked ? userCycle : null);
   const [phase, setPhase] = useState<'قبلي' | 'بعدي' | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<SubjectKey | 'all'>('all');
   const [questionCount, setQuestionCount] = useState<number>(0);
   const [onlyUnanswered, setOnlyUnanswered] = useState<boolean>(false);
 
-  // مزامنة السلك عند تسجيل دخول المستخدم (بلا قفل في مباريات المسالك)
+  // مزامنة السلك عند تسجيل دخول المستخدم (وللمسلك المقفل تلقائياً)
   useEffect(() => {
-    if (userCycle && !isAdmin && !trackMode) {
+    if (userCycle && !isFullPremium) {
       setSelectedCycle(userCycle);
     }
-  }, [userCycle, isAdmin, trackMode]);
+  }, [userCycle, isFullPremium]);
 
   // المرحلة 2 — مواد المباراة من جدول subjects (بديل آمن: القوائم الثابتة أدناه)
   const [dbSubjects, setDbSubjects] = useState<SubjectRowConfig[]>([]);
@@ -325,25 +346,24 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
             )}
           </div>
 
-          {/* تنبيه خاص إذا كان السلك مقفلاً بسبب حساب المستخدم (لا ينطبق على مباريات المسالك) */}
-          {user && !isAdmin && userCycle && !trackMode && (
-            <div className="mb-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center gap-2">
-              <Lock className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>
-                حسابك مقيّد في سلك <strong>{CYCLES.find(c => c.id === userCycle)?.name}</strong> فقط وفق شروط التسجيل. لا يمكن الاطلاع على باقي الأسلاك.
+          {/* تنبيه القفل: مجاني = مسلك واحد + كوطة، مشترك مباراة واحدة = مسلك واحد */}
+          {trackLocked && (
+            <div className="mb-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
+              <Lock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <span className="leading-relaxed">
+                {isPremium && premiumScope !== 'all' ? (
+                  <>اشتراكك لمباراة <strong>{examInfo?.full || selectedExam}</strong> — يشمل <strong>{levelWord} واحداً</strong>: <strong>{cycleDefs.find(c => c.id === userCycle)?.name}</strong>. للاطلاع على بقية {levelWord === 'المسلك' ? 'المسالك' : 'الأسلاك'} أو بقية المباريات، رقِّ حسابك إلى الاشتراك الشامل.</>
+                ) : (
+                  <>حسابك المجاني مقيَّد في <strong>{levelWord}</strong>: <strong>{cycleDefs.find(c => c.id === userCycle)?.name}</strong> — مع الكوطة المجانية (20 سؤالاً لكل {subjectWord}). {trackMode ? 'اشترك (50 درهماً لمباراة واحدة، أو 100 درهم شامل) لتوسيع الوصول.' : ''}</>
+                )}
               </span>
             </div>
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {(trackMode
-              ? cycleDefs
-              : user && !isAdmin && userCycle
-              ? cycleDefs.filter(c => c.id === userCycle) 
-              : cycleDefs
-            ).map((c) => {
+            {effectiveCycles.map((c) => {
               const isSelected = selectedCycle === c.id;
-              const isLockedByAccount = user && !isAdmin && userCycle && userCycle !== c.id;
+              const isLockedByAccount = user && !isAdmin && userCycle && userCycle !== c.id && !isFullPremium;
               const isAvailable = c.available && !isLockedByAccount;
 
               return (

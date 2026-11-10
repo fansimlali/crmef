@@ -17,7 +17,7 @@ import {
   PauseCircle,
   Trash2
 } from 'lucide-react';
-import { CYCLES, type SubscriptionRequest } from '../types';
+import { CYCLES, EXAM_TRACKS, type SubscriptionRequest } from '../types';
 
 export const SubscriptionManager: React.FC = () => {
   const { 
@@ -79,11 +79,20 @@ export const SubscriptionManager: React.FC = () => {
     [examOptions]
   );
 
-  /** وصف خطة الطلب: شامل (100) أو مباراة واحدة (50) باسمها. */
-  const planTextOf = (r: SubscriptionRequest): string =>
-    r.plan === 'single'
-      ? `مباراة واحدة: ${examNameById[r.premiumScope || ''] || r.premiumScope || '؟'} — 50 درهم`
-      : 'شامل لكل المباريات — 100 درهم';
+  /** وصف خطة الطلب: شامل (100) أو مباراة واحدة (50) باسمها + المسلك المطلوب. */
+  const planTextOf = (r: SubscriptionRequest): string => {
+    if (r.plan !== 'single') return 'شامل لكل المباريات — 100 درهم';
+    const examName = examNameById[r.premiumScope || ''] || r.premiumScope || '؟';
+    const trackName = trackNameOf(r);
+    return `مباراة واحدة: ${examName}${trackName ? ` — ${trackName}` : ''} — 50 درهم`;
+  };
+
+  /** اسم المسلك/السلك المطلوب في الطلب (إن كانت المباراة ذات مسالك). */
+  const trackNameOf = (r: SubscriptionRequest): string => {
+    const tracks = EXAM_TRACKS[r.premiumScope || ''];
+    if (!tracks) return '';
+    return tracks.find((t) => t.id === r.cycle)?.name || '';
+  };
 
   // الشارة الملونة للخطة في أعلى كل بطاقة
   const planBadgeOf = (r: SubscriptionRequest) =>
@@ -107,7 +116,7 @@ export const SubscriptionManager: React.FC = () => {
   const handleApprove = async (id: string) => {
     const req = subscriptionRequests.find(r => r.id === id);
     const confirmText = req?.plan === 'single'
-      ? `هل أنت متأكد من تفعيل هذا المشترك باستهلاكه خطة «مباراة واحدة (50 درهم)»؟ سيُحصر وصوله في مباراة: ${examNameById[req?.premiumScope || ''] || req?.premiumScope || '؟'}`
+      ? `هل أنت متأكد من تفعيل هذا المشترك باستهلاكه خطة «مباراة واحدة (50 درهم)»؟ سيُحصر وصوله في مباراة: ${examNameById[req?.premiumScope || ''] || req?.premiumScope || '؟'}${req && trackNameOf(req) ? ` — ${trackNameOf(req)}` : ''}`
       : 'هل أنت متأكد من تفعيل هذا المشترك بالخطة الشاملة لكل المباريات الحالية والمقبلة (100 درهم)؟';
     if (confirm(confirmText)) {
       setActionError(null);

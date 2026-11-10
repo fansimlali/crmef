@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { GraduationCap, BookOpen, Scale, Stethoscope, Building2, ChevronLeft, Lock, Sparkles } from 'lucide-react';
+import { GraduationCap, BookOpen, Scale, Stethoscope, Building2, ChevronLeft, Lock, Sparkles, Crown } from 'lucide-react';
 import type { ExamConfig } from '../types';
 import { getExamConfigs } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 
 interface ExamSelectorProps {
   onSelectExam: (examId: string) => void;
@@ -98,6 +99,13 @@ export const ExamSelector: React.FC<ExamSelectorProps> = ({ onSelectExam }) => {
   // الثابت أعلاه فاضي آمن: يبقى ظاهراً حتى تنجح القراءة أو في بيئة غير مهيأة.
   const [dynamicExams, setDynamicExams] = useState<ExamConfig[] | null>(null);
 
+  // الصلاحيات: مشترك «مباراة واحدة» يرى مباراته فقط، والمشترك الشامل والمجاني
+  // يرون كل المباريات النشطة (المجاني يجرّب عيّنة مجانية من كل واحدة).
+  const { user, isAdmin, isPremium, setUpgradeModalOpen } = useAuth();
+  const premiumScope = user?.premiumScope || 'all';
+  const isFullPremium = isAdmin || (isPremium && premiumScope === 'all');
+  const isPartialPremium = isPremium && !isFullPremium;
+
   useEffect(() => {
     let alive = true;
     getExamConfigs()
@@ -145,7 +153,9 @@ export const ExamSelector: React.FC<ExamSelectorProps> = ({ onSelectExam }) => {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         {exams.map((exam) => {
           const colors = colorMap[exam.color] || colorMap.emerald;
-          const isLocked = !exam.isActive;
+          // القفل: المباراة غير النشطة، أو خارج نطاق مشترك «مباراة واحدة».
+          const outOfScope = isPartialPremium && premiumScope !== 'all' && premiumScope !== exam.id;
+          const isLocked = !exam.isActive || outOfScope;
 
           return (
             <div
@@ -155,7 +165,13 @@ export const ExamSelector: React.FC<ExamSelectorProps> = ({ onSelectExam }) => {
                 p-6 transition-all duration-200
                 ${isLocked ? 'opacity-70' : 'hover:shadow-xl hover:-translate-y-0.5 cursor-pointer hover:ring-4 ' + colors.ring}
               `}
-              onClick={() => !isLocked && onSelectExam(exam.id)}
+              onClick={() => {
+                if (isLocked) {
+                  if (outOfScope) setUpgradeModalOpen(true);
+                  return;
+                }
+                onSelectExam(exam.id);
+              }}
               role={isLocked ? undefined : 'button'}
               tabIndex={isLocked ? undefined : 0}
               onKeyDown={(e) => !isLocked && e.key === 'Enter' && onSelectExam(exam.id)}
@@ -165,6 +181,14 @@ export const ExamSelector: React.FC<ExamSelectorProps> = ({ onSelectExam }) => {
                 <div className="absolute top-4 left-4 flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-800 text-white text-[10px] font-black">
                   <Lock className="w-2.5 h-2.5" />
                   <span>قريباً</span>
+                </div>
+              )}
+
+              {/* شارة خارج نطاق الاشتراك */}
+              {outOfScope && (
+                <div className="absolute top-4 left-4 flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500 text-white text-[10px] font-black">
+                  <Crown className="w-2.5 h-2.5" />
+                  <span>خارج نطاق اشتراكك</span>
                 </div>
               )}
 
