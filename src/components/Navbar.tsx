@@ -12,12 +12,14 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import type { ExamTitle } from '../types';
 
 interface NavbarProps {
   activeTab: 'quiz' | 'manager' | 'summaries' | 'subscriptions' | 'users';
   setActiveTab: (tab: 'quiz' | 'manager' | 'summaries' | 'subscriptions' | 'users') => void;
   onOpenAuth: () => void;
   selectedExam?: string | null;
+  examInfo?: ExamTitle | null;
   onChangeExam?: () => void;
 }
 
@@ -26,6 +28,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveTab,
   onOpenAuth,
   selectedExam,
+  examInfo,
   onChangeExam,
 }) => {
   const { user, isAdmin, isPremium, logout, subscriptionRequests, setUpgradeModalOpen } = useAuth();
@@ -47,13 +50,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             <h1 className="font-extrabold text-base sm:text-lg text-slate-900 leading-tight flex items-center gap-2">
               منصة الاختبار التجريبي
               <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-                {selectedExam && selectedExam !== 'crmef' ? selectedExam.toUpperCase() : 'CRMEF'}
+                {selectedExam && selectedExam !== 'crmef'
+                  ? examInfo?.short || selectedExam.toUpperCase()
+                  : 'CRMEF'}
               </span>
             </h1>
             <div className="flex items-center gap-1.5">
               <p className="text-xs text-slate-500 font-medium">
                 {selectedExam && selectedExam !== 'crmef'
-                  ? `مباراة: ${selectedExam}`
+                  ? examInfo?.full || `مباراة: ${selectedExam}`
                   : 'مباراة التعليم – الابتدائي والثانوي (إعدادي وتأهيلي)'}
               </p>
               {onChangeExam && selectedExam && (

@@ -6,8 +6,8 @@ import { QuizSetup } from './components/QuizSetup';
 import { QuizQuestion } from './components/QuizQuestion';
 import { AuthModal } from './components/AuthModal';
 import { ResetPasswordModal } from './components/ResetPasswordModal';
-import type { Question, SubjectKey, ExamRecord, CycleKey } from './types';
-import { getQuestions } from './lib/supabase';
+import type { Question, SubjectKey, ExamRecord, CycleKey, ExamTitle } from './types';
+import { getQuestions, getExamConfigs, setProfileExam } from './lib/supabase';
 import { Loader2, ShieldAlert, LogIn } from 'lucide-react';
 
 // تحميل المكوّنات الثقيلة عند الحاجة فقط لتقليل حجم الحزمة الأولية.
@@ -51,6 +51,36 @@ function AppContent() {
 
   // المباراة المختارة — null = لم يختر بعد (يُعرض ExamSelector)
   const [selectedExam, setSelectedExam] = useState<string | null>(null);
+
+  // خريطة isim/id → الاسمين القصير والكامل للمباريات (من جدول exams) للعرض في الشريط والإعداد والنتائج
+  const [examTitles, setExamTitles] = useState<Record<string, ExamTitle>>({});
+  const selectedExamInfo: ExamTitle | null = selectedExam ? examTitles[selectedExam] || null : null;
+
+  // جلب أسماء المباريات مرة واحدة (يبقى الافتراضي عند الفشل)
+  useEffect(() => {
+    let alive = true;
+    getExamConfigs()
+      .then(({ exams }) => {
+        if (alive) {
+          const map: Record<string, ExamTitle> = {};
+          exams.forEach((e) => {
+            map[e.id] = {
+              short: e.shortName || e.id.toUpperCase(),
+              full: e.name || e.shortName || e.id.toUpperCase(),
+            };
+          });
+          setExamTitles(map);
+        }
+      })
+      .catch(() => { /* يبقى الافتراضي */ });
+    return () => { alive = false; };
+  }, []);
+
+  // اختيار مباراة + ربطها بملف المستخدم تلقائياً (لتظهر في إدارة المستخدمين والاشتراكات)
+  const handleSelectExam = (examId: string) => {
+    setSelectedExam(examId);
+    if (user) void setProfileExam(examId);
+  };
 
   // التحقق من الرابط المباشر /admin/users
   useEffect(() => {
@@ -183,10 +213,12 @@ function AppContent() {
         ? !q.subject.startsWith('sec_')
         : q.subject.startsWith('sec_'));
 
-    // تصفية الأسئلة حسب السلك والمادة
+    // تصفية الأسئلة حسب المباراة ثم السلك والمادة
+    const examIdScope = selectedExam || 'crmef';
     let pool = allQuestions.filter((q) => {
+      const matchesExam = (q.exam_id || 'crmef') === examIdScope;
       const matchesSubject = selectedSubject === 'all' || q.subject === selectedSubject;
-      return matchesCycleOnly(q) && matchesSubject;
+      return matchesExam && matchesCycleOnly(q) && matchesSubject;
     });
 
     // تصفية الأسئلة غير المُجاب عنها إذا طُلب ذلك
@@ -214,7 +246,7 @@ function AppContent() {
       // فرض الكوطة التجريبية 20 سؤالاً لكل مادة حتى في المحاكاة الشاملة.
       const TRIAL_LIMIT = 20;
       const answeredBySubject = new Map<string, number>();
-      allQuestions.filter(matchesCycleOnly).forEach((q) => {
+      allQuestions.filter((q) => (q.exam_id || 'crmef') === examIdScope && matchesCycleOnly(q)).forEach((q) => {
         if (answeredQuestionIds.has(q.id)) {
           answeredBySubject.set(q.subject, (answeredBySubject.get(q.subject) || 0) + 1);
         }
@@ -427,7 +459,7 @@ function AppContent() {
         {/* خطوة 1: اختيار المباراة — يظهر فقط عند الدخول الجديد */}
         {quizStatus === 'setup' && !selectedExam && (
           <Suspense fallback={<LazyFallback label="جارٍ تحميل قائمة المباريات..." />}>
-            <ExamSelector onSelectExam={(examId) => setSelectedExam(examId)} />
+            <ExamSelector onSelectExam={handleSelectExam} />
           </Suspense>
         )}
 
@@ -437,6 +469,7 @@ function AppContent() {
             questions={selectedExam ? allQuestions.filter((q) => (q.exam_id || 'crmef') === selectedExam) : []}
             onStart={handleStartExam}
             selectedExam={selectedExam}
+            examInfo={selectedExamInfo}
             onChangeExam={() => setSelectedExam(null)}
           />
         )}
@@ -515,6 +548,7 @@ function AppContent() {
               cycle={examCycle}
               phase={examPhase}
               records={records}
+              examInfo={selectedExamInfo}
               onRestart={handleRestart}
             />
           </Suspense>
@@ -571,6 +605,7 @@ function AppContent() {
                 setActiveTab={handleSetActiveTab}
                 onOpenAuth={() => setAuthModalOpen(true)}
                 selectedExam={selectedExam}
+                examInfo={selectedExamInfo}
                 onChangeExam={() => { setSelectedExam(null); setActiveTab('quiz'); setQuizStatus('setup'); }}
               />
 

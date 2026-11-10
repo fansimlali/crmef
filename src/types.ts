@@ -98,6 +98,12 @@ export interface ExamConfig {
   comingSoon?: boolean;
   badge?: string;      // '+2,284 سؤال'
 }
+
+/** الاسمان للعرض بالمباراة الفعالة (قصر وشكر) — من جدول exams. */
+export interface ExamTitle {
+  short: string;
+  full: string;
+}
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface SubscriptionRequest {

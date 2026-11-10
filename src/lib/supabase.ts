@@ -427,8 +427,19 @@ export async function getSubjectConfigs(examId: string): Promise<{ subjects: Sub
   }
 }
 
-// ─── المرحلة 3: رفع حزمة مباراة (exam_package.json) عبر RPC خادمي للمشرف فقط ───
+// ─── ربط ملف المستخدم بالمباراة المختارة (المستخدم ليفس المباريات المنفردة السلك) ───
 
+/** يستدعي RPC الخادمي set_profile_exam — لالتقاط مباراة المستخدم تلقائياً عند اختياره. */
+export async function setProfileExam(examId: string): Promise<void> {
+  if (!supabase || !examId) return;
+  try {
+    await supabase.rpc('set_profile_exam', { p_exam_id: examId });
+  } catch {
+    // استدعاء صامت — التقاط المباراة خدمة إحصائية لا شرط للعب.
+  }
+}
+
+// ─── المرحلة 3: رفع حزمة مباراة (exam_package.json) عبر RPC خادمي للمشرف فقط ───
 export interface ExamImportSummary {
   exam_id: string;
   name: string;

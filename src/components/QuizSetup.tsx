@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { SubjectKey, Question, CycleKey } from '../types';
+import type { SubjectKey, Question, CycleKey, ExamTitle } from '../types';
 import { CYCLES, SUBJECT_NAMES, getSubjectWeight } from '../types';
 import { getSubjectConfigs } from '../lib/supabase';
 import type { SubjectRowConfig } from '../lib/supabase';
@@ -28,10 +28,11 @@ interface QuizSetupProps {
     onlyUnanswered?: boolean
   ) => void;
   selectedExam?: string | null;
+  examInfo?: ExamTitle | null;
   onChangeExam?: () => void;
 }
 
-export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, selectedExam, onChangeExam }) => {
+export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, selectedExam, examInfo, onChangeExam }) => {
   const { 
     user, 
     isAdmin, 
@@ -217,7 +218,7 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
               <span>
                 {selectedExam === 'crmef' || !selectedExam
                   ? 'مباراة التعليم — CRMEF'
-                  : `مباراة: ${selectedExam}`}
+                  : examInfo?.full || `مباراة: ${selectedExam}`}
               </span>
             </div>
             {onChangeExam && (

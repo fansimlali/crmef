@@ -24,7 +24,7 @@ const ROOT = path.join(__dirname, '..');
 const BANK_DIR = path.join(ROOT, 'tarbawiyin mokhtabarat');
 
 const EXAM = {
-  name: 'مسابقة أطر المختصين',
+  name: 'مباراة أطر المختصين',
   short_name: 'الأطر المختصين',
   slug: 'tarbawiyin',
   description:

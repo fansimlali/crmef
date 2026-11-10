@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import type { ExamRecord, SubjectKey, CycleKey } from '../types';
+import type { ExamRecord, SubjectKey, CycleKey, ExamTitle } from '../types';
 import { SUBJECT_NAMES, CYCLES, getSubjectWeight } from '../types';
 import { 
   Trophy, 
@@ -20,6 +20,7 @@ interface QuizResultsProps {
   cycle: CycleKey;
   phase: 'قبلي' | 'بعدي';
   records: ExamRecord[];
+  examInfo?: ExamTitle | null;
   onRestart: () => void;
 }
 
@@ -27,6 +28,7 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
   cycle,
   phase,
   records,
+  examInfo,
   onRestart,
 }) => {
   const cycleInfo = CYCLES.find((c) => c.id === cycle);
@@ -163,7 +165,8 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
             </div>
           </div>
           <p className="text-slate-600 text-sm sm:text-base mt-2 max-w-md">
-            معدل مرجح بنظام معاملات مباراة التعليم الرسمي. أجبت صواباً عن{' '}
+            معدل مرجح بمعاملات المواد الرسمية ل{' '}
+            {examInfo?.full || 'هذه المباراة'}. أجبت صواباً عن{' '}
             <strong className="text-slate-900">{totalCorrect}</strong> من أصل{' '}
             <strong className="text-slate-900">{records.length}</strong> سؤالاً.
           </p>

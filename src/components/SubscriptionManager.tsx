@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { supabase, getExamConfigs } from '../lib/supabase';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -27,6 +28,34 @@ export const SubscriptionManager: React.FC = () => {
     deleteSubscription
   } = useAuth();
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'suspended' | 'rejected'>('all');
+
+  // فلتر المباريات — القائمة من جدول exams (آلية)، وربط كل طلب مستخدم بمباراته عبر profiles.exam_id
+  const [examFilter, setExamFilter] = useState<string>('all');
+  const [examOptions, setExamOptions] = useState<Array<{ id: string; name: string }>>([]);
+  const [userExamMap, setUserExamMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let alive = true;
+    getExamConfigs()
+      .then(({ exams }) => {
+        if (alive) setExamOptions(exams.filter((e) => e.isActive).map((e) => ({ id: e.id, name: e.name || e.shortName || e.id })));
+      })
+      .catch(() => { /* يبقى الافتراضي */ });
+    void (async () => {
+      try {
+        if (!supabase) return;
+        const { data, error } = await supabase.from('profiles').select('id, exam_id');
+        if (!alive || error || !data) return;
+        const map: Record<string, string> = {};
+        data.forEach((p: { id: string; exam_id?: string }) => { map[p.id] = p.exam_id || 'crmef'; });
+        setUserExamMap(map);
+      } catch {
+        /* يبقى الافتراضي */
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [rejectingReqId, setRejectingReqId] = useState<string | null>(null);
   const [deletingReqId, setDeletingReqId] = useState<string | null>(null);
@@ -35,6 +64,11 @@ export const SubscriptionManager: React.FC = () => {
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   const filteredRequests = subscriptionRequests.filter(r => {
+    // تصفية المباراة: الطرف من profiles.exam_id (الافتراضي crmef للمحتوى القديم)
+    if (examFilter !== 'all') {
+      const ex = userExamMap[r.userId] || 'crmef';
+      if (ex !== examFilter) return false;
+    }
     if (filter === 'all') return true;
     return r.status === filter;
   });
@@ -137,6 +171,19 @@ export const SubscriptionManager: React.FC = () => {
 
       {/* أزرار الفلترة */}
       <div className="flex items-center justify-between flex-wrap gap-2 bg-white p-2 rounded-2xl border border-slate-200">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* فلتر المباراة — يُغذّى آلياً من قاعدة البيانات */}
+          <select
+            value={examFilter}
+            onChange={(e) => setExamFilter(e.target.value)}
+            className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold bg-slate-50 text-slate-700 cursor-pointer"
+          >
+            <option value="all">جميع المباريات</option>
+            {examOptions.map((e) => (
+              <option key={e.id} value={e.id}>{e.name}</option>
+            ))}
+          </select>
+        </div>
         <div className="flex items-center gap-1 text-xs font-bold flex-wrap">
           <button
             onClick={() => setFilter('all')}

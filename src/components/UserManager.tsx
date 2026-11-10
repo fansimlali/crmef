@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
+import { supabase, getExamConfigs } from '../lib/supabase';
 import { 
   Users, 
   Crown, 
@@ -29,6 +29,7 @@ interface ExtendedUserRow {
   role: 'admin' | 'user';
   subscriptionStatus: 'trial' | 'premium' | 'suspended';
   cycle: CycleKey;
+  examId?: string;
   createdAt: string;
   questionsViewedCount: number;
   upgradeClicksCount: number;
@@ -56,6 +57,21 @@ export const UserManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'trial' | 'paid'>('trial');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCycle, setSelectedCycle] = useState<string>('all');
+
+  // فلتر المباريات — القائمة تُغذّى آلياً من جدول exams (أي مباراة جديدة تظهر هنا تلقائياً)
+  const [examFilter, setExamFilter] = useState<string>('all');
+  const [examOptions, setExamOptions] = useState<Array<{ id: string; name: string }>>([]);
+
+  useEffect(() => {
+    let alive = true;
+    getExamConfigs()
+      .then(({ exams }) => {
+        if (!alive) return;
+        setExamOptions(exams.filter((e) => e.isActive).map((e) => ({ id: e.id, name: e.name || e.shortName || e.id })));
+      })
+      .catch(() => { /* يبقى خياران ثابتان */ });
+    return () => { alive = false; };
+  }, []);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
@@ -176,6 +192,7 @@ export const UserManager: React.FC = () => {
           rejectionReason: userReq?.rejectionReason || null,
           timeSpentMinutes: p.time_spent_minutes || 0,
           lastSeenAt: p.last_seen_at || null,
+          examId: p.exam_id || 'crmef',
         };
       });
 
@@ -217,6 +234,11 @@ export const UserManager: React.FC = () => {
           if (u.subscriptionStatus === 'premium') return false;
         }
 
+        // تصفية المباراة (حسب profiles.exam_id — يُرصد تلقائياً عند اختيار المستخدم لبطاقة مباراة)
+        if (examFilter !== 'all' && (u.examId || 'crmef') !== examFilter) {
+          return false;
+        }
+
         // تصفية السلك
         if (selectedCycle !== 'all' && u.cycle !== selectedCycle) {
           return false;
@@ -233,7 +255,7 @@ export const UserManager: React.FC = () => {
         return true;
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [usersList, activeTab, selectedCycle, searchTerm]);
+  }, [usersList, activeTab, selectedCycle, searchTerm, examFilter]);
 
   // المستخدمون الذين نقروا على الترقية قبل أكثر من 30 دقيقة ولم يرفعوا وصلاً (Task 4)
   const abandonedUpgradeUsers = useMemo(() => {
@@ -576,6 +598,19 @@ export const UserManager: React.FC = () => {
                 </button>
               )}
             </div>
+
+            {/* فلتر المباراة — يُغذّى آلياً من قاعدة البيانات */}
+            <select
+              value={examFilter}
+              onChange={(e) => setExamFilter(e.target.value)}
+              className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold bg-slate-50 text-slate-700 cursor-pointer"
+            >
+              <option value="all">جميع المباريات</option>
+              {examOptions.length > 0 && <option value="crmef">مباراة التعليم (CRMEF)</option>}
+              {examOptions.map((e) => (
+                <option key={e.id} value={e.id}>{e.name}</option>
+              ))}
+            </select>
 
             {/* فلتر السلك */}
             <select
