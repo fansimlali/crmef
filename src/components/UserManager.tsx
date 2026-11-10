@@ -16,7 +16,9 @@ import {
   MousePointerClick, 
   GraduationCap, 
   AlertCircle, 
-  X 
+  X,
+  Printer,
+  Timer
 } from 'lucide-react';
 import { CYCLES, type CycleKey } from '../types';
 
@@ -35,6 +37,8 @@ interface ExtendedUserRow {
   receiptUrl?: string | null;
   receiptId?: string | null;
   rejectionReason?: string | null;
+  timeSpentMinutes: number;
+  lastSeenAt: string | null;
 }
 
 export const UserManager: React.FC = () => {
@@ -43,7 +47,7 @@ export const UserManager: React.FC = () => {
     subscriptionRequests, 
     approveSubscription, 
     suspendSubscription, 
-    deleteSubscription 
+    deleteUserAccount
   } = useAuth();
 
   const [usersList, setUsersList] = useState<ExtendedUserRow[]>([]);
@@ -170,6 +174,8 @@ export const UserManager: React.FC = () => {
           receiptUrl: userReq?.receiptUrl || null,
           receiptId: userReq?.id || null,
           rejectionReason: userReq?.rejectionReason || null,
+          timeSpentMinutes: p.time_spent_minutes || 0,
+          lastSeenAt: p.last_seen_at || null,
         };
       });
 
@@ -282,16 +288,14 @@ export const UserManager: React.FC = () => {
 
   const handleDeleteUser = async (u: ExtendedUserRow) => {
     setActionInProgress(u.id);
-    if (u.receiptId) {
-      await deleteSubscription(u.receiptId);
-    } else {
-      // إزالة طلبات أو إعادة إلى trial
-      if (supabase) {
-        await supabase
-          .from('profiles')
-          .update({ subscription_status: 'trial', updated_at: new Date().toISOString() })
-          .eq('id', u.id);
+    try {
+      // حذف نهائي شامل: auth.users + profiles + جميع البيانات المرتبطة
+      const result = await deleteUserAccount(u.id);
+      if (!result.success) {
+        setErrorMsg(result.error || 'تعذر حذف الحساب. تأكد من تشغيل سكريبت SQL في Supabase SQL Editor أولاً لإنشاء دالة admin_delete_user.');
       }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'خطأ غير متوقع أثناء الحذف');
     }
     setDeletingId(null);
     await loadUsersData();
@@ -304,6 +308,87 @@ export const UserManager: React.FC = () => {
     const url = `https://wa.me/212767471061?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
     setRemindersSent((prev) => new Set(prev).add(email));
+  };
+
+  const handlePrintReport = () => {
+    const now = new Intl.DateTimeFormat('ar-MA', {
+      timeZone: 'Africa/Casablanca',
+      year: 'numeric', month: 'long', day: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    }).format(new Date());
+
+    const rows = usersList
+      .filter(u => u.role !== 'admin')
+      .map(u => `
+        <tr>
+          <td>${u.fullName}</td>
+          <td>${u.email}</td>
+          <td>${u.subscriptionStatus === 'premium' ? '✅ مشترك مفعل' : '🆓 تجريبي'}</td>
+          <td>${getCycleTitle(u.cycle)}</td>
+          <td>${formatCasablancaTime(u.createdAt)}</td>
+          <td style="text-align:center">${u.questionsViewedCount}</td>
+          <td style="text-align:center">${u.upgradeClicksCount}</td>
+          <td style="text-align:center">${u.timeSpentMinutes > 0 ? u.timeSpentMinutes + ' دق' : '—'}</td>
+        </tr>
+      `).join('');
+
+    const totalFreeUsers = usersList.filter(u => u.role !== 'admin' && u.subscriptionStatus !== 'premium').length;
+    const totalPaidUsers = usersList.filter(u => u.role !== 'admin' && u.subscriptionStatus === 'premium').length;
+    const totalClicks = usersList.reduce((acc, u) => acc + u.upgradeClicksCount, 0);
+    const totalRegistered = usersList.filter(u => u.role !== 'admin').length;
+
+    const html = `<!DOCTYPE html><html dir="rtl" lang="ar">
+    <head><meta charset="UTF-8"><title>تقرير إحصائيات CRMEF Prep - ${now}</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { font-family: 'Segoe UI', Arial, sans-serif; direction: rtl; padding: 24px; font-size: 12px; color: #1e293b; background: #f8fafc; }
+      h1 { font-size: 20px; color: #0f172a; margin: 0 0 4px; }
+      .subtitle { color: #64748b; font-size: 11px; margin-bottom: 20px; }
+      .summary { display: flex; gap: 12px; margin: 16px 0; flex-wrap: wrap; }
+      .card { padding: 12px 20px; background: #fff; border-radius: 10px; border: 1px solid #e2e8f0; min-width: 120px; }
+      .card strong { display: block; font-size: 26px; font-weight: 900; color: #0f172a; }
+      .card span { font-size: 10px; color: #64748b; font-weight: 600; }
+      .card.free strong { color: #d97706; }
+      .card.paid strong { color: #059669; }
+      .card.clicks strong { color: #2563eb; }
+      table { width: 100%; border-collapse: collapse; margin-top: 16px; background: #fff; border-radius: 10px; overflow: hidden; border: 1px solid #e2e8f0; }
+      th { background: #0f172a; color: #fff; padding: 10px 8px; text-align: right; font-size: 11px; font-weight: 700; white-space: nowrap; }
+      td { padding: 8px; border-bottom: 1px solid #f1f5f9; font-size: 11px; }
+      tr:nth-child(even) td { background: #f8fafc; }
+      tr:last-child td { border-bottom: none; }
+      .footer { margin-top: 20px; color: #94a3b8; font-size: 10px; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+      @media print { body { background: #fff; padding: 10px; } .card { border: 1px solid #ccc; } }
+    </style></head>
+    <body>
+    <h1>📊 تقرير إحصائيات المترشحين - منصة CRMEF Prep</h1>
+    <p class="subtitle">تاريخ ووقت الطباعة: ${now} (توقيت الدار البيضاء)</p>
+    <div class="summary">
+      <div class="card"><strong>${totalRegistered}</strong><span>إجمالي المسجلين</span></div>
+      <div class="card free"><strong>${totalFreeUsers}</strong><span>حسابات تجريبية</span></div>
+      <div class="card paid"><strong>${totalPaidUsers}</strong><span>مشتركون مفعلون</span></div>
+      <div class="card clicks"><strong>${totalClicks}</strong><span>نقرات الترقية</span></div>
+    </div>
+    <table>
+      <thead><tr>
+        <th>الاسم الكامل</th>
+        <th>البريد الإلكتروني</th>
+        <th>الحالة</th>
+        <th>السلك التعليمي</th>
+        <th>تاريخ التسجيل</th>
+        <th>الأسئلة المنجزة</th>
+        <th>نقرات الترقية</th>
+        <th>مدة المكوث (دق)</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="footer">
+      📋 تقرير تلقائي من منصة CRMEF Prep | ${now} | المشرف: ${currentAdmin?.email || '—'}
+    </div>
+    <script>window.onload = () => { window.print(); };<\/script>
+    </body></html>`;
+
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); }
   };
 
   const getCycleTitle = (cycleKey: CycleKey) => {
@@ -334,6 +419,16 @@ export const UserManager: React.FC = () => {
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               <span>تحديث البيانات الحية</span>
+            </button>
+
+            <button
+              onClick={handlePrintReport}
+              disabled={loading || usersList.length === 0}
+              className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-indigo-500/30 hover:bg-indigo-500/50 text-white text-xs font-bold border border-indigo-400/30 transition-all cursor-pointer disabled:opacity-50"
+              title="طباعة تقرير إحصائي شامل بجميع البيانات"
+            >
+              <Printer className="w-4 h-4" />
+              <span>طباعة تقرير</span>
             </button>
           </div>
 
@@ -519,6 +614,7 @@ export const UserManager: React.FC = () => {
                     <th className="py-3.5 px-4">تاريخ التسجيل (الدار البيضاء)</th>
                     <th className="py-3.5 px-4 text-center">الأسئلة المنجزة</th>
                     <th className="py-3.5 px-4 text-center">نقرات الترقية</th>
+                    <th className="py-3.5 px-4 text-center">مدة المكوث</th>
                     <th className="py-3.5 px-4 text-center">حالة الوصل</th>
                     <th className="py-3.5 px-4 text-center">الإجراءات</th>
                   </tr>
@@ -579,6 +675,18 @@ export const UserManager: React.FC = () => {
                             </div>
                           ) : (
                             <span className="text-slate-400 text-[11px]">0</span>
+                          )}
+                        </td>
+
+                        {/* مدة المكوث بالدقائق */}
+                        <td className="py-3.5 px-4 text-center">
+                          {u.timeSpentMinutes > 0 ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-50 text-sky-800 font-bold text-[11px] border border-sky-200">
+                              <Timer className="w-3 h-3 text-sky-500" />
+                              <span>{u.timeSpentMinutes} دق</span>
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 text-[11px]">—</span>
                           )}
                         </td>
 

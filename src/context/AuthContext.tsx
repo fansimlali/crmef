@@ -46,6 +46,7 @@ interface AuthContextType {
   rejectSubscription: (requestId: string, reason: string) => Promise<boolean>;
   suspendSubscription: (requestId: string) => Promise<boolean>;
   deleteSubscription: (requestId: string) => Promise<boolean>;
+  deleteUserAccount: (userId: string) => Promise<{ success: boolean; error?: string }>;
   // نافذة الترقية
   upgradeModalOpen: boolean;
   setUpgradeModalOpen: (open: boolean) => void;
@@ -915,8 +916,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const suspendSubscription = async (requestId: string): Promise<boolean> => {
     if (!user || user.role !== 'admin' || !supabase) return false;
 
-    const request = subscriptionRequests.find((r) => r.id === requestId);
-    if (!request) return false;
+    // ابحث عن الطلب في المصفوفة المحلية أو جلبه مباشرة من قاعدة البيانات
+    let request = subscriptionRequests.find((r) => r.id === requestId);
+    if (!request) {
+      // جلب الطلب مباشرة إذا لم يكن في المصفوفة المحلية
+      try {
+        const { data: freshReq } = await supabase
+          .from('subscription_requests')
+          .select('*')
+          .eq('id', requestId)
+          .single();
+        if (freshReq) {
+          request = {
+            id: freshReq.id,
+            userId: freshReq.user_id,
+            userEmail: freshReq.user_email || '',
+            userName: freshReq.user_name || freshReq.user_email || '',
+            cycle: normalizeCycle(freshReq.cycle),
+            status: (freshReq.status === 'approved' || freshReq.status === 'rejected' || freshReq.status === 'suspended') 
+              ? freshReq.status 
+              : 'pending' as SubscriptionRequest['status'],
+            createdAt: freshReq.created_at,
+            receiptUrl: '',
+            rejectionReason: freshReq.rejection_reason || undefined,
+          };
+        }
+      } catch {
+        // تجاهل خطأ الجلب المباشر
+      }
+    }
 
     try {
       const reviewedAt = new Date().toISOString();
@@ -948,25 +976,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         requestError = fallback.error;
       }
 
-      if (requestError) {
+      // 2. إلغاء صلاحية المشترك الكامل في جدول profiles فوراً
+      // نحدّث profiles سواء وجدنا الطلب أم لا — نبحث عن user_id من الطلب
+      if (request?.userId) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ subscription_status: 'trial', updated_at: reviewedAt })
+          .eq('id', request.userId);
+
+        if (profileError) {
+          console.warn('suspend profile warning (non-fatal):', profileError.message);
+        }
+
+        if (user.id === request.userId) {
+          setUser({ ...user, subscriptionStatus: 'trial' });
+        }
+      } else if (requestError) {
+        // لم نجد الطلب ولم ننجح في تحديث subscription_requests
         console.warn('suspend request error:', requestError.message);
         return false;
       }
 
-      // 2. إلغاء صلاحية المشترك الكامل في جدول profiles فوراً
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ subscription_status: 'trial', updated_at: reviewedAt })
-        .eq('id', request.userId);
-
-      if (profileError) {
-        console.warn('suspend profile warning (non-fatal):', profileError.message);
-      }
-
       await refreshSubscriptions(user);
-      if (user.id === request.userId) {
-        setUser({ ...user, subscriptionStatus: 'trial' });
-      }
       return true;
     } catch (err) {
       console.warn('suspendSubscription error:', err);
@@ -1018,6 +1049,99 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // ───────────────────────────── حذف حساب مستخدم نهائياً من قاعدة البيانات ─────────────────────────────
+  const deleteUserAccount = async (targetUserId: string): Promise<{ success: boolean; error?: string }> => {
+    if (!user || user.role !== 'admin' || !supabase) {
+      return { success: false, error: 'غير مصرح: هذه العملية مخصصة للمشرف العام فقط.' };
+    }
+    if (targetUserId === user.id) {
+      return { success: false, error: 'لا يمكنك حذف حساب المشرف العام الحالي.' };
+    }
+
+    try {
+      // 1. محاولة استدعاء الدالة البرمجية الخادمة الشاملة RPC
+      const { error: rpcError } = await supabase.rpc('admin_delete_user', {
+        target_user_id: targetUserId,
+      });
+
+      if (!rpcError) {
+        await refreshSubscriptions(user);
+        return { success: true };
+      }
+
+      console.info('admin_delete_user RPC fallback, performing cascade delete:', rpcError.message);
+
+      // 2. التنظيف المتسلسل للجداول التابعة إن لم تكن RPC مفعلة
+      try {
+        await supabase.from('activity_log').delete().eq('action_by', targetUserId);
+      } catch {}
+
+      try {
+        await supabase.from('question_progress').delete().eq('user_id', targetUserId);
+      } catch {}
+
+      try {
+        await supabase.from('subscription_requests').delete().eq('user_id', targetUserId);
+      } catch {}
+
+      try {
+        await supabase.from('upgrade_clicks').delete().eq('user_id', targetUserId);
+      } catch {}
+
+      try {
+        await supabase.from('receipt_upload_attempts').delete().eq('user_id', targetUserId);
+      } catch {}
+
+      try {
+        await supabase.from('upgrade_reminders').delete().eq('user_id', targetUserId);
+      } catch {}
+
+      // 3. حذف الحساب من جدول profiles
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', targetUserId);
+
+      if (profileError) {
+        console.warn('delete profile error:', profileError.message);
+        return { success: false, error: profileError.message };
+      }
+
+      await refreshSubscriptions(user);
+      return { success: true };
+    } catch (err: any) {
+      console.error('deleteUserAccount error:', err);
+      return { success: false, error: err?.message || 'حدث خطأ أثناء حذف الحساب' };
+    }
+  };
+
+  // ───────────────────────────── تتبع مدة مكوث المستخدم بالدقائق ─────────────────────────────
+  useEffect(() => {
+    if (!user || !supabase) return;
+    const interval = setInterval(async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      try {
+        const storedKey = `crmef_time_${user.id}`;
+        const currentMins = parseInt(localStorage.getItem(storedKey) || '0', 10) + 1;
+        localStorage.setItem(storedKey, currentMins.toString());
+
+        if (currentMins % 5 === 0 && supabase) {
+          await supabase
+            .from('profiles')
+            .update({ 
+              time_spent_minutes: currentMins,
+              last_seen_at: new Date().toISOString() 
+            })
+            .eq('id', user.id);
+        }
+      } catch {
+        /* تجاهل */
+      }
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [user]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -1038,6 +1162,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         rejectSubscription,
         suspendSubscription,
         deleteSubscription,
+        deleteUserAccount,
         upgradeModalOpen,
         setUpgradeModalOpen: handleSetUpgradeModalOpen,
         passwordRecoveryOpen,
