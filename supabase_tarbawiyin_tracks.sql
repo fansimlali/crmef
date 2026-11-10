@@ -15,7 +15,21 @@
 --      الأسلاك العربية (المسالك أسماؤها مختلفة).
 -- التنفيذ متكرر آمن (UPDATE/CREATE OR REPLACE/DROP IF EXISTS).
 -- شرط سابق: supabase_staging_and_editing.sql (أعمدة is_draft والسياسات الحديثة).
+-- ملاحظة: هذا الملف مستقل بذاته — يضيف أعمدة is_draft/premium_scope/exam_id إن لم تكن
+--   موجودة، فلا يهمّ أي ملف نُفّذ أولاً (ALTER TABLE ... IF NOT EXISTS آمنة ومكرّرة).
+-- ⚠️ ترتيب التنفيذ مهم: «آخر تعريف يفوز» في Postgres — لذا نفّذ هذا الملف **بعد**
+--   supabase_staging_and_editing.sql (و supabase_import_exam_rpc.sql المحدّثة)، وإلا
+--   أعادت الجولة السابقة سياسات المرحلة 2.7 (بقيد سلك التسجيل لكل المباريات).
 -- ============================================================================
+
+-- ───────────────────────── 0) تهيئة الأعمدة (آمنة ومكرّرة) ─────────────────────────
+ALTER TABLE public.questions ADD COLUMN IF NOT EXISTS is_draft BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE public.summaries ADD COLUMN IF NOT EXISTS is_draft BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS premium_scope TEXT NOT NULL DEFAULT 'all';
+ALTER TABLE public.questions ADD COLUMN IF NOT EXISTS exam_id TEXT NOT NULL DEFAULT 'crmef';
+ALTER TABLE public.summaries ADD COLUMN IF NOT EXISTS exam_id TEXT NOT NULL DEFAULT 'crmef';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS exam_id TEXT NOT NULL DEFAULT 'crmef';
+CREATE INDEX IF NOT EXISTS questions_draft_idx ON public.questions (exam_id, is_draft);
 
 -- ───────────────────────── 1) بطاقة المباراة ─────────────────────────
 UPDATE public.exams SET
