@@ -15,14 +15,17 @@ import {
   Check,
   PauseCircle,
   MessageCircle,
-  Loader2
+  Loader2,
+  GraduationCap
 } from 'lucide-react';
-import { CYCLES } from '../types';
+import { getExamConfigs } from '../lib/supabase';
 import QRCode from 'qrcode';
 import { trackInitiateCheckout, trackPurchase } from '../lib/pixel';
 import { compressAndNormalizeReceiptImage } from '../lib/imageCompressor';
 
-const SUBSCRIPTION_AMOUNT = 50;
+// الخطتان السعريةان: شامل لكل المباريات (100 درهم) أو مباراة واحدة (50 درهم)
+const PLAN_ALL_PRICE_MAD = 100;
+const PLAN_SINGLE_PRICE_MAD = 50;
 const BENEFICIARY_NAME = 'FADEL SIMLALI';
 
 export const UpgradeModal: React.FC = () => {
@@ -44,6 +47,32 @@ export const UpgradeModal: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [nameQrUrl, setNameQrUrl] = useState<string>('/name_qr.png');
   const [copiedName, setCopiedName] = useState(false);
+
+  // اختيار الخطة: شامل (100 درهم لكل المباريات) أو مباراة واحدة (50 درهم)
+  const [plan, setPlan] = useState<'all' | 'single'>('all');
+  const [scopeExamId, setScopeExamId] = useState('crmef');
+
+  // قائمة المباريات النشطة تلقائياً من جدول exams (أي مباراة جديدة تظهر هنا)
+  const [examOptions, setExamOptions] = useState<Array<{ id: string; name: string }>>([]);
+  useEffect(() => {
+    let alive = true;
+    getExamConfigs()
+      .then(({ exams }) => {
+        if (alive) {
+          setExamOptions(
+            exams
+              .filter((e) => e.isActive)
+              .map((e) => ({ id: e.id, name: e.name || e.shortName || e.id }))
+          );
+        }
+      })
+      .catch(() => { /* يبقى الافتراضي crmef */ });
+    return () => { alive = false; };
+  }, []);
+
+  const planPrice = plan === 'single' ? PLAN_SINGLE_PRICE_MAD : PLAN_ALL_PRICE_MAD;
+  const scopeExamName =
+    examOptions.find((e) => e.id === scopeExamId)?.name || scopeExamId.toUpperCase();
 
   // رابط واتساب الرسمي والمباشر مع التعبئة التلقائية لبريد المستخدم (Task 2)
   const userEmail = user?.email || '';
@@ -78,8 +107,6 @@ export const UpgradeModal: React.FC = () => {
   }, [upgradeModalOpen]);
 
   if (!upgradeModalOpen) return null;
-
-  const cycleName = CYCLES.find(c => c.id === user?.cycle)?.name || 'السلك المختار';
 
   const handleCopyName = () => {
     navigator.clipboard.writeText(BENEFICIARY_NAME).then(() => {
@@ -122,6 +149,10 @@ export const UpgradeModal: React.FC = () => {
       setErrorMsg('يرجى إرفاق صورة واضحة لوصل التحويل أو الدفع');
       return;
     }
+    if (plan === 'single' && !scopeExamId) {
+      setErrorMsg('اختر المباراة التي تريد الاشتراك بها أولاً');
+      return;
+    }
 
     setSubmitting(true);
     setErrorMsg(null);
@@ -129,7 +160,8 @@ export const UpgradeModal: React.FC = () => {
     const res = await submitSubscriptionRequest(
       receiptFile,
       paymentTab === 'bank' ? 'CIH Bank / Application' : 'Cash Plus / Wafacash',
-      ''
+      plan,
+      plan === 'single' ? scopeExamId : null
     );
     setSubmitting(false);
 
@@ -184,11 +216,12 @@ export const UpgradeModal: React.FC = () => {
           <h3 className="text-2xl font-black text-slate-900 flex items-center justify-center gap-2">
             <span>الترقية إلى مشترك كامل</span>
             <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">
-              {SUBSCRIPTION_AMOUNT} درهم
+              من {PLAN_SINGLE_PRICE_MAD} درهم
             </span>
           </h3>
           <p className="text-xs sm:text-sm text-slate-600 font-medium max-w-md mx-auto">
-            افتح كامل بنك الأسئلة والمحاكاة الشاملة ومكتبة الملخصات المحمية في <strong className="text-emerald-700 font-bold">{cycleName}</strong>.
+            اختر خطتك: <strong className="text-amber-700 font-bold">شامل {PLAN_ALL_PRICE_MAD} درهم</strong> لكل المباريات
+            الحالية والمقبلة، أو <strong className="text-emerald-700 font-bold">{PLAN_SINGLE_PRICE_MAD} درهم</strong> لمباراة واحدة.
           </p>
         </div>
 
@@ -296,16 +329,95 @@ export const UpgradeModal: React.FC = () => {
         ) : (
           !isPremium && (
             <div className="space-y-6">
+              {/* اختيار الخطة: شامل أم مباراة واحدة */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPlan('all')}
+                  className={`text-start p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                    plan === 'all'
+                      ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-200'
+                      : 'border-slate-200 bg-white hover:border-amber-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="flex items-center gap-1.5 text-sm font-black text-slate-900">
+                      <Crown className="w-4 h-4 text-amber-500 shrink-0" />
+                      اشتراك شامل
+                    </span>
+                    <span className="text-lg font-black text-amber-600">{PLAN_ALL_PRICE_MAD} درهم</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-bold leading-relaxed">
+                    كل المباريات الحالية + كل مباراة تنزل مستقبلاً بلا أي مبلغ إضافي.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPlan('single')}
+                  className={`text-start p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                    plan === 'single'
+                      ? 'border-emerald-600 bg-emerald-50 ring-2 ring-emerald-200'
+                      : 'border-slate-200 bg-white hover:border-emerald-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="flex items-center gap-1.5 text-sm font-black text-slate-900">
+                      <GraduationCap className="w-4 h-4 text-emerald-600 shrink-0" />
+                      اشتراك مباراة واحدة
+                    </span>
+                    <span className="text-lg font-black text-emerald-600">{PLAN_SINGLE_PRICE_MAD} درهم</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-bold leading-relaxed">
+                    بنك الأسئلة والملخصات لمباراة واحدة تختارها من القائمة.
+                  </p>
+                </button>
+              </div>
+
+              {/* قائمة اختيار المباراة للخطة الفردية */}
+              {plan === 'single' && (
+                <div className="animate-in fade-in">
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    المباراة التي تريد الاشتراك بها <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={scopeExamId}
+                    onChange={(e) => setScopeExamId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold bg-white text-slate-800 cursor-pointer focus:ring-2 focus:ring-emerald-500"
+                  >
+                    {examOptions.map((e) => (
+                      <option key={e.id} value={e.id}>{e.name}</option>
+                    ))}
+                    {examOptions.length === 0 && <option value="crmef">مباراة التعليم (CRMEF)</option>}
+                  </select>
+                  <p className="text-[11px] text-slate-400 font-bold mt-1">
+                    المبلغ المطلوب إرساله: 50 درهم — يقتصر الوصول على هذه المباراة فقط.
+                  </p>
+                </div>
+              )}
+
               {/* مميزات الاشتراك */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
-                <span className="text-xs font-black text-slate-700 block mb-1">ماذا ستحصل عند التفعيل:</span>
+                <span className="text-xs font-black text-slate-700 block mb-1">
+                  {plan === 'single'
+                    ? `ماذا ستحصل عند التفعيل (اشتراك ${scopeExamName}):`
+                    : 'ماذا ستحصل عند التفعيل (اشتراك شامل):'}
+                </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-bold text-slate-700">
-                  {[
-                    'فتح كامل بنك الأسئلة (2,284 سؤالاً)',
-                    'المحاكاة الشاملة الكاملة بلا حدود',
-                    'فتح جميع الملخصات المحمية لسلكك',
-                    'حفظ نتائجك ومتابعة تقدمك دائماً',
-                  ].map((f, i) => (
+                  {(plan === 'single'
+                    ? [
+                        `بنك الأسئلة الكامل لمباراة ${scopeExamName}`,
+                        `المحاكاة الشاملة لمباراة ${scopeExamName}`,
+                        `الملخصات المحمية لمباراة ${scopeExamName}`,
+                        'حفظ نتائجك ومتابعة تقدمك دائماً',
+                      ]
+                    : [
+                        'كل المباريات الحالية (CRMEF + أطر المختصين)',
+                        'كل مباراة جديدة تنزل مستقبلاً بلا زيادة',
+                        'فتح جميع الملخصات المحمية لسلكك',
+                        'حفظ نتائجك ومتابعة تقدمك دائماً',
+                      ]
+                  ).map((f, i) => (
                     <div key={i} className="flex items-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                       <span>{f}</span>
@@ -323,7 +435,7 @@ export const UpgradeModal: React.FC = () => {
                     <span>طريقة الدفع ومسح الرمز (QR)</span>
                   </span>
                   <span className="bg-white text-amber-700 font-black text-xs sm:text-sm px-3 py-1 rounded-full shadow-xs">
-                    واجب الاشتراك: {SUBSCRIPTION_AMOUNT} درهم
+                    واجب الاشتراك: {planPrice} درهم
                   </span>
                 </div>
 
@@ -386,12 +498,12 @@ export const UpgradeModal: React.FC = () => {
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-slate-500 font-bold">المبلغ المطلوب:</span>
-                          <span className="font-black text-emerald-700 text-sm">{SUBSCRIPTION_AMOUNT} درهم</span>
+                          <span className="font-black text-emerald-700 text-sm">{planPrice} درهم</span>
                         </div>
                       </div>
 
                       <div className="text-[11px] text-amber-950 bg-amber-100/80 rounded-xl p-3 leading-relaxed font-semibold border border-amber-200">
-                        📱 افتح تطبيق <strong>CIH Mobile</strong>، اختر خدمة التحويل عبر <strong>QR Code</strong>، وامسح الرمز أعلاه لتحويل <strong>{SUBSCRIPTION_AMOUNT} درهم</strong> فورياً، ثم ارفع صورة الوصل أسفله.
+                        📱 افتح تطبيق <strong>CIH Mobile</strong>، اختر خدمة التحويل عبر <strong>QR Code</strong>، وامسح الرمز أعلاه لتحويل <strong>{planPrice} درهم</strong> ({plan === 'single' ? `اشتراك مباراة واحدة: ${scopeExamName}` : 'اشتراك شامل'}) فورياً، ثم ارفع صورة الوصل أسفله.
                       </div>
                     </div>
                   </div>
@@ -451,7 +563,7 @@ export const UpgradeModal: React.FC = () => {
                       </div>
 
                       <div className="text-[11px] text-amber-950 bg-amber-100/80 rounded-xl p-3 leading-relaxed font-semibold border border-amber-200">
-                        🏢 توجه إلى أقرب وكالة (كاش بلوس، وفاكاش، بريد كاش...)، وأرسل حوالة مالية بمبلغ <strong>{SUBSCRIPTION_AMOUNT} درهم</strong> إلى المستفيد: <strong>{BENEFICIARY_NAME}</strong> (يمكن للوكيل مسح الرمز أعلاه للتأكد من كتابة الاسم بدقة). بعد استلام الوصل ارفعه أسفله لتفعيل حسابك مباشرة.
+                        🏢 توجه إلى أقرب وكالة (كاش بلوس، وفاكاش، بريد كاش...)، وأرسل حوالة مالية بمبلغ <strong>{planPrice} درهم</strong> ({plan === 'single' ? `اشتراك مباراة واحدة: ${scopeExamName}` : 'اشتراك شامل'}) إلى المستفيد: <strong>{BENEFICIARY_NAME}</strong> (يمكن للوكيل مسح الرمز أعلاه للتأكد من كتابة الاسم بدقة). بعد استلام الوصل ارفعه أسفله لتفعيل حسابك مباشرة.
                       </div>
                     </div>
                   </div>

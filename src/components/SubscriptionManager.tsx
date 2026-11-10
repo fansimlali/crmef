@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase, getExamConfigs } from '../lib/supabase';
 import { 
@@ -17,7 +17,7 @@ import {
   PauseCircle,
   Trash2
 } from 'lucide-react';
-import { CYCLES } from '../types';
+import { CYCLES, type SubscriptionRequest } from '../types';
 
 export const SubscriptionManager: React.FC = () => {
   const { 
@@ -73,13 +73,43 @@ export const SubscriptionManager: React.FC = () => {
     return r.status === filter;
   });
 
+  // خريطة أسماء المباريات لعرض خطط الطلبات (شامل / مباراة واحدة)
+  const examNameById = useMemo(
+    () => Object.fromEntries(examOptions.map((e) => [e.id, e.name])),
+    [examOptions]
+  );
+
+  /** وصف خطة الطلب: شامل (100) أو مباراة واحدة (50) باسمها. */
+  const planTextOf = (r: SubscriptionRequest): string =>
+    r.plan === 'single'
+      ? `مباراة واحدة: ${examNameById[r.premiumScope || ''] || r.premiumScope || '؟'} — 50 درهم`
+      : 'شامل لكل المباريات — 100 درهم';
+
+  // الشارة الملونة للخطة في أعلى كل بطاقة
+  const planBadgeOf = (r: SubscriptionRequest) =>
+    r.plan === 'single' ? (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+        <GraduationCap className="w-3.5 h-3.5 text-emerald-600" />
+        <span>خطة مباراة واحدة</span>
+      </span>
+    ) : (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800 border border-amber-200">
+        <CreditCard className="w-3.5 h-3.5 text-amber-600" />
+        <span>خطة شاملة</span>
+      </span>
+    );
+
   const pendingCount = subscriptionRequests.filter(r => r.status === 'pending').length;
   const approvedCount = subscriptionRequests.filter(r => r.status === 'approved').length;
   const suspendedCount = subscriptionRequests.filter(r => r.status === 'suspended').length;
   const rejectedCount = subscriptionRequests.filter(r => r.status === 'rejected').length;
 
   const handleApprove = async (id: string) => {
-    if (confirm('هل أنت متأكد من تفعيل هذا المشترك كمشترك كامل في المنصة؟')) {
+    const req = subscriptionRequests.find(r => r.id === id);
+    const confirmText = req?.plan === 'single'
+      ? `هل أنت متأكد من تفعيل هذا المشترك باستهلاكه خطة «مباراة واحدة (50 درهم)»؟ سيُحصر وصوله في مباراة: ${examNameById[req?.premiumScope || ''] || req?.premiumScope || '؟'}`
+      : 'هل أنت متأكد من تفعيل هذا المشترك بالخطة الشاملة لكل المباريات الحالية والمقبلة (100 درهم)؟';
+    if (confirm(confirmText)) {
       setActionError(null);
       setProcessingId(id);
       const ok = await approveSubscription(id);
@@ -294,6 +324,11 @@ export const SubscriptionManager: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <GraduationCap className="w-4 h-4 text-indigo-500 shrink-0" />
                     <span className="font-bold text-indigo-700">{cycleDef?.name || req.cycle}</span>
+                  </div>
+                  {/* خطة الاشتراك: شاملة (100) أو تستهدف مباراة واحدة (50) */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {planBadgeOf(req)}
+                    <span className="text-[11px] text-slate-500 font-bold">{planTextOf(req)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CreditCard className="w-4 h-4 text-slate-400 shrink-0" />

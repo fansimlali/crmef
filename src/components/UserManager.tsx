@@ -326,7 +326,7 @@ export const UserManager: React.FC = () => {
 
   // إرسال تذكير عبر واتساب مع نص جاهز (Task 4)
   const handleSendWhatsAppReminder = (email: string) => {
-    const text = `Salam, شفنا بلي بغيتي تدوز للاشتراك الكامل بـ 50 درهم فـ CRMEF Prep و ما كملتيش. إلا بغيتي تكمل، رفع الوصل من هنا أو صيفطو فـ WhatsApp: https://wa.me/212767471061 - المباراة 28 نونبر، باقي 18 يوم. (حسابك: ${email})`;
+    const text = `Salam, شفنا بلي بغيتي تدوز للاشتراك فـ CRMEF Prep و ما كملتيش: 50 درهم اشتراك مباراة واحدة و 100 درهم اشتراك شامل لكل المباريات. إلا بغيتي تكمل، رفع الوصل من هنا أو صيفطو فـ WhatsApp: https://wa.me/212767471061 - المباراة 28 نونبر، باقي 18 يوم. (حسابك: ${email})`;
     const url = `https://wa.me/212767471061?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
     setRemindersSent((prev) => new Set(prev).add(email));
@@ -492,7 +492,7 @@ export const UserManager: React.FC = () => {
                   مترشحون ضغطوا على الترقية ولم يكملوا رفع الوصل (مضى أكثر من 30 دقيقة)
                 </h4>
                 <p className="text-xs text-amber-800">
-                  أبدو اهتماماً بالاشتراك الكامل بـ 50 درهم. يمكنك مراسلتهم بنقرة واحدة عبر واتساب أو تتبعهم:
+                  أبدو اهتماماً بالاشتراك (50 درهم مباراة واحدة أو 100 درهم شامل). يمكنك مراسلتهم بنقرة واحدة عبر واتساب أو تتبعهم:
                 </p>
               </div>
             </div>

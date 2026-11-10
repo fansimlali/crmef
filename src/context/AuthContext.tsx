@@ -40,7 +40,8 @@ interface AuthContextType {
   submitSubscriptionRequest: (
     receipt: File,
     paymentMethod: string,
-    notes?: string
+    plan: 'all' | 'single',
+    examId?: string | null
   ) => Promise<{ success: boolean; error?: string }>;
   approveSubscription: (requestId: string) => Promise<boolean>;
   rejectSubscription: (requestId: string, reason: string) => Promise<boolean>;
@@ -62,6 +63,7 @@ interface ProfileRow {
   role: string | null;
   subscription_status: string | null;
   cycle: string | null;
+  premium_scope: string | null;
 }
 
 interface SubscriptionRow {
@@ -70,6 +72,9 @@ interface SubscriptionRow {
   user_email: string;
   user_name: string | null;
   cycle: string | null;
+  plan: string | null;
+  premium_scope: string | null;
+  amount_mad: number | null;
   receipt_url: string | null;
   receipt_path: string | null;
   payment_method: string | null;
@@ -143,6 +148,7 @@ function buildProfile(authUser: User, row?: ProfileRow | null): UserProfile {
     // الدور وحالة الاشتراك يُقرآن حصراً من جدول profiles المحمي بـ RLS.
     role: row?.role === 'admin' ? 'admin' : 'user',
     subscriptionStatus: row?.subscription_status === 'premium' ? 'premium' : 'trial',
+    premiumScope: row?.premium_scope || 'all',
     cycle: normalizeCycle(row?.cycle ?? authUser.user_metadata?.cycle),
     sessionId: generateSecureSessionId(),
   };
@@ -158,6 +164,9 @@ function mapSubscriptionRow(row: SubscriptionRow): SubscriptionRequest {
     userEmail: row.user_email,
     userName: row.user_name || row.user_email,
     cycle: normalizeCycle(row.cycle),
+    plan: row.plan === 'single' ? 'single' : 'all',
+    premiumScope: row.plan === 'single' && row.premium_scope ? row.premium_scope : undefined,
+    amountMad: row.amount_mad != null ? Number(row.amount_mad) : undefined,
     // لا نخزّن وصلات عامة: الصورة خاصة ويتم توليد رابط موقّع مؤقت لها.
     // الصفوف القديمة قد تحتوي data URL أو رابط https فقط.
     receiptUrl: row.receipt_path ? '' : safeLegacyReceiptUrl(row.receipt_url),
@@ -190,7 +199,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, full_name, role, subscription_status, cycle')
+        .select('id, email, full_name, role, subscription_status, cycle, premium_scope')
         .eq('id', authUser.id)
         .maybeSingle();
 
@@ -212,6 +221,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           '',
         role: 'user',
         subscription_status: 'trial',
+        premium_scope: 'all',
         cycle: normalizeCycle(authUser.user_metadata?.cycle),
       };
 
@@ -700,7 +710,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const submitSubscriptionRequest = async (
     receipt: File,
     paymentMethod: string,
-    notes?: string
+    plan: 'all' | 'single',
+    examId?: string | null
   ): Promise<{ success: boolean; error?: string }> => {
     if (!user) {
       return { success: false, error: 'يجب تسجيل الدخول أولاً لتقديم طلب الاشتراك' };
@@ -711,6 +722,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentRequest?.status === 'pending') {
       return { success: false, error: 'لديك طلب قيد المراجعة بالفعل. يرجى انتظار قرار المشرف.' };
     }
+    if (plan === 'single' && !examId) {
+      return { success: false, error: 'اختر المباراة التي تريد الاشتراك بها أولاً.' };
+    }
+    // الخطة الفردية تُحدد النطاق بمعرّف المباراة؛ الشامل يفتح كل المباريات.
+    const requestedScope = plan === 'single' ? String(examId) : 'all';
+    const requestedAmount = plan === 'single' ? 50 : 100;
 
     const isImageFile = receipt.type.startsWith('image/') || 
       ALLOWED_RECEIPT_TYPES.includes(receipt.type) || 
@@ -781,10 +798,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           user_email: user.email,
           user_name: user.fullName,
           cycle: user.cycle || 'primary',
+          plan,
+          premium_scope: requestedScope,
+          amount_mad: requestedAmount,
           receipt_url: null,
           receipt_path: receiptPath,
           payment_method: paymentMethod,
-          notes: notes || null,
+          notes: null,
           status: 'pending',
         })
         .select('*')
@@ -848,6 +868,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const reviewedAt = new Date().toISOString();
+
+      // نطاق الاشتراك حسب خطة الطلب: شامل → 'all'، فردي → مباراة الطلب.
+      // الطلبات القديمة (قبل الخطتين) تبقى شاملة ('all').
+      const approvedScope =
+        request.plan === 'single' && request.premiumScope ? request.premiumScope : 'all';
+
       const { error: requestError } = await supabase
         .from('subscription_requests')
         .update({
@@ -865,7 +891,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({ subscription_status: 'premium', updated_at: reviewedAt })
+        .update({
+          subscription_status: 'premium',
+          premium_scope: approvedScope,
+          updated_at: reviewedAt,
+        })
         .eq('id', request.userId);
 
       if (profileError) {
@@ -875,7 +905,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       await refreshSubscriptions(user);
       if (user.id === request.userId) {
-        setUser({ ...user, subscriptionStatus: 'premium' });
+        setUser({ ...user, subscriptionStatus: 'premium', premiumScope: approvedScope });
       }
       return true;
     } catch (err) {
@@ -933,6 +963,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             userEmail: freshReq.user_email || '',
             userName: freshReq.user_name || freshReq.user_email || '',
             cycle: normalizeCycle(freshReq.cycle),
+            plan: freshReq.plan === 'single' ? 'single' : 'all',
+            premiumScope: freshReq.plan === 'single' && freshReq.premium_scope ? freshReq.premium_scope : undefined,
             status: (freshReq.status === 'approved' || freshReq.status === 'rejected' || freshReq.status === 'suspended') 
               ? freshReq.status 
               : 'pending' as SubscriptionRequest['status'],
@@ -981,7 +1013,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (request?.userId) {
         const { error: profileError } = await supabase
           .from('profiles')
-          .update({ subscription_status: 'trial', updated_at: reviewedAt })
+          .update({ subscription_status: 'trial', premium_scope: 'all', updated_at: reviewedAt })
           .eq('id', request.userId);
 
         if (profileError) {
@@ -989,7 +1021,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (user.id === request.userId) {
-          setUser({ ...user, subscriptionStatus: 'trial' });
+          setUser({ ...user, subscriptionStatus: 'trial', premiumScope: 'all' });
         }
       } else if (requestError) {
         // لم نجد الطلب ولم ننجح في تحديث subscription_requests

@@ -112,6 +112,11 @@ export interface SubscriptionRequest {
   userEmail: string;
   userName: string;
   cycle: CycleKey;
+  /** الخطة: 'all' منخرط الشامل (100 درهم) — 'single' مباراة واحدة (50 درهم). */
+  plan: 'all' | 'single';
+  /** نطاق الاشتراك: معرّف المباراة للخطة الفردي، undefined للشامل والطلبات القديمة. */
+  premiumScope?: string;
+  amountMad?: number;
   receiptUrl: string;
   receiptPath?: string;
   receiptName?: string;
@@ -129,6 +134,8 @@ export interface UserProfile {
   fullName: string;
   role: 'admin' | 'user';
   subscriptionStatus: SubscriptionStatus;
+  /** نطاق الاشتراك المدفوع: 'all' لكل المباريات أو معرّف مباراة واحدة. */
+  premiumScope?: string;
   cycle?: CycleKey;
   sessionId?: string;
 }

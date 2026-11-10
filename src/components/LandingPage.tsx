@@ -81,7 +81,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth }) => {
 
         {/* معلومات الاشتراك */}
         <div className="text-center space-y-1 text-xs text-slate-500">
-          <p>🔓 استمتع بـ 20 سؤالاً مجانياً لكل مادة | الاشتراك الكامل بـ <strong className="text-slate-400">50 درهم فقط</strong></p>
+          <p>🔓 استمتع بـ 20 سؤالاً مجانياً لكل مادة | الاشتراك من <strong className="text-slate-400">50 درهم (مباراة واحدة) أو 100 درهم شامل لكل المباريات</strong></p>
           <p>يستخدم التطبيق نظام تأكيد البريد الإلكتروني لضمان أمان حسابك</p>
         </div>
       </div>
