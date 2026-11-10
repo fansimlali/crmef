@@ -1,15 +1,16 @@
 # مهارة: من ملف إعلان المباراة إلى بنك أسئلة وملخصات جاهز للزرع
 ### مهارة موحّدة للمطوّر / منتج المحتوى / وكيل الذكاء الاصطناعي
 
-**الإصدار:** 1.0 — 2026-11-10
+**الإصدار:** 2.0 — 2026-11-10
+**التسلّيم النهائي:** ملف حزمة واحد `exam_package.json` يرفعه المشرف من زر داخل لوحة الإدارة (§1.1 و§4).
 **المنصّة المستهدفة:** المراكز الجهوية لمهن التربية والتكوين (CRMEF) — React + Vite + TS + Supabase، النموذج المدفوع.
 **متى تستعمل هذه المهارة؟** كلما وصلك **ملف إعلان مباراة** (PDF) عمومي أو خاص،
 ومطلوب: **بنك أسئلة + إجابات وشروح + ملخصات** مطابقة تماماً لبنية التطبيق،
 جاهزة للزرع في قاعدة البيانات دون أي تعديل يدوي.
 
 > ⚠️ **قاعدة ذهبية قبل أي شيء:** محتوى الأسئلة والإجابات والملخصات **مدفوع**.
-> الملفات الناتجة (أي ملف يحتوي إجابة أو ملخص) **ممنوع مرورها عبر Git/المستودع** —
-> تعمل بها محلياً فقط وترفعها إلى Supabase مباشرة. راجع §5.
+> أي ملف يحتوي إجابة أو ملخص (بما فيه حزمة الزرع نفسها) **ممنوع مروره عبر Git/المستودع** —
+> يبقى محلياً، ويُسلَّم للمشرف عبر قناة خاصة، فيُرفَع من زر اللوحة. راجع §5.
 
 ---
 
@@ -38,6 +39,7 @@
 - Q_PER_SUBJECT: ___
 - TOPICS_PER_SUBJECT: ___
 - SUMMARIES_COUNT: ___
+- DELIVERY: exam_package.json (رفع من زر المشرف)
 ```
 
 ---
@@ -45,28 +47,94 @@
 ## 1. خريطة العمل الكاملة (من الإعلان إلى قاعدة البيانات)
 
 ```
-[ملف إعلان المباراة PDF]   ← مصدر المواد والمحاور والمعاملات
-        │  (تحليل + استخراج المواد والمحاور)
+[ملف إعلان المباراة PDF]              ← مصدر المواد والمحاور والمعاملات
+        │  (تحليل واستخراج المواد والمحاور — بطاقة §0)
         ▼
-questions_seed.json                  (محلي — gitignored)
-scripts/seed-data/summariesData.ts   (محلي — gitignored)
-        │  node scripts/generate_supabase_sql.cjs
-        │  node scripts/split_seed.cjs
-        │  node scripts/export_summaries.mjs
+exam_package.json   (ملف واحد محلي — gitignored: مباراة + مواد + أسئلة + إجابات + ملخصات)
+        │  فحوص §6 محلياً حتى "لا أخطاء"
+        ▼  المسار الموصى به:
+[لوحة المشرف → زر «رفع حزمة مباراة»]  →  فحص داخل الواجهة  →  RPC خادمي (مشرف فقط)
+        │  إدراج ذرّي: exams/subjects + questions + question_answers + summaries + is_trial تلقائي
         ▼
-supabase_questions_seed.sql أو supabase_seed_part_01..NN.sql
-supabase_summaries_seed.sql
-        │  (لصق وتنفيذ في Supabase SQL Editor — دفعات SQL صغيرة)
-        ▼
-public.questions / public.question_answers  (الإجابات في جدول محمي)
-public.summaries
-        ▼
-[الموقع: crmef-wqvv.vercel.app] — التجريبي يرى عينة 20/مادة، والكامل يرى كل شيء
+[الموقع] — بطاقة المباراة تظهر فوراً باعتماد المستخرج من الملف؛ التجريبي يرى عينة 20/مادة
+
+المسار البديل (قبل جاهزية الزر فقط): السكربتات المحلية → ملفات SQL → لصق في SQL Editor (§4)
 ```
 
 ---
 
-## 2. مواصفات الأسئلة (الملف: `questions_seed.json`)
+### 1.1 هيكل حزمة الزرع الموحّدة `exam_package.json` — المخرج النهائي للتسليم
+
+ملف JSON واحد يجمع: بيانات المباراة + المواد + الأسئلة + الإجابات + الملخصات.
+
+```json
+{
+  "package_version": "1.0",
+  "exam": {
+    "name": "مباراة التعليم (CRMEF)",
+    "slug": "crmef",
+    "description": "سلك تأهيل أطر التدريس",
+    "cycles": [
+      { "id": "primary", "name": "ابتدائي مزدوج" },
+      { "id": "secondary_prep", "name": "ثانوي إعدادي" },
+      { "id": "secondary_qual", "name": "ثانوي تأهيلي" }
+    ]
+  },
+  "subjects": [
+    { "key": "ar", "name": "اللغة العربية (ابتدائي)", "cycles": ["primary"], "weight": 6 },
+    { "key": "edu", "name": "علوم التربية ومستجدات المنظومة",
+      "cycles": ["primary", "secondary_prep", "secondary_qual"], "weight": 8 }
+  ],
+  "questions": [
+    {
+      "id": "ar001",
+      "cycles": ["primary"],
+      "subject": "ar",
+      "topic": "النحو والإعراب",
+      "question": "…",
+      "options": ["…", "…", "…", "…"],
+      "correct_answer": "…",
+      "explanation": "…"
+    }
+  ],
+  "summaries": [
+    {
+      "id": "sum_pri_edu",
+      "title": "…",
+      "category": "…",
+      "cycle": "ابتدائي مزدوج",
+      "readTime": "10 دقائق قراءة",
+      "sections": [ { "heading": "…", "paragraphs": ["…", "---"] } ]
+    }
+  ]
+}
+```
+
+| الجزء | القاعدة |
+|---|---|
+| `package_version` | الثابت `"1.0"` حرفياً في هذه النسخة. |
+| `exam.slug` | لاتيني صغير بلا فراغات. نفس الـ slug ≠ نسخة جديدة: الرفع **يُحدِّث ويُضيف** على نفس المباراة. |
+| `exam.cycles[].id` | من المجموعة: `primary` / `secondary_prep` / `secondary_qual` — و`name` هو النص المعروض بالعربية. |
+| `subjects[].key` | فريدة داخل الحزمة. مواد CRMEF: مفاتيح جدول §2.4 كما هي. مباراة جديدة: `med_anat`، `law_priv`… |
+| `subjects[].cycles` | قائمة من معرّفات `exam.cycles`. |
+| `subjects[].weight` | من قانون المباراة (نظام الترتيب/العرض). |
+| `questions` | نفس مواصفات §2. شرط إضافي: `subject` مُعلَن في `subjects`، و`cycles` ضمن معرّفات المباراة. |
+| `summaries` | نفس مواصفات §3. |
+| `is_trial` والفصل الخصمي للإجابات | **لا تتدخَّل فيهما**: زر الرفع يفصل الإجابات إلى `question_answers` ويعلّم أول 20/مادة تلقائياً. |
+
+**ما يتولاه التطبيق تلقائياً بعد الرفع (أربع خطوات):**
+1. فحص كامل للملف في الواجهة (قواعد §2 و§3 و§6) — الرفع يُمنع عند أي خطأ قاطع، ويظهر التقرير.
+2. إدراج ذرّي عبر RPC خادمي متاح للمشرف فقط (مباراة → مواد → أسئلة → إجابات محميّة → ملخصات). كل شيء ينجح أو لا شيء.
+3. تعليم العينة المجانية `is_trial` = أول 20 سؤالاً/مادة بترتيب `id`.
+4. بطاقة المباراة (باسمها وتخصصاتها كما في الملف) تظهر فوراً في واجهة المستخدمين — بلا SQL ولا نشر كود.
+
+**حجم الحزمة:** 2,300 سؤال ≈ 1.5–2MB — رفع عادي مقبول. إذا تجاوزت الحزمة 10MB قسّمها إلى حزم جزئية بنفس `slug` (الرفع المتتابع يُكمل دون مسح).
+
+> حزمة واحدة لكل تسليم؛ واسم الملف دائماً `exam_package.json`؛ وأضِفه إلى `.gitignore` إن لم يكن موجوداً.
+
+---
+
+## 2. مواصفات الأسئلة (الملف: `questions_seed.json` — أو قسم `questions` من الحزمة)
 
 ### 2.1 الشكل الصحيح 100% (لا حقل زائد، لا حقل ناقص)
 
@@ -160,7 +228,7 @@ public.summaries
 
 ---
 
-## 3. مواصفات الملخصات (الملف: `scripts/seed-data/summariesData.ts`)
+## 3. مواصفات الملخصات (`scripts/seed-data/summariesData.ts` — أو قسم `summaries` من الحزمة)
 
 ### 3.1 الشكل الصحيح (TypeScript)
 
@@ -222,26 +290,38 @@ export const SUMMARIES_DATA: SummaryArticle[] = [
 
 ## 4. سير التنفيذ التقني (خطوة بخطوة)
 
-### خطوة 1 — توليد SQL الأسئلة
-```bash
-# أنشئ/حدّث questions_seed.json (محلياً فقط — gitignored)
-node scripts/generate_supabase_sql.cjs    # → supabase_questions_seed.sql
-node scripts/split_seed.cjs               # → supabase_seed_part_01..NN.sql للتوفير من حد "Query too large"
-```
+### المسار الموصى به — حزمة واحدة + زر المشرف (منذ جاهزية الزر)
 
-### خطوة 2 — توليد SQL الملخصات
+1. ابنِ ملف `exam_package.json` حسب هيكل §1.1 ومواصفات §2 و§3 — **محلياً فقط**.
+2. نفّذ فحوص §6 المحلية حتى يظهر "لا أخطاء".
+3. في لوحة المشرف: زر **[رفع حزمة مباراة]** → اختر الملف → راجع تقرير الفحص المُعروض → أكّد الرفع.
+4. بعد النجاح: تقرير فوري (عدد الأسئلة/مادة + عدد الملخصات)، وبطاقة المباراة جاهزة للمستخدمين فوراً.
+
+> **إذا أظهر الفحص خطأً:** أصلح الملف ثم أعد المحاولة — لا يُرفع ملف معطوب إطلاقاً.
+> **الإلحاق/التحديث لاحقاً:** نفس `exam.slug` ونفس معرّفات `id` — التحديث يضيف ويعدّل دون الإخلال بالبيانات القديمة.
+
+### المسار البديل — سكربتات SQL (استعمله فقط حين يكون زر الرفع غير متاح بعد)
+
+قسّم محتوى الحزمة إلى الملفين المحليين المعتادين ثم ولّد SQL وقم بالزرع يدوياً:
+
 ```bash
-# أنشئ/حدّث scripts/seed-data/summariesData.ts (محلياً فقط — gitignored)
+# من الحزمة، أنشئ محلياً:
+#   questions_seed.json                ← قسم questions (نفس بنية §2)
+#   scripts/seed-data/summariesData.ts ← قسم summaries (نفس بنية §3)
+node scripts/generate_supabase_sql.cjs    # → supabase_questions_seed.sql
+node scripts/split_seed.cjs               # → supabase_seed_part_01..NN.sql (تفادي حد "Query too large")
 node scripts/export_summaries.mjs         # → supabase_summaries_seed.sql
 ```
 
-### خطوة 3 — تنفيذ في Supabase (SQL Editor) **بالترتيب**
+ثم التنفيذ في Supabase SQL Editor **بالترتيب**:
 1. `supabase_schema.sql` (بنية الجداول وسياسات RLS — **ممنوع تعديله**).
 2. `supabase_summaries_seed.sql`.
-3. `supabase_questions_seed.sql` **أو** الأجزاء `supabase_seed_part_01.sql → …` بالترتيب (حسب حد SQL Editor "Query too large").
+3. `supabase_questions_seed.sql` **أو** الأجزاء `supabase_seed_part_01.sql → …` بالترتيب (حسب حد "Query too large").
 
-### خطوة 4 — إلحاق الأسئلة/الملخصات لاحقاً
-كرر نفس الخطوات — الاستعلامات تستعمل **ON CONFLICT (id) DO UPDATE** فتُحدّث وتضيف معاً دون اختراق بيانات قديمة.
+> هذا المسار لا يغطي إلا بنك CRMEF بمفاتيحه المعروفة. بطاقة مباراة **جديدة** تأتي حصراً عبر زر الرفع بعد ترحيل `exams/subjects`.
+
+### الإلحاق اللاحق (كلا المسارين)
+كرر نفس العملية — الإدراج يستعمل **ON CONFLICT (id) DO UPDATE** فيتحدّث ويُضاف دون الإخلال بالبيانات القديمة.
 
 ---
 
@@ -250,38 +330,43 @@ node scripts/export_summaries.mjs         # → supabase_summaries_seed.sql
 | # | القاعدة |
 |---|---|
 | 1 | **فصل الجدولين:** الأسئلة تُدرج في `questions` **بلا إجابات**، والإجابات والشروح إلى `question_answers` (جدول محمي بـ RLS، القراءة للمشرف/المشترك الكامل فقط). السكربت يفعل ذلك تلقائياً — لا تدمجهما يدوياً. |
-| 2 | ملفات المحتوى الناتجة (`questions_seed.json`, `supabase_*_seed.sql`, `supabase_seed_part_*.sql`, `scripts/seed-data/`) **كلها في `.gitignore`** — تأكد قبل كل `git status` أن دفعتها لا تظهر أبدًا. |
+| 2 | ملفات المحتوى الناتجة (`exam_package.json`, `questions_seed.json`, `supabase_*_seed.sql`, `supabase_seed_part_*.sql`, `scripts/seed-data/`) **كلها في `.gitignore`** — تأكد قبل كل `git status` أن دفعتها لا تظهر أبدًا. |
 | 3 | لا تُسلّم للواجهة العامة أي حقل يحمل الإجابة قبل أن يُجيب المستخدم (التحقق خادمي عبر دالة `answer_question` — لا يفصح العميل عن الإجابة أبداً). |
 | 4 | تعليم العينة المجانية (`is_trial`) عملية **قاعدة بيانات** من السكربت — لا تعلّم >20/مادة يدوياً (وإلا توسّع الجدار المجاني صامتاً). |
 | 5 | لا `service_role` ولا توكن في أي ملف تنتجه أو ترفعِه — متغيرات بيئة فقط. |
 | 6 | **دقة قانون المباراة:** النسب والمعاملات والمحاور من الإعلان الرسمي — بلا مفتعليات ولا تخفيف. |
 | 7 | لا تُشارك ملفات المحتوى علناً (تليكرم/درايف عمومي/فيسبوك) — قناة خاصة للمالك/المشرف فقط. |
+| 8 | حزمة `exam_package.json` تُسلَّم للمشرف قناة خاصة (USB أو مساحة مشتركة موثوقة) — تُمسح من جهاز المنتج بعد نجاح الرفع، ولا تُحفظ في أي مكان علني أو بريد عادي. |
 
 ---
 
 ## 6. فحوص القبول (Checklist قبل التسليم/الزرع النهائي)
 
-### على الملفات (محلياً)
-- [ ] لا خطأ JSON:
+### على الحزمة (محلياً — `exam_package.json`)
+- [ ] البنية سليمة والأعداد مطابقة للبطاقة:
   ```bash
-  node -e "JSON.parse(require('fs').readFileSync('questions_seed.json','utf8'))"
+  node -e "const p=require('./exam_package.json');const q=p.questions;console.log('pkg:',p.package_version,'Q:',q.length,'SUM:',p.summaries.length,'SUBJ:',p.subjects.length)"
   ```
 - [ ] كل `id` فريدة عالمياً:
   ```bash
-  node -e "const q=require('./questions_seed.json');const s=new Set(q.map(x=>x.id));console.log('unique:',s.size===q.length,'total:',q.length)"
+  node -e "const p=require('./exam_package.json');const q=p.questions;const s=new Set(q.map(x=>x.id));console.log('unique:',s.size===q.length)"
   ```
 - [ ] كل `correct_answer` **موجود حرفياً** في `options`:
   ```bash
-  node -e "const q=require('./questions_seed.json');const bad=q.filter(x=>!x.options.includes(x.correct_answer));console.log('mismatch:',bad.length,bad.map(b=>b.id))"
+  node -e "const p=require('./exam_package.json');const bad=p.questions.filter(x=>!x.options.includes(x.correct_answer));console.log('mismatch:',bad.length,bad.map(b=>b.id))"
   ```
 - [ ] كل `options.length===4` ولا عنصر فارغ أو مكرر داخل نفس الخيارات.
+- [ ] كل `subject` مُعلَن في `subjects` وكل `cycles` من معرّفات المباراة:
+  ```bash
+  node -e "const p=require('./exam_package.json');const K=new Set(p.subjects.map(s=>s.key));const C=new Set(p.exam.cycles.map(c=>c.id));const bad=p.questions.filter(x=>!K.has(x.subject)||(x.cycles||[]).some(c=>!C.has(c)));console.log('bad:',bad.length,bad.map(b=>b.id))"
+  ```
 - [ ] أعداد الأسئلة/مادة متوافقة مع بطاقة §0:
   ```bash
-  node -e "const q=require('./questions_seed.json');const m={};q.forEach(x=>m[x.subject]=(m[x.subject]||0)+1);console.log(m)"
+  node -e "const p=require('./exam_package.json');const m={};p.questions.forEach(x=>m[x.subject]=(m[x.subject]||0)+1);console.log(m)"
   ```
 - [ ] مواضع الإجابة الصحيحة موزعة (لا تكدس في موضع واحد):
   ```bash
-  node -e "const q=require('./questions_seed.json');const p=[0,0,0,0];q.forEach(x=>p[x.options.indexOf(x.correct_answer)]++);console.log(p)"
+  node -e "const p=require('./exam_package.json');const pos=[0,0,0,0];p.questions.forEach(x=>pos[x.options.indexOf(x.correct_answer)]++);console.log(pos)"
   ```
 
 ### على قاعدة البيانات (بعد الزرع)
@@ -295,6 +380,7 @@ SELECT count(*) FROM public.summaries;             -- يتطابق مع بطاق
 ```
 - [ ] دخول حساب **تجريبي**: تظهر عينة 20/مادة لكل المواد؛ ومحاولة قراءة الإجابات مباشرة عبر REST تعيد فراغاً `[]`.
 - [ ] دخول حساب **premium**: كل المواد تفتح، والإجابة/الشرح تظهران بعد إجابة المستخدم.
+- [ ] بعد الرفع عبر الزر: بطاقة المباراة (باسمها وتخصصاتها من الملف) ظاهرة في واجهة المستخدمين.
 
 ---
 
@@ -304,8 +390,8 @@ SELECT count(*) FROM public.summaries;             -- يتطابق مع بطاق
 ## تقرير بطاقة المباراة — [EXAM_NAME]
 - المواد المغطاة: [قائمة مفاتيح §2.4] مع عدد الأسئلة لكل مادة (جدول §6).
 - الملخصات: [العدد] — [قائمة معرّفاتها].
-- ملفات الناتج: questions_seed.json (X سؤال) + summariesData.ts (Y ملخص).
-- SQL المنفّذة في Supabase: [أجزاء تم تنفيذها بالترتيب].
+- ملف التسليم: exam_package.json (X سؤال + Y ملخص + Z مواد) — رُفع من زر المشرف بتاريخ [__].
+- SQL المنفّذ في Supabase: [المسار البديل فقط إن استُعمل — أجزاءه بالترتيب].
 - فحوص §6: [كل بند ✓ أو ملاحظة].
 ```
 
@@ -315,7 +401,7 @@ SELECT count(*) FROM public.summaries;             -- يتطابق مع بطاق
 
 إذا كانت المباراة الجديدة **خارج CRMEF** (طب، محاماة، إدارة…):
 1. طبّق أولًا `TECHNICAL_SHEET_MULTI_EXAM.md`: إنشاء جداول `exams` و `subjects` وأعمدة `exam_id` — **تُنشأ بكتابة SQL فقط، لا يدوياً في اللوحة**.
-2. مفاتيح المواد الجديدة يُنشئها المطوّر (وليس منتج المحتوى) بإضافة المفتاح والاسم في `SUBJECT_NAMES` داخل `src/types.ts`، ثم يُسمح باستعمالها في `questions_seed.json`.
+2. مفاتيح المواد الجديدة تُدوَن مباشرة داخل `subjects` في الحزمة وتُسجَّل في قاعدة البيانات عند الرفع — بعد الترحيل لا تحتاج أي تعديل على `src/types.ts`. (وقبل الترحيل: تُنفَّذ بنية `exams/subjects` أولاً ثم يُستعمل الزر فقط.)
 3. معرّف الأسئلة الجديدة بالتنسيق: `<EXAM_SLUG><بادئة المادة><رقم بثلاث خانات>` (مثال: `med_anat001`).
 4. تحذير مهم: عند إضافة مباراة **قبل** تنفيذ مراحل `exam_id`، سياسات RLS القديمة ما تزال تعتمد آلية «السلك + is_trial» فقط — فمباراة جديدة لن تكون معزولة حتى تُطبَّق مراحل الترحيل كاملة.
 
