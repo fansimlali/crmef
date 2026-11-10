@@ -38,6 +38,7 @@ supabase_summaries_seed.sql
 questions_seed.json
 supabase_questions_seed.sql
 supabase_seed_part_*.sql
-dist/
-qt/
+tarbawiyin mokhtabarat/
+exam_package.json
+supabase_tarbawiyin_seed.sql
 

@@ -434,7 +434,7 @@ function AppContent() {
         {/* خطوة 2: إعداد الاختبار (بعد اختيار المباراة) */}
         {quizStatus === 'setup' && selectedExam && (
           <QuizSetup
-            questions={allQuestions}
+            questions={selectedExam ? allQuestions.filter((q) => (q.exam_id || 'crmef') === selectedExam) : []}
             onStart={handleStartExam}
             selectedExam={selectedExam}
             onChangeExam={() => setSelectedExam(null)}

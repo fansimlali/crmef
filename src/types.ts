@@ -134,6 +134,7 @@ export interface UserProfile {
  */
 export interface Question {
   id: string;
+  exam_id?: string; // المباراة المالكة للسؤال — 'crmef' افتراضياً للمحتوى القديم
   cycles?: CycleKey[]; // إن لم تُحدد، يتم اشتقاقها من المادة. علوم التربية edu صالحة لجميع الأسلاك!
   subject: SubjectKey;
   topic: string;

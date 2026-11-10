@@ -84,7 +84,7 @@ export async function getQuestions(isAdmin = false): Promise<Question[]> {
   for (;;) {
     const { data, error } = await client
       .from('questions')
-      .select('id, cycles, subject, topic, question, options, is_trial')
+      .select('id, cycles, subject, topic, question, options, is_trial, exam_id')
       .order('id', { ascending: true })
       .range(offset, offset + PAGE - 1);
     if (error) {
@@ -100,6 +100,7 @@ export async function getQuestions(isAdmin = false): Promise<Question[]> {
   rows.forEach((row: any) => {
     mergedMap.set(row.id, {
       id: row.id,
+      exam_id: row.exam_id || 'crmef',
       subject: row.subject as SubjectKey,
       topic: row.topic || '',
       question: row.question,
