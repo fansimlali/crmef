@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
 import type { ExamRecord, SubjectKey, CycleKey, ExamTitle } from '../types';
-import { SUBJECT_NAMES, CYCLES, getSubjectWeight } from '../types';
+import { SUBJECT_NAMES, getCyclesForExam, getSubjectWeight } from '../types';
+import { getSubjectConfigs } from '../lib/supabase';
 import { 
   Trophy, 
   RotateCcw, 
@@ -20,6 +21,7 @@ interface QuizResultsProps {
   cycle: CycleKey;
   phase: 'قبلي' | 'بعدي';
   records: ExamRecord[];
+  examId?: string | null;
   examInfo?: ExamTitle | null;
   onRestart: () => void;
 }
@@ -28,10 +30,38 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
   cycle,
   phase,
   records,
+  examId,
   examInfo,
   onRestart,
 }) => {
-  const cycleInfo = CYCLES.find((c) => c.id === cycle);
+  const cycleInfo = getCyclesForExam(examId, examInfo?.full).find((c) => c.id === cycle);
+  // أسماء الموضوعات من جدول subjects (للمباريات غير التعليمية) — احتياطاً الثابت ثم المفتاح.
+  const [dbSubjectNames, setDbSubjectNames] = useState<Record<string, string>>({});
+  const [dbSubjectWeights, setDbSubjectWeights] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    let alive = true;
+    if (!examId) return;
+    getSubjectConfigs(examId)
+      .then(({ subjects, fromDb }) => {
+        if (!alive || !fromDb) return;
+        const names: Record<string, string> = {};
+        const weights: Record<string, number> = {};
+        subjects.forEach((s) => {
+          names[s.key] = s.name;
+          weights[s.key] = s.weight;
+        });
+        setDbSubjectNames(names);
+        setDbSubjectWeights(weights);
+      })
+      .catch(() => { /* الاحتياط الثابت */ });
+    return () => { alive = false; };
+  }, [examId]);
+
+  const subjectDisplayName = (key: string): string =>
+    dbSubjectNames[key] ?? SUBJECT_NAMES[key as SubjectKey] ?? key;
+  const subjectWeightOf = (key: string): number =>
+    dbSubjectWeights[key] || getSubjectWeight(cycle, key as SubjectKey);
 
   // تجميع السجلات حسب المادة وحساب النسب
   const subjectGroups: Record<string, ExamRecord[]> = {};
@@ -49,7 +79,7 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
     const list = subjectGroups[subKey];
     const correctCount = list.filter((r) => r.isCorrect).length;
     const accuracy = (correctCount / list.length) * 100;
-    const weight = getSubjectWeight(cycle, subKey as SubjectKey);
+    const weight = subjectWeightOf(subKey);
 
     weightedSum += weight * accuracy;
     totalWeights += weight;
@@ -58,7 +88,7 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
     // مع عينة صغيرة جداً (سؤال واحد) تكون النتيجة استرشادية فقط، فلا نُقصي.
     const scoreOutOf20ForSubject = (accuracy * 20) / 100;
     if (scoreOutOf20ForSubject < 5 && list.length >= 2) {
-      eliminatorySubjects.push(`${SUBJECT_NAMES[subKey as SubjectKey] || subKey} (${scoreOutOf20ForSubject.toFixed(1)}/20)`);
+      eliminatorySubjects.push(`${subjectDisplayName(subKey)} (${scoreOutOf20ForSubject.toFixed(1)}/20)`);
     }
   });
 
@@ -75,7 +105,7 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
   // تجميع السجلات حسب المحور
   const topicGroups: Record<string, ExamRecord[]> = {};
   records.forEach((r) => {
-    const label = `${SUBJECT_NAMES[r.subject] || r.subject} : ${r.topic}`;
+    const label = `${subjectDisplayName(r.subject)} : ${r.topic}`;
     if (!topicGroups[label]) topicGroups[label] = [];
     topicGroups[label].push(r);
   });
@@ -111,7 +141,9 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
   // تصدير النتيجة كملف JSON
   const handleDownload = () => {
     const data = {
-      platform: 'CRMEF Exam Simulator',
+      platform: 'منصة التقويم التجريبي',
+      exam: examInfo?.full || examId || 'crmef',
+      track: cycleInfo?.name || cycle,
       cycle: cycleInfo?.name || cycle,
       phase,
       date: new Date().toISOString(),
@@ -130,7 +162,7 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `crmef_${cycle}_${phase === 'قبلي' ? 'pre' : 'post'}_${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = `${examId || 'crmef'}_${cycle}_${phase === 'قبلي' ? 'pre' : 'post'}_${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -147,6 +179,12 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
       {/* بطاقة النتيجة الرئيسية */}
       <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-10 shadow-sm text-center relative overflow-hidden">
         <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
+          {examInfo?.full && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-900 text-xs font-black border border-emerald-200">
+              <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
+              <span>{examInfo.full}</span>
+            </span>
+          )}
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-800 text-xs font-bold">
             <GraduationCap className="w-3.5 h-3.5 text-emerald-600" />
             <span>{cycleInfo?.name || cycle}</span>
@@ -287,7 +325,7 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
                 return (
                   <tr key={subKey} className="hover:bg-slate-50/50">
                     <td className="py-3 px-4 font-bold text-slate-800">
-                      {SUBJECT_NAMES[subKey as SubjectKey] || subKey}
+                      {subjectDisplayName(subKey)}
                     </td>
                     <td className="py-3 px-4 font-mono font-bold text-slate-600">
                       {weight}
@@ -376,7 +414,7 @@ export const QuizResults: React.FC<QuizResultsProps> = ({
               .map((r, i) => (
                 <div key={i} className="p-5 rounded-2xl border border-rose-100 bg-rose-50/30 space-y-3">
                   <div className="flex items-center justify-between text-xs font-bold text-slate-500">
-                    <span>{SUBJECT_NAMES[r.subject] || r.subject} – {r.topic}</span>
+                    <span>{subjectDisplayName(r.subject)} – {r.topic}</span>
                     <span className="text-rose-600">درجة الثقة: {r.confidence}</span>
                   </div>
 

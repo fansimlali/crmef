@@ -28,30 +28,41 @@ const EXAM = {
   short_name: 'الأطر المختصين',
   slug: 'tarbawiyin',
   description:
-    'مسابقة إدماج أطر المختصين بقطاع التربية الوطنية — مسالك: مكونو المختصين التربويين، مختصو الاقتصاد والإدارة، المختصون الاجتماعيون. ' +
-    'اختبار شفوي مشترك: مقابلة حول مهام وتخصصات الإطار الموظَّف فيه. المصدر الرسمي: بوابة ولوج wolouj.men.gov.ma',
+    'مباراة ولوج أطر المختصين بقطاع التربية الوطنية — ثلاثة مسالك: تكوين المختصين التربويين، تكوين أطر مختصي الاقتصاد والتدبير، تكوين أطر المختصين الاجتماعيين. ' +
+    'في كل مسلك موضوعان، والاختبار الشفوي مقابلة حول الاختصاصات والمهام المرتبطة بالوظيفة المطلوب شغلها. المصدر الرسمي: بوابة ولوج wolouj.men.gov.ma',
   icon: 'book',   // أيقونة معروفة في ExamSelector (BookOpen)
   color: 'purple',
   is_active: true,
   sort_order: 20,
 };
 
-// أسلاك قياسية (الواجهة و RLS يعتمدانهما؛ المباراة تتجاهل السلك عملياً لأن كل الأصنوفة متاحة)
+// المسالك الثلاثة الرسمية (الإعلان) — تُعرض في الواجهة عبر EXAM_TRACKS بدل الأسلاك التعليمية.
+// المفاتيح الداخلية تبقى مفاتيح الأسلاك القياسية لتعمل طبقات RLS والتقدم دون تغيير.
 const CYCLES = ['primary', 'secondary_prep', 'secondary_qual'];
 const EXAM_CYCLES = [
-  { id: 'primary', name: 'ابتدائي مزدوج' },
-  { id: 'secondary_prep', name: 'ثانوي إعدادي' },
-  { id: 'secondary_qual', name: 'ثانوي تأهيلي' },
+  { id: 'primary', name: 'مسلك تكوين المختصين التربويين' },
+  { id: 'secondary_prep', name: 'مسلك تكوين أطر مختصي الاقتصاد والتدبير' },
+  { id: 'secondary_qual', name: 'مسلك تكوين أطر المختصين الاجتماعيين' },
 ];
 
-// إعادة تسمية مفاتيح المواد (اسم المادة في الواجهة رسمي مع ذكر المسلك)
+// المواد الست = موضوعان لكل مسلك (الأسماء الرسمية من الإعلان، المعاملات متساوية).
+// cycles لكل مادة = مسلكها الوحيد (كما يحدده الإعلان) — لا مواد مشتركة بين المسالك.
+const TRACK_OF_SUBJECT = {
+  tadbir_mali_mohasabati: 'primary',         // مسلك المختصين التربويين
+  khas_tarbawi: 'primary',                   // مسلك المختصين التربويين
+  tadbir_idari_tarbawi: 'secondary_prep',    // مسلك الاقتصاد والتدبير
+  khas_iqtisad: 'secondary_prep',            // مسلك الاقتصاد والتدبير
+  tahlil_nafsia_ijtimaiya: 'secondary_qual', // مسلك المختصين الاجتماعيين
+  khas_ijtimai: 'secondary_qual',            // مسلك المختصين الاجتماعيين
+};
+
 const SUBJECTS = [
-  { key: 'tadbir_idari_tarbawi',   name: 'التدبير الإداري والتربوي لمؤسسات التربية والتعليم العمومي', weight: 2 },
-  { key: 'khas_tarbawi',           name: 'تخصص خاصية — مسلك مكون المختصين التربويين',                  weight: 2 },
-  { key: 'tadbir_mali_mohasabati', name: 'التدبير المالي والمحاسباتي — مسلك أطر مختصي الاقتصاد والإدارة', weight: 2 },
-  { key: 'tahlil_nafsia_ijtimaiya',name: 'تحليل الظاهرة النفسية والاجتماعية — مسلك أطر المختصين الاجتماعيين', weight: 1 },
-  { key: 'khas_iqtisad',           name: 'تخصص خاصية — مسلك أطر مختصي الاقتصاد والإدارة',              weight: 1 },
-  { key: 'khas_ijtimai',           name: 'تخصص خاصية — مسلك أطر المختصين الاجتماعيين',                 weight: 1 },
+  { key: 'tadbir_mali_mohasabati',  name: 'التدبير المالي والمحاسباتي لمؤسسات التربية والتعليم العمومي', weight: 1 },
+  { key: 'khas_tarbawi',            name: 'الاختصاصات أو المهام المرتبطة بالوظيفة المطلوب شغلها (مسلك المختصين التربويين)', weight: 1 },
+  { key: 'tadbir_idari_tarbawi',    name: 'التدبير الإداري والتدبيري لمؤسسات التربية والتعليم العمومي', weight: 1 },
+  { key: 'khas_iqtisad',            name: 'الاختصاصات أو المهام المرتبطة بالوظيفة المطلوب شغلها (مسلك الاقتصاد والتدبير — مختبرات مدرسية / حراسة تربوية وتوثيق)', weight: 1 },
+  { key: 'tahlil_nafsia_ijtimaiya', name: 'تحليل ظاهرة نفسية واجتماعية', weight: 1 },
+  { key: 'khas_ijtimai',            name: 'الاختصاصات أو المهام المرتبطة بالوظيفة المطلوب شغلها (مسلك المختصين الاجتماعيين)', weight: 1 },
 ];
 
 // بنك ← مادة جديد (المصدر → key بعد التطبيع) وإصلاح تسمية المحور حسب الإعلان
@@ -103,9 +114,11 @@ for (const bank of BANKS) {
     const options = q.options.slice(off).concat(q.options.slice(0, off));
 
     const rewrittenTopic = bank.topicRewrite[q.topic] || q.topic;
+    const trackCycle = TRACK_OF_SUBJECT[bank.newSubject];
+    if (!trackCycle) throw new Error(`مادة بلا مسلك معلن: ${bank.newSubject}`);
     questions.push({
       id: String(q.id),
-      cycles: CYCLES.slice(),
+      cycles: [trackCycle],
       subject: bank.newSubject,
       topic: String(rewrittenTopic),
       question: String(q.question),
@@ -119,7 +132,7 @@ for (const bank of BANKS) {
 // ليست كل مواد الحزمة لها بنك بعد — تُعلن بالأسماء الرسمية وتظهر «قيد التحضير».
 const subjectsForPackage = SUBJECTS
   .filter((s) => INCLUDE_TARBAWI_1 || s.key !== 'khas_tarbawi')
-  .map((s) => ({ key: s.key, name: s.name, cycles: CYCLES.slice(), weight: s.weight }));
+  .map((s) => ({ key: s.key, name: s.name, cycles: [TRACK_OF_SUBJECT[s.key]], weight: s.weight }));
 
 const badSubject = questions.filter((q) => !subjectKeys.has(q.subject));
 if (badSubject.length) problems.push(`أسئلة بمادة غير معلنة: ${badSubject.map((q) => q.id).join(',')}`);
@@ -150,6 +163,8 @@ fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2), 'utf8');
 // ───────────────────────── SQL البذر (مسار الاحتياط §4) ─────────────────────────
 const esc = (s) => String(s).replace(/'/g, "''").replace(/\u0000/g, '');
 const cyclesLit = `ARRAY[${CYCLES.map((c) => `'${c}'`).join(',')}]::text[]`;
+// دورة (مسلك) كل مادة — نص SQL مصفوفة وحيدة
+const trackLit = (key) => `ARRAY['${TRACK_OF_SUBJECT[key]}']::text[]`;
 
 // is_trial: أول N لكل مادة بترتيب معرف صاعد
 const bySubject = new Map();
@@ -188,7 +203,7 @@ sql.push(`INSERT INTO public.subjects (exam_id, key, name, cycles, weight) VALUE
 const subjRows = subjectsForPackage.map((s, i) => {
   // لا فاصلة منقوطة على الصف الأخير — يتبعها ON CONFLICT ضمن نفس الجملة.
   const tail = (i < subjectsForPackage.length - 1 ? ',' : '');
-  return `('${EXAM.slug}', '${s.key}', '${esc(s.name)}', ${cyclesLit}, ${s.weight})${tail}`;
+  return `('${EXAM.slug}', '${s.key}', '${esc(s.name)}', ${trackLit(s.key)}, ${s.weight})${tail}`;
 });
 sql.push(...subjRows);
 sql.push(`ON CONFLICT (exam_id, key) DO UPDATE SET`);
@@ -201,7 +216,7 @@ for (const part of chunk(questions, 20)) {
   const rows = part.map((q, i) => {
     const optsJson = JSON.stringify(q.options); // مصفوفة JSON صالحة داخل نص SQL
     const tail = (i < part.length - 1 ? ',' : '');
-    return `('${q.id}', ${cyclesLit}, '${esc(q.subject)}', '${esc(q.topic)}', '${esc(q.question)}', '${esc(optsJson)}'::jsonb, ${trialIds.has(q.id)}, '${EXAM.slug}')${tail}`;
+    return `('${q.id}', ${trackLit(q.subject)}, '${esc(q.subject)}', '${esc(q.topic)}', '${esc(q.question)}', '${esc(optsJson)}'::jsonb, ${trialIds.has(q.id)}, '${EXAM.slug}')${tail}`;
   });
   sql.push(...rows);
   sql.push(`ON CONFLICT (id) DO UPDATE SET`);

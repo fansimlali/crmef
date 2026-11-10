@@ -548,6 +548,7 @@ function AppContent() {
               cycle={examCycle}
               phase={examPhase}
               records={records}
+              examId={selectedExam}
               examInfo={selectedExamInfo}
               onRestart={handleRestart}
             />

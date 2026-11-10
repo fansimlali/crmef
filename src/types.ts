@@ -20,8 +20,7 @@ export const CYCLES: CycleDefinition[] = [
     badge: 'ابتدائي مزدوج',
     description: 'مواد التخصص (20) + ديداكتيك المواد (12) + علوم التربية (8).',
     available: true,
-  },
-  {
+  },  {
     id: 'secondary_prep',
     name: 'سلك التعليم الثانوي الإعدادي',
     badge: 'ثانوي إعدادي',
@@ -44,6 +43,54 @@ export const CYCLES: CycleDefinition[] = [
     unavailableReason: 'غير متاحة في التطبيق',
   },
 ];
+
+/**
+ * مسالك المباريات غير التعليمية — تُعرض مكان الأسلاك في خطوة الإعداد.
+ * المفاتيح الداخلية تبقى مفاتيح الأسلاك القياسية (primary/secondary_prep/
+ * secondary_qual) لتعمل كل طبقات التطبيق (RLS، التقدم، الفلترة) دون تغيير،
+ * بينما الأسماء والوصف تُعرض بأسماء المسالك الرسمية من الإعلان.
+ */
+export const EXAM_TRACKS: Record<string, CycleDefinition[]> = {
+  tarbawiyin: [
+    {
+      id: 'primary',
+      name: 'مسلك تكوين المختصين التربويين',
+      badge: 'المختصون التربويون',
+      description: 'موضوعان: التدبير المالي والمحاسباتي لمؤسسات التربية والتعليم العمومي + الاختصاصات أو المهام المرتبطة بالوظيفة.',
+      available: true,
+    },
+    {
+      id: 'secondary_prep',
+      name: 'مسلك تكوين أطر مختصي الاقتصاد والتدبير',
+      badge: 'الاقتصاد والتدبير',
+      description: 'موضوعان: التدبير الإداري والتدبيري لمؤسسات التربية والتعليم العمومي + الاختصاصات أو المهام (مختبرات مدرسية / حراسة تربوية وتوثيق).',
+      available: true,
+    },
+    {
+      id: 'secondary_qual',
+      name: 'مسلك تكوين أطر المختصين الاجتماعيين',
+      badge: 'المختصون الاجتماعيون',
+      description: 'موضوعان: تحليل ظاهرة نفسية واجتماعية + الاختصاصات أو المهام المرتبطة بالوظيفة.',
+      available: true,
+    },
+  ],
+};
+
+/** قائمة "الأسلاك" الفعلية لمباراة: مسالك للمباريات المصرّح بها، أو الأسلاك التعليمية لـ CRMEF. */
+export function getCyclesForExam(examId?: string | null, examName?: string | null): CycleDefinition[] {
+  if (examId && EXAM_TRACKS[examId]) return EXAM_TRACKS[examId];
+  // تأمين: لو اختلف معرّف المباراة في القاعدة، يُعتمد على اسمها (كل مباريات المسالك
+  // تحمل كلمة «المختصين» في العنوان الرسمي).
+  if (examName && examName.includes('المختصين')) return EXAM_TRACKS.tarbawiyin;
+  return CYCLES;
+}
+
+/** هل هذه المباراة تُنظَّم بمسالك (بدل الأسلاك التعليمية)؟ */
+export function isTrackExam(examId?: string | null, examName?: string | null): boolean {
+  if (!examId && !examName) return false;
+  if (examId && EXAM_TRACKS[examId]) return true;
+  return Boolean(examName && examName.includes('المختصين'));
+}
 
 export type SubjectKey = 
   // مواد الابتدائي

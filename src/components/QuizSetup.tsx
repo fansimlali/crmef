@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { SubjectKey, Question, CycleKey, ExamTitle } from '../types';
-import { CYCLES, SUBJECT_NAMES, getSubjectWeight } from '../types';
+import { CYCLES, SUBJECT_NAMES, getSubjectWeight, getCyclesForExam, isTrackExam } from '../types';
 import { getSubjectConfigs } from '../lib/supabase';
 import type { SubjectRowConfig } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -41,22 +41,29 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
     setUpgradeModalOpen 
   } = useAuth();
 
+  // مباراة منظمة بمسالك (بدل الأسلاك التعليمية)؟ — مثل مباراة أطر المختصين.
+  const trackMode = isTrackExam(selectedExam, examInfo?.full);
+  const cycleDefs = getCyclesForExam(selectedExam, examInfo?.full);
+  const levelWord = trackMode ? 'المسلك' : 'السلك';
+  const subjectWord = trackMode ? 'الموضوع' : 'المادة';
+
   // إذا كان المستخدم مسجلاً وله سلك محدد، نقفل السلك تلقائياً على سلكه
+  // (في المباريات ذات المسالك يُترك الاختيار حراً — المسالك ليست تخصص تسجيل).
   const userCycle = user?.cycle || null;
 
   // المراحل التدريجية (Stepper)
-  const [selectedCycle, setSelectedCycle] = useState<CycleKey | null>(userCycle);
+  const [selectedCycle, setSelectedCycle] = useState<CycleKey | null>(trackMode ? null : userCycle);
   const [phase, setPhase] = useState<'قبلي' | 'بعدي' | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<SubjectKey | 'all'>('all');
   const [questionCount, setQuestionCount] = useState<number>(0);
   const [onlyUnanswered, setOnlyUnanswered] = useState<boolean>(false);
 
-  // مزامنة السلك عند تسجيل دخول المستخدم
+  // مزامنة السلك عند تسجيل دخول المستخدم (بلا قفل في مباريات المسالك)
   useEffect(() => {
-    if (userCycle && !isAdmin) {
+    if (userCycle && !isAdmin && !trackMode) {
       setSelectedCycle(userCycle);
     }
-  }, [userCycle, isAdmin]);
+  }, [userCycle, isAdmin, trackMode]);
 
   // المرحلة 2 — مواد المباراة من جدول subjects (بديل آمن: القوائم الثابتة أدناه)
   const [dbSubjects, setDbSubjects] = useState<SubjectRowConfig[]>([]);
@@ -235,7 +242,9 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
             ابدأ اختبارك التجريبي بخطوات بسيطة
           </h2>
           <p className="text-emerald-100 text-xs sm:text-sm max-w-xl leading-relaxed">
-            اختر السلك، حدد مرحلة التقويم، ثم اختر مادتك المستهدفة لبدء الاختبار فوراً بالمعايير الرسمية المعتمدة.
+            {trackMode
+              ? 'اختر المسلك، حدد مرحلة التقويم، ثم اختر الموضوع المستهدف لبدء الاختبار فوراً بمعايير المباراة الرسمية.'
+              : 'اختر السلك، حدد مرحلة التقويم، ثم اختر مادتك المستهدفة لبدء الاختبار فوراً بالمعايير الرسمية المعتمدة.'}
           </p>
         </div>
       </div>
@@ -261,7 +270,7 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
                 )}
               </div>
               <div className="text-xs text-emerald-700">
-                لقد اختبرت نفسك مسبقاً في <strong className="font-bold">{answeredQuestionIds.size}</strong> سؤالاً (محفوظة في حسابك){selectedCycle ? `، منها ${answeredInCycle} سؤالاً في هذا السلك.` : '.'}
+                لقد اختبرت نفسك مسبقاً في <strong className="font-bold">{answeredQuestionIds.size}</strong> سؤالاً (محفوظة في حسابك){selectedCycle ? `، منها ${answeredInCycle} سؤالاً في هذا ${levelWord}.` : '.'}
               </div>
             </div>
           </div>
@@ -298,7 +307,7 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
       <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-8">
         
         {/* ========================================================= */}
-        {/* الخطوة 1: اختيار السلك */}
+        {/* الخطوة 1: اختيار السلك / المسلك */}
         {/* ========================================================= */}
         <div>
           <div className="flex items-center justify-between mb-3">
@@ -307,7 +316,7 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
                 1
               </span>
               <GraduationCap className="w-5 h-5 text-emerald-600" />
-              <span>اختر السلك التعليمي المطلوب</span>
+              <span>{trackMode ? 'اختر المسلك المطلوب' : 'اختر السلك التعليمي المطلوب'}</span>
             </label>
             {selectedCycle && (
               <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
@@ -316,8 +325,8 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
             )}
           </div>
 
-          {/* تنبيه خاص إذا كان السلك مقفلاً بسبب حساب المستخدم */}
-          {user && !isAdmin && userCycle && (
+          {/* تنبيه خاص إذا كان السلك مقفلاً بسبب حساب المستخدم (لا ينطبق على مباريات المسالك) */}
+          {user && !isAdmin && userCycle && !trackMode && (
             <div className="mb-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center gap-2">
               <Lock className="w-4 h-4 text-amber-600 shrink-0" />
               <span>
@@ -327,9 +336,11 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {(user && !isAdmin && userCycle 
-              ? CYCLES.filter(c => c.id === userCycle) 
-              : CYCLES
+            {(trackMode
+              ? cycleDefs
+              : user && !isAdmin && userCycle
+              ? cycleDefs.filter(c => c.id === userCycle) 
+              : cycleDefs
             ).map((c) => {
               const isSelected = selectedCycle === c.id;
               const isLockedByAccount = user && !isAdmin && userCycle && userCycle !== c.id;
@@ -384,7 +395,7 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
         </div>
 
         {/* ========================================================= */}
-        {/* الخطوة 2: مرحلة التقويم (تظهر بعد اختيار السلك) */}
+        {/* الخطوة 2: مرحلة التقويم (تظهر بعد اختيار السلك/المسلك) */}
         {/* ========================================================= */}
         {selectedCycle && (
           <div className="pt-6 border-t border-slate-100 animate-in fade-in slide-in-from-top-2">
@@ -396,6 +407,11 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
                 <Target className="w-5 h-5 text-emerald-600" />
                 <span>اختر مرحلة التقويم</span>
               </label>
+              {selectedCycle && (
+                <span className="text-xs font-bold text-slate-500 max-w-[16rem] truncate" title={cycleDefs.find((c) => c.id === selectedCycle)?.name}>
+                  {levelWord}: {cycleDefs.find((c) => c.id === selectedCycle)?.name}
+                </span>
+              )}
               {phase && (
                 <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
                   <CheckCircle2 className="w-4 h-4" /> تم الاختيار
@@ -454,7 +470,7 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
         )}
 
         {/* ========================================================= */}
-        {/* الخطوة 3: التخصصات والمواد (تظهر بعد اختيار مرحلة التقويم) */}
+        {/* الخطوة 3: المواد/الموضوعات (تظهر بعد اختيار مرحلة التقويم) */}
         {/* ========================================================= */}
         {selectedCycle && phase && (
           <div className="pt-6 border-t border-slate-100 animate-in fade-in slide-in-from-top-2 space-y-4">
@@ -464,7 +480,7 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
                   3
                 </span>
                 <Scale className="w-5 h-5 text-emerald-600" />
-                <span>حدد التخصص أو المادة المستهدفة</span>
+                <span>{trackMode ? 'حدد الموضوع المستهدف' : 'حدد التخصص أو المادة المستهدفة'}</span>
               </label>
               <span className="text-xs text-slate-500 font-bold">
                 {availableQuestionsCount} سؤالاً متوفراً
@@ -480,7 +496,7 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
               className="w-full bg-slate-50 border border-slate-300 rounded-2xl px-4 py-3.5 text-slate-900 font-bold text-sm sm:text-base focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             >
               <option value="all">
-                جميع مواد وتخصصات هذا السلك ({cycleQuestions.length} سؤالاً) – محاكاة شاملة
+                {trackMode ? 'جميع موضوعات هذا المسلك' : 'جميع مواد وتخصصات هذا السلك'} ({cycleQuestions.length} سؤالاً) – محاكاة شاملة
               </option>
               {availableSubjects.map((key) => {
                 const count = getSubjectCount(key);
@@ -499,7 +515,7 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
 
             {unavailableSubjects.length > 0 && (
               <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-900 font-semibold leading-relaxed">
-                ⚠️ مواد/تخصصات بدون أسئلة في بنك الأسئلة الحالي: {unavailableSubjects.map((key) => subjectDisplayName(key)).join('، ')}. تم إخفاؤها من الاختيار بدل عرضها فارغة.
+                ⚠️ {subjectWord === 'الموضوع' ? 'مواضيع' : 'مواد/تخصصات'} بدون أسئلة في بنك الأسئلة الحالي: {unavailableSubjects.map((key) => subjectDisplayName(key)).join('، ')}. تم إخفاؤها من الاختيار بدل عرضها فارغة.
               </div>
             )}
 
@@ -508,7 +524,7 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
               <div className="p-4 rounded-2xl border bg-slate-50/80 space-y-2.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-extrabold text-slate-800 flex items-center gap-1.5">
-                    <span>عداد الكوطة التجريبية للمادة:</span>
+                    <span>عداد الكوطة التجريبية لـ{subjectWord}:</span>
                     <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-black">
                       {subjectDisplayName(selectedSubject)}
                     </span>
@@ -540,7 +556,7 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                       <span>
-                        انتهت الكوطة المجانية لهذه المادة (20/20 سؤالاً). بقية أسئلة المادة محجوبة حتى الترقية.
+                        انتهت الكوطة المجانية لهذه {subjectWord} (20/20 سؤالاً). بقية أسئلة ال{subjectWord} محجوبة حتى الترقية.
                       </span>
                     </div>
                     <button
@@ -554,7 +570,7 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
                   </div>
                 ) : (
                   <div className="flex items-center justify-between text-[11px] text-slate-500">
-                    <span>متبقي لك: {TRIAL_LIMIT - currentSubjectAnswered} سؤالاً مجانياً في هذه المادة</span>
+                    <span>متبقي لك: {TRIAL_LIMIT - currentSubjectAnswered} سؤالاً مجانياً في هذه {subjectWord}</span>
                     <span>بعد انتهاء الـ 20 سؤالاً يلزم الترقية لفتح البنك كاملاً</span>
                   </div>
                 )}
@@ -571,7 +587,7 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 leading-relaxed">
-                  يُحتسب الحد الأقصى 20 سؤالاً مجانياً لكل مادة على حدة. لا يمكن تجاوز الكوطة المتبقية حتى مع اختيار «جميع المواد».
+                  يُحتسب الحد الأقصى 20 سؤالاً مجانياً لكل {subjectWord} على حدة. لا يمكن تجاوز الكوطة المتبقية حتى مع اختيار «جميع {subjectWord === 'الموضوع' ? 'الموضوعات' : 'المواد'}».
                 </p>
                 {isAllQuotaExhausted && (
                   <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex flex-col sm:flex-row items-center justify-between gap-2">
@@ -670,7 +686,7 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
                 </div>
                 <span>
                   {!selectedCycle
-                    ? 'الرجاء اختيار السلك للبدء'
+                    ? `الرجاء اختيار ${levelWord} للبدء`
                     : !phase
                     ? 'الرجاء اختيار مرحلة التقويم'
                     : 'ابدأ الاختبار التجريبي الآن'}
