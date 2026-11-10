@@ -8,6 +8,7 @@ import {
   recordFailedLogin,
   resetLoginAttempts
 } from '../lib/security';
+import { logReceiptUploadAttempt, recordUpgradeClick } from '../lib/receiptLogger';
 
 /** هل أكّد المستخدم بريده؟ (إلزامي للدخول — لا دخول ببريد غير مؤكَّد). */
 function isEmailConfirmed(authUser: User): boolean {
@@ -82,8 +83,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const PROGRESS_KEY_PREFIX = 'crmef_progress_';
 const VALID_CYCLES: CycleKey[] = ['primary', 'secondary_prep', 'secondary_qual'];
-const ALLOWED_RECEIPT_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
+const ALLOWED_RECEIPT_TYPES = [
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'image/heif',
+  'application/octet-stream',
+];
+const MAX_RECEIPT_BYTES = 10 * 1024 * 1024; // 10MB (الضغط في المتصفح يقلصها إلى أقل من 1MB تلقائياً)
 
 /** ترجمة رسائل Supabase إلى رسائل عربية واضحة دون كشف تفاصيل داخلية. */
 function translateAuthError(message: string | undefined): string {
@@ -673,6 +682,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // ───────────────────────────── فتح نافذة الترقية وتسجيل النقرة ─────────────────────────────
+  const handleSetUpgradeModalOpen = useCallback((open: boolean) => {
+    setUpgradeModalOpen(open);
+    if (open) {
+      recordUpgradeClick(user?.id, user?.email);
+    }
+  }, [user?.id, user?.email]);
+
   // أحدث طلب اشتراك للمستخدم الحالي
   const currentRequest = user
     ? subscriptionRequests.find((r) => r.userId === user.id) || null
@@ -693,11 +710,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentRequest?.status === 'pending') {
       return { success: false, error: 'لديك طلب قيد المراجعة بالفعل. يرجى انتظار قرار المشرف.' };
     }
-    if (!ALLOWED_RECEIPT_TYPES.includes(receipt.type)) {
-      return { success: false, error: 'صيغة الصورة غير مدعومة. استخدم JPG أو PNG أو WEBP.' };
+
+    const isImageFile = receipt.type.startsWith('image/') || 
+      ALLOWED_RECEIPT_TYPES.includes(receipt.type) || 
+      /\.(jpe?g|png|webp|heic|heif)$/i.test(receipt.name);
+
+    if (!isImageFile) {
+      const err = 'صيغة الصورة غير مدعومة. استخدم JPG أو PNG أو WEBP.';
+      await logReceiptUploadAttempt({
+        userId: user.id,
+        userEmail: user.email,
+        fileName: receipt.name,
+        fileSize: receipt.size,
+        fileType: receipt.type,
+        status: 'failed',
+        errorMessage: err,
+      });
+      return { success: false, error: err };
     }
+
     if (receipt.size > MAX_RECEIPT_BYTES) {
-      return { success: false, error: 'حجم الصورة كبير جداً (الحد الأقصى 5 ميغابايت).' };
+      const err = 'حجم الصورة كبير جداً (الحد الأقصى 10 ميغابايت).';
+      await logReceiptUploadAttempt({
+        userId: user.id,
+        userEmail: user.email,
+        fileName: receipt.name,
+        fileSize: receipt.size,
+        fileType: receipt.type,
+        status: 'failed',
+        errorMessage: err,
+      });
+      return { success: false, error: err };
     }
 
     const extension = (receipt.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
@@ -709,11 +752,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .upload(receiptPath, receipt, {
           cacheControl: '3600',
           upsert: false,
-          contentType: receipt.type,
+          contentType: receipt.type || 'image/jpeg',
         });
 
       if (uploadError) {
         console.warn('receipt upload error:', uploadError.message);
+        await logReceiptUploadAttempt({
+          userId: user.id,
+          userEmail: user.email,
+          fileName: receipt.name,
+          fileSize: receipt.size,
+          fileType: receipt.type,
+          status: 'failed',
+          errorMessage: uploadError.message,
+        });
         return {
           success: false,
           error: 'تعذر رفع صورة الوصل إلى المخزن الآمن. تأكد من تهيئة مخزن receipts في Supabase.',
@@ -741,8 +793,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // تنظيف الملف المرفوع حتى لا يبقى يتيماً في المخزن.
         await supabase.storage.from('receipts').remove([receiptPath]);
         console.warn('subscription insert error:', error.message);
+        await logReceiptUploadAttempt({
+          userId: user.id,
+          userEmail: user.email,
+          fileName: receipt.name,
+          fileSize: receipt.size,
+          fileType: receipt.type,
+          status: 'failed',
+          errorMessage: error.message,
+        });
         return { success: false, error: 'تعذر حفظ طلب الاشتراك. يرجى المحاولة مرة أخرى.' };
       }
+
+      // تسجيل المحاولة الناجحة في جدول logs
+      await logReceiptUploadAttempt({
+        userId: user.id,
+        userEmail: user.email,
+        fileName: receipt.name,
+        fileSize: receipt.size,
+        fileType: receipt.type,
+        status: 'success',
+      });
 
       if (data) {
         const mapped = mapSubscriptionRow(data as SubscriptionRow);
@@ -752,8 +823,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       return { success: true };
-    } catch (err) {
+    } catch (err: any) {
       console.warn('submitSubscriptionRequest error:', err);
+      await logReceiptUploadAttempt({
+        userId: user.id,
+        userEmail: user.email,
+        fileName: receipt.name,
+        fileSize: receipt.size,
+        fileType: receipt.type,
+        status: 'failed',
+        errorMessage: err?.message || 'unknown error',
+      });
       return { success: false, error: 'حدث خطأ غير متوقع أثناء إرسال الطلب.' };
     }
   };
@@ -880,8 +960,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', request.userId);
 
       if (profileError) {
-        console.warn('suspend profile error:', profileError.message);
-        return false;
+        console.warn('suspend profile warning (non-fatal):', profileError.message);
       }
 
       await refreshSubscriptions(user);
@@ -960,7 +1039,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         suspendSubscription,
         deleteSubscription,
         upgradeModalOpen,
-        setUpgradeModalOpen,
+        setUpgradeModalOpen: handleSetUpgradeModalOpen,
         passwordRecoveryOpen,
         setPasswordRecoveryOpen,
       }}

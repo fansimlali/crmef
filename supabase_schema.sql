@@ -664,3 +664,51 @@ $$;
 REVOKE ALL ON FUNCTION public.answer_question(TEXT, TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.answer_question(TEXT, TEXT) TO authenticated;
 
+-- ───────────────────────────── تتبع نقرات الترقية ومحاولات الرفع ─────────────────────────────
+CREATE TABLE IF NOT EXISTS public.upgrade_clicks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID,
+  user_email TEXT,
+  clicked_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS upgrade_clicks_user_idx ON public.upgrade_clicks (user_id);
+ALTER TABLE public.upgrade_clicks ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "upgrade_clicks insert all" ON public.upgrade_clicks;
+CREATE POLICY "upgrade_clicks insert all" ON public.upgrade_clicks FOR INSERT TO authenticated, anon WITH CHECK (true);
+DROP POLICY IF EXISTS "upgrade_clicks read admin" ON public.upgrade_clicks;
+CREATE POLICY "upgrade_clicks read admin" ON public.upgrade_clicks FOR SELECT TO authenticated
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin') OR user_id = auth.uid());
+
+CREATE TABLE IF NOT EXISTS public.receipt_upload_attempts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID,
+  user_email TEXT,
+  file_name TEXT,
+  file_size INTEGER,
+  file_type TEXT,
+  status TEXT NOT NULL DEFAULT 'failed',
+  error_message TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS receipt_upload_attempts_user_idx ON public.receipt_upload_attempts (user_id);
+ALTER TABLE public.receipt_upload_attempts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "receipt_upload_attempts insert all" ON public.receipt_upload_attempts;
+CREATE POLICY "receipt_upload_attempts insert all" ON public.receipt_upload_attempts FOR INSERT TO authenticated, anon WITH CHECK (true);
+DROP POLICY IF EXISTS "receipt_upload_attempts read admin" ON public.receipt_upload_attempts;
+CREATE POLICY "receipt_upload_attempts read admin" ON public.receipt_upload_attempts FOR SELECT TO authenticated
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin'));
+
+CREATE TABLE IF NOT EXISTS public.upgrade_reminders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID,
+  user_email TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  sent_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE public.upgrade_reminders ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "upgrade_reminders all admin" ON public.upgrade_reminders;
+CREATE POLICY "upgrade_reminders all admin" ON public.upgrade_reminders FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin'));
+
+

@@ -7,13 +7,14 @@ import {
   ShieldCheck,
   LogIn,
   Crown,
-  Users
+  Users,
+  CreditCard
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface NavbarProps {
-  activeTab: 'quiz' | 'manager' | 'summaries' | 'subscriptions';
-  setActiveTab: (tab: 'quiz' | 'manager' | 'summaries' | 'subscriptions') => void;
+  activeTab: 'quiz' | 'manager' | 'summaries' | 'subscriptions' | 'users';
+  setActiveTab: (tab: 'quiz' | 'manager' | 'summaries' | 'subscriptions' | 'users') => void;
   onOpenAuth: () => void;
 }
 
@@ -78,6 +79,41 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>الملخصات {isPremium ? '(متاحة ⭐)' : '(محمية)'}</span>
             </button>
 
+            {/* لوحة المستخدمين والمشتركين (Task 3 للمشرف فقط) */}
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  activeTab === 'users'
+                    ? 'bg-white text-indigo-800 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5 text-indigo-600" />
+                <span>المستخدمون والاشتراكات</span>
+              </button>
+            )}
+
+            {/* تبويب طلبات المشتركين والوصولات (خاص بالمشرف العام فقط) */}
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab('subscriptions')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  activeTab === 'subscriptions'
+                    ? 'bg-white text-amber-800 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <CreditCard className="w-3.5 h-3.5 text-amber-600" />
+                <span>طلبات الوصولات</span>
+                {pendingRequestsCount > 0 && (
+                  <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full animate-pulse">
+                    {pendingRequestsCount}
+                  </span>
+                )}
+              </button>
+            )}
+
             {/* إدارة الأسئلة (للمشرف فقط — لا تُعرض إطلاقاً لغير المشرف) */}
             {isAdmin && (
               <button
@@ -90,26 +126,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                 <span>إدارة الأسئلة</span>
-              </button>
-            )}
-
-            {/* تبويب طلبات المشتركين (خاص بالمشرف العام فقط) */}
-            {isAdmin && (
-              <button
-                onClick={() => setActiveTab('subscriptions')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                  activeTab === 'subscriptions'
-                    ? 'bg-white text-amber-800 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Users className="w-3.5 h-3.5 text-amber-600" />
-                <span>الاشتراكات</span>
-                {pendingRequestsCount > 0 && (
-                  <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full animate-pulse">
-                    {pendingRequestsCount}
-                  </span>
-                )}
               </button>
             )}
           </div>

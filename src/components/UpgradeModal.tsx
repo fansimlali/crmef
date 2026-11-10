@@ -13,11 +13,14 @@ import {
   Smartphone,
   Copy,
   Check,
-  PauseCircle
+  PauseCircle,
+  MessageCircle,
+  Loader2
 } from 'lucide-react';
 import { CYCLES } from '../types';
 import QRCode from 'qrcode';
 import { trackInitiateCheckout, trackPurchase } from '../lib/pixel';
+import { compressAndNormalizeReceiptImage } from '../lib/imageCompressor';
 
 const SUBSCRIPTION_AMOUNT = 50;
 const BENEFICIARY_NAME = 'FADEL SIMLALI';
@@ -35,11 +38,16 @@ export const UpgradeModal: React.FC = () => {
   const [paymentTab, setPaymentTab] = useState<'bank' | 'agency'>('bank');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [compressing, setCompressing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [nameQrUrl, setNameQrUrl] = useState<string>('/name_qr.png');
   const [copiedName, setCopiedName] = useState(false);
+
+  // رابط واتساب الرسمي والمباشر مع التعبئة التلقائية لبريد المستخدم (Task 2)
+  const userEmail = user?.email || '';
+  const whatsappUrl = `https://wa.me/212767471061?text=Bonjour%2C%20je%20veux%20envoyer%20mon%20re%C3%A7u%20CRMEF%20Prep.%20Mon%20email%20est%20%3A%20${encodeURIComponent(userEmail)}`;
 
   // توليد QR Code للاسم fadel simlali تلقائياً
   useEffect(() => {
@@ -55,7 +63,7 @@ export const UpgradeModal: React.FC = () => {
       .catch(() => setNameQrUrl('/name_qr.png'));
   }, []);
 
-  // بعد التفعيل لا معنى لفتح نافذة الترقية: نُغلقها ونعرض رسالة نجاح.
+  // بعد التفعيل لا معنى لفتح نافذة الترقية: نُغلقها
   useEffect(() => {
     if (isPremium && upgradeModalOpen) {
       setUpgradeModalOpen(false);
@@ -80,27 +88,27 @@ export const UpgradeModal: React.FC = () => {
     });
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // معالجة وضغط الصورة فور اختيارها لحل مشاكل آيفون (HEIC) والصور الضخمة (>5MB)
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      setErrorMsg('يرجى اختيار ملف صورة صالح (JPG أو PNG أو WEBP)');
-      return;
-    }
+    setErrorMsg(null);
+    setCompressing(true);
 
-    if (file.size > 5 * 1024 * 1024) {
-      setErrorMsg('حجم الصورة كبير جداً (يجب ألا يتعدى 5 ميغابايت)');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
+    try {
+      const { file: normalizedFile, previewUrl } = await compressAndNormalizeReceiptImage(file);
+      setReceiptFile(normalizedFile);
+      setReceiptPreview(previewUrl);
+    } catch (err: any) {
+      console.warn('Image compression fallback:', err);
       setReceiptFile(file);
-      setReceiptPreview(reader.result as string);
-      setErrorMsg(null);
-    };
-    reader.readAsDataURL(file);
+      const reader = new FileReader();
+      reader.onload = () => setReceiptPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    } finally {
+      setCompressing(false);
+    }
   };
 
   const resetReceipt = () => {
@@ -134,6 +142,24 @@ export const UpgradeModal: React.FC = () => {
     }
   };
 
+  // زر واتساب الإلزامي الاحتياطي (رسائل فقط)
+  const renderWhatsAppButton = () => (
+    <a
+      href={whatsappUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="w-full py-3 px-4 rounded-2xl bg-[#25D366] hover:bg-[#1EBE5D] text-white font-extrabold text-xs sm:text-sm shadow-md shadow-emerald-500/20 flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer no-underline text-center"
+    >
+      <div className="flex items-center gap-2">
+        <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 fill-current shrink-0" />
+        <span>أرسل الوصل عبر واتساب (رسائل فقط)</span>
+      </div>
+      <span className="text-[10px] sm:text-[11px] text-emerald-50 font-semibold opacity-95">
+        Messages only, no calls - رسائل فقط، المرجو عدم الاتصال
+      </span>
+    </a>
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in overflow-y-auto">
       <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-100 relative my-8">
@@ -166,6 +192,14 @@ export const UpgradeModal: React.FC = () => {
           </p>
         </div>
 
+        {/* تنبيه الزائر غير المسجل */}
+        {!user && (
+          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm font-bold text-center space-y-2 mb-6">
+            <AlertCircle className="w-6 h-6 text-amber-600 mx-auto" />
+            <p>يرجى تسجيل الدخول أو إنشاء حساب أولاً لربط الاشتراك بحسابك فور التحقق.</p>
+          </div>
+        )}
+
         {/* إذا كان المستخدم مفعلاً بالفعل */}
         {isPremium && (
           <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-sm font-bold text-center space-y-2 mb-6">
@@ -176,14 +210,23 @@ export const UpgradeModal: React.FC = () => {
 
         {/* حالة الطلب الحالي إذا كان قيد المراجعة */}
         {currentRequest?.status === 'pending' && !successMsg && (
-          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm font-bold flex items-start gap-3 mb-6">
-            <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-extrabold text-sm mb-1">طلبك قيد المراجعة حالياً من قِبل المشرف العام</p>
-              <p className="font-medium text-amber-800 leading-relaxed">
-                لقد تم إرسال صورة الوصل بنجاح بتاريخ {new Date(currentRequest.createdAt).toLocaleDateString('ar-MA')}. 
-                يقوم المشرف بمراجعة الوصل وتفعيل حسابك في أقرب وقت.
+          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm font-bold space-y-3 mb-6">
+            <div className="flex items-start gap-3">
+              <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-extrabold text-sm mb-1">طلبك قيد المراجعة حالياً من قِبل المشرف العام</p>
+                <p className="font-medium text-amber-800 leading-relaxed">
+                  لقد تم إرسال صورة الوصل بنجاح بتاريخ {new Date(currentRequest.createdAt).toLocaleDateString('ar-MA')}. 
+                  يقوم المشرف بمراجعة الوصل وتفعيل حسابك في أقرب وقت.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-amber-200">
+              <p className="text-[11px] text-amber-800 font-semibold mb-2">
+                هل تريد تسريع تفعيل حسابك؟ يمكنك إرسال الوصل للمشرف العام عبر واتساب مباشرة:
               </p>
+              {renderWhatsAppButton()}
             </div>
           </div>
         )}
@@ -197,28 +240,29 @@ export const UpgradeModal: React.FC = () => {
               <p className="font-medium text-rose-800 leading-relaxed mb-2">
                 سبب الرفض: <strong>{currentRequest.rejectionReason || 'صورة الوصل غير واضحة أو المبلغ ناقص'}</strong>
               </p>
-              <p className="text-[11px] text-rose-700">يرجى إعادة رفع وصل سليم ومطابق عبر النموذج أسفله.</p>
+              <p className="text-[11px] text-rose-700">يرجى إعادة رفع وصل سليم ومطابق عبر النموذج أسفله، أو مراسلتنا في واتساب.</p>
             </div>
           </div>
         )}
 
         {/* إذا كان الحساب معلقاً مؤقتاً */}
         {currentRequest?.status === 'suspended' && (
-          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 text-xs sm:text-sm font-bold flex items-start gap-3 mb-6">
-            <PauseCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-extrabold text-sm mb-1">حسابك معلّق مؤقتاً</p>
-              <p className="font-medium text-amber-800 leading-relaxed mb-2">
-                {currentRequest.rejectionReason || 'تم تعليق هذا الحساب مؤقتاً من قِبل إدارة المنصة.'}
+          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950 text-xs sm:text-sm font-bold space-y-3 mb-6">
+            <div className="flex items-start gap-3">
+              <PauseCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-extrabold text-sm mb-1">حسابك معلّق مؤقتاً</p>
+                <p className="font-medium text-amber-800 leading-relaxed">
+                  {currentRequest.rejectionReason || 'تم تعليق هذا الحساب مؤقتاً من قِبل إدارة المنصة.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-amber-200">
+              <p className="text-[11px] text-amber-800 font-semibold mb-2">
+                تواصل مع الإدارة لطلب رفع التعليق وإعادة التفعيل:
               </p>
-              <a 
-                href="https://web.facebook.com/profile.php?id=61596296884826" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs text-sky-700 hover:text-sky-800 underline font-bold"
-              >
-                تواصل مع الإدارة عبر صفحة فيسبوك لطلب إعادة التفعيل
-              </a>
+              {renderWhatsAppButton()}
             </div>
           </div>
         )}
@@ -233,14 +277,20 @@ export const UpgradeModal: React.FC = () => {
             <p className="text-xs sm:text-sm text-slate-600 max-w-sm mx-auto leading-relaxed">
               سيتولى المشرف العام مراجعة وصل التحويل وتفعيل حسابك كمشترك كامل في أقرب وقت. شكراً لثقتك بالمنصة!
             </p>
+
+            <div className="pt-2 max-w-sm mx-auto space-y-2">
+              <span className="text-xs text-slate-500 font-bold block">لتسريع المعالجة الفورية:</span>
+              {renderWhatsAppButton()}
+            </div>
+
             <button
               onClick={() => {
                 setUpgradeModalOpen(false);
                 setSuccessMsg(false);
               }}
-              className="px-6 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 transition-all cursor-pointer"
+              className="px-6 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-all cursor-pointer mt-4"
             >
-              حسناً، فهمت
+              إغلاق النافذة
             </button>
           </div>
         ) : (
@@ -408,7 +458,7 @@ export const UpgradeModal: React.FC = () => {
                 )}
               </div>
 
-              {/* نموذج رفع الوصل فقط */}
+              {/* نموذج رفع الوصل وزر واتساب الفوري */}
               <form onSubmit={handleSubmit} className="space-y-4">
                 {errorMsg && (
                   <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2">
@@ -423,7 +473,12 @@ export const UpgradeModal: React.FC = () => {
                     صورة وصل التحويل أو الدفع <span className="text-rose-500">*</span>
                   </label>
                   
-                  {receiptPreview ? (
+                  {compressing ? (
+                    <div className="p-6 rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-50/30 flex flex-col items-center justify-center gap-2 text-emerald-800 text-xs font-bold">
+                      <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+                      <span>جارٍ معالجة وضغط صورة الوصل تلقائياً لسرعة الرفع...</span>
+                    </div>
+                  ) : receiptPreview ? (
                     <div className="relative rounded-2xl border border-emerald-300 bg-emerald-50/40 p-3 flex items-center gap-3">
                       <img 
                         src={receiptPreview} 
@@ -431,8 +486,8 @@ export const UpgradeModal: React.FC = () => {
                         className="w-16 h-16 object-cover rounded-xl border border-emerald-200"
                       />
                       <div className="flex-1 min-w-0 text-xs">
-                        <span className="font-bold text-emerald-800 block truncate">تم اختيار صورة الوصل</span>
-                        <span className="text-slate-500 text-[11px]">جاهزة للإرسال والمراجعة</span>
+                        <span className="font-bold text-emerald-800 block truncate">تم اختيار صورة الوصل بنجاح</span>
+                        <span className="text-slate-500 text-[11px]">جاهزة للإرسال والمراجعة الفورية</span>
                       </div>
                       <button
                         type="button"
@@ -445,8 +500,8 @@ export const UpgradeModal: React.FC = () => {
                   ) : (
                     <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 hover:bg-slate-50 hover:border-emerald-500 transition-all cursor-pointer">
                       <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                      <span className="text-xs font-bold text-slate-700">اضغط هنا لرفع صورة الوصل (وصل البنك أو وصل الوكالة)</span>
-                      <span className="text-[11px] text-slate-400 mt-1">PNG أو JPG حتى 5 ميغابايت</span>
+                      <span className="text-xs font-bold text-slate-700 text-center">اضغط هنا لاختيار صورة الوصل (من الهاتف أو الكاميرا أو الحاسوب)</span>
+                      <span className="text-[11px] text-slate-400 mt-1">يدعم جميع صيغ الصور (PNG, JPG, HEIC, WEBP)</span>
                       <input 
                         type="file" 
                         accept="image/*" 
@@ -457,15 +512,26 @@ export const UpgradeModal: React.FC = () => {
                   )}
                 </div>
 
-                {/* زر الإرسال */}
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-black text-sm shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span>{submitting ? 'جارٍ إرسال الوصل...' : 'إرسال إثبات الدفع لطلب التفعيل'}</span>
-                </button>
+                {/* أزرار الإجراء: رفع على المنصة + زر واتساب الإلزامي */}
+                <div className="space-y-3 pt-1">
+                  <button
+                    type="submit"
+                    disabled={submitting || compressing}
+                    className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-black text-sm shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>{submitting ? 'جارٍ إرسال الوصل...' : 'إرسال إثبات الدفع لطلب التفعيل'}</span>
+                  </button>
+
+                  {/* فاصل مرئي "أو" */}
+                  <div className="relative flex items-center justify-center">
+                    <div className="border-t border-slate-200 w-full" />
+                    <span className="bg-white px-3 text-[11px] font-bold text-slate-400 absolute">أو أرسله فورياً عبر</span>
+                  </div>
+
+                  {/* زر الواتساب الإلزامي (Task 2: Messages Only, No Calls) */}
+                  {renderWhatsAppButton()}
+                </div>
 
                 {/* رابط التواصل المباشر عبر صفحة فيسبوك */}
                 <div className="pt-2 text-center border-t border-slate-100">
@@ -478,7 +544,7 @@ export const UpgradeModal: React.FC = () => {
                     <svg className="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
                       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                     </svg>
-                    <span>لديك أي استفسار حول الدفع أو التفعيل؟ تواصل معنا مباشرة عبر صفحة فيسبوك</span>
+                    <span>لديك أي استفسار حول الدفع أو التفعيل؟ تواصل معنا عبر صفحة فيسبوك</span>
                   </a>
                 </div>
               </form>

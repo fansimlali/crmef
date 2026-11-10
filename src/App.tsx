@@ -26,6 +26,9 @@ const UpgradeModal = lazy(() =>
 const SubscriptionManager = lazy(() =>
   import('./components/SubscriptionManager').then((m) => ({ default: m.SubscriptionManager }))
 );
+const UserManager = lazy(() =>
+  import('./components/UserManager').then((m) => ({ default: m.UserManager }))
+);
 
 const LazyFallback = ({ label = 'جارٍ التحميل...' }: { label?: string }) => (
   <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-3">
@@ -41,7 +44,14 @@ function AppContent() {
   const { user, loading: authLoading, isAdmin, isPremium, answeredQuestionIds, passwordRecoveryOpen, setPasswordRecoveryOpen, setUpgradeModalOpen } = useAuth();
 
   // التبويب النشط
-  const [activeTab, setActiveTab] = useState<'quiz' | 'manager' | 'summaries' | 'subscriptions'>('quiz');
+  const [activeTab, setActiveTab] = useState<'quiz' | 'manager' | 'summaries' | 'subscriptions' | 'users'>('quiz');
+
+  // التحقق من الرابط المباشر /admin/users
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin/users')) {
+      setActiveTab('users');
+    }
+  }, []);
 
   // نافذة المصادقة
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -260,9 +270,9 @@ function AppContent() {
   };
 
   // ───── تغيير التبويب مع معالجة خاصة ─────
-  const handleSetActiveTab = (tab: 'quiz' | 'manager' | 'summaries' | 'subscriptions') => {
-    // تبويب إدارة الأسئلة للمشرف فقط.
-    if (tab === 'manager' && !isAdmin) return;
+  const handleSetActiveTab = (tab: 'quiz' | 'manager' | 'summaries' | 'subscriptions' | 'users') => {
+    // تبويبات الإدارة للمشرف فقط.
+    if ((tab === 'manager' || tab === 'subscriptions' || tab === 'users') && !isAdmin) return;
     setActiveTab(tab);
     if (tab === 'quiz' && quizStatus === 'results') {
       setQuizStatus('setup');
@@ -302,6 +312,29 @@ function AppContent() {
       return (
         <Suspense fallback={<LazyFallback label="جارٍ تحميل الملخصات..." />}>
           <SummariesViewer onOpenAuth={() => setAuthModalOpen(true)} />
+        </Suspense>
+      );
+    }
+
+    if (activeTab === 'users') {
+      if (!user || !isAdmin) {
+        return (
+          <div className="flex flex-col items-center justify-center py-24 text-slate-500 gap-5">
+            <div className="w-16 h-16 rounded-3xl bg-rose-50 flex items-center justify-center">
+              <ShieldAlert className="w-8 h-8 text-rose-500" />
+            </div>
+            <div className="text-center space-y-2">
+              <h2 className="text-xl font-extrabold text-slate-800">صلاحية غير كافية</h2>
+              <p className="text-sm text-slate-500 max-w-sm">
+                هذا القسم مخصص للمشرف العام لمتابعة سجل المستخدمين وتتبع نقرات الترقية وإرسال التذكيرات.
+              </p>
+            </div>
+          </div>
+        );
+      }
+      return (
+        <Suspense fallback={<LazyFallback label="جارٍ تحميل سجل المستخدمين والمشتركين..." />}>
+          <UserManager />
         </Suspense>
       );
     }
