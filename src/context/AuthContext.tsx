@@ -139,6 +139,9 @@ function buildProfile(authUser: User, row?: ProfileRow | null): UserProfile {
 }
 
 function mapSubscriptionRow(row: SubscriptionRow): SubscriptionRequest {
+  const isSuspended = row.status === 'suspended' || 
+    (row.status === 'rejected' && Boolean(row.rejection_reason?.includes('[SUSPENDED]') || row.rejection_reason?.includes('تعليق الاشتراك')));
+
   return {
     id: row.id,
     userId: row.user_id,
@@ -151,8 +154,12 @@ function mapSubscriptionRow(row: SubscriptionRow): SubscriptionRequest {
     receiptPath: row.receipt_path || undefined,
     paymentMethod: row.payment_method || undefined,
     notes: row.notes || undefined,
-    status: (['approved', 'rejected', 'suspended'].includes(row.status) ? row.status : 'pending') as SubscriptionRequest['status'],
-    rejectionReason: row.rejection_reason || undefined,
+    status: isSuspended 
+      ? 'suspended' 
+      : ((['approved', 'rejected'].includes(row.status) ? row.status : 'pending') as SubscriptionRequest['status']),
+    rejectionReason: row.rejection_reason 
+      ? row.rejection_reason.replace('[SUSPENDED]', '').trim() 
+      : undefined,
     createdAt: row.created_at,
     reviewedAt: row.reviewed_at || undefined,
   };
@@ -833,23 +840,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const reviewedAt = new Date().toISOString();
-      // تحديث حالة الطلب إلى معلق
-      const { error: requestError } = await supabase
+      const suspensionReason = '[SUSPENDED] تم تعليق الاشتراك مؤقتاً من قِبل المشرف العام.';
+
+      // 1. محاولة تحديث حالة الطلب إلى suspended أولاً
+      let { error: requestError } = await supabase
         .from('subscription_requests')
         .update({
           status: 'suspended',
-          rejection_reason: 'تم تعليق الاشتراك مؤقتاً من قِبل المشرف العام.',
+          rejection_reason: suspensionReason,
           reviewed_at: reviewedAt,
           reviewed_by: user.id,
         })
         .eq('id', requestId);
+
+      // إذا كانت قاعدة البيانات تفرض قيد (pending, approved, rejected)، نستخدم status: 'rejected' مع وسم [SUSPENDED] كبديل متوافق 100%
+      if (requestError) {
+        console.info('suspend using fallback rejected + [SUSPENDED] tag due to DB check constraint');
+        const fallback = await supabase
+          .from('subscription_requests')
+          .update({
+            status: 'rejected',
+            rejection_reason: suspensionReason,
+            reviewed_at: reviewedAt,
+            reviewed_by: user.id,
+          })
+          .eq('id', requestId);
+        requestError = fallback.error;
+      }
 
       if (requestError) {
         console.warn('suspend request error:', requestError.message);
         return false;
       }
 
-      // إلغاء صلاحية المشترك الكامل في جدول profiles فوراً
+      // 2. إلغاء صلاحية المشترك الكامل في جدول profiles فوراً
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ subscription_status: 'trial', updated_at: reviewedAt })
