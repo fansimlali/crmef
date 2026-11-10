@@ -426,3 +426,33 @@ export async function getSubjectConfigs(examId: string): Promise<{ subjects: Sub
     return { subjects: [], fromDb: false };
   }
 }
+
+// ─── المرحلة 3: رفع حزمة مباراة (exam_package.json) عبر RPC خادمي للمشرف فقط ───
+
+export interface ExamImportSummary {
+  exam_id: string;
+  name: string;
+  subjects: number;
+  questions: number;
+  trial: number;
+  answers: number;
+  summaries: number;
+}
+
+/** رفع حزمة كاملة ذرياً: كل شيء ينجح أو لا شيء (يتحقق الخادم من القواعد أيضاً). */
+export async function importExamPackage(
+  pkg: unknown
+): Promise<{ success: boolean; summary?: ExamImportSummary; error?: string }> {
+  if (!supabase) {
+    return { success: false, error: 'Supabase غير مهيأ — أضف VITE_SUPABASE_URL و VITE_SUPABASE_ANON_KEY.' };
+  }
+  try {
+    const { data, error } = await supabase.rpc('import_exam_package', { p_package: pkg as object });
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true, summary: data as ExamImportSummary };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'خطأ غير متوقع أثناء الرفع.' };
+  }
+}

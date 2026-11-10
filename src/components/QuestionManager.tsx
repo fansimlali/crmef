@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { isSupabaseConfigured, addQuestion, bulkAddQuestions, removeQuestion, validateQuestion, notifySubscribersNewQuestions } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { ExamPackageUploader } from './ExamPackageUploader';
 
 interface QuestionManagerProps {
   questions: Question[];
@@ -27,7 +28,7 @@ interface QuestionManagerProps {
 }
 
 export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onRefresh }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'list' | 'create' | 'bulk' | 'supabase'>('list');
+  const [activeSubTab, setActiveSubTab] = useState<'list' | 'create' | 'bulk' | 'package' | 'supabase'>('list');
   const isOnline = isSupabaseConfigured();
   const { user } = useAuth();
 
@@ -326,6 +327,17 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
           >
             <Upload className="w-4 h-4" />
             <span>رفع دفعة أسئلة (JSON)</span>
+          </button>
+          <button
+            onClick={() => setActiveSubTab('package')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all cursor-pointer ${
+              activeSubTab === 'package'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            <Database className="w-4 h-4" />
+            <span>رفع حزمة مباراة</span>
           </button>
           <button
             onClick={() => setActiveSubTab('supabase')}
@@ -691,6 +703,13 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
               </div>
             )}
           </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* تبويب 3.5: رفع حزمة مباراة (exam_package.json — المرحلة 3) */}
+        {/* ======================================================== */}
+        {activeSubTab === 'package' && (
+          <ExamPackageUploader />
         )}
 
         {/* ======================================================== */}
