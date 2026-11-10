@@ -876,6 +876,7 @@ DECLARE
   v_i            int;
   v_id           text;
   v_key          text;
+  v_nm           text;
   v_opts         text[];
   v_correct      text;
   v_errs         text := '';
