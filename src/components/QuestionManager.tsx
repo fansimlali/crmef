@@ -13,9 +13,13 @@ import {
   HelpCircle,
   HardDrive,
   Copy,
-  ExternalLink
+  ExternalLink,
+  Bell,
+  BellOff,
+  Loader2
 } from 'lucide-react';
-import { isSupabaseConfigured, addQuestion, bulkAddQuestions, removeQuestion, validateQuestion } from '../lib/supabase';
+import { isSupabaseConfigured, addQuestion, bulkAddQuestions, removeQuestion, validateQuestion, notifySubscribersNewQuestions } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 
 interface QuestionManagerProps {
   questions: Question[];
@@ -25,6 +29,12 @@ interface QuestionManagerProps {
 export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onRefresh }) => {
   const [activeSubTab, setActiveSubTab] = useState<'list' | 'create' | 'bulk' | 'supabase'>('list');
   const isOnline = isSupabaseConfigured();
+  const { user } = useAuth();
+
+  // حالة الإشعار البريدي
+  const [lastUploadCount, setLastUploadCount] = useState<number>(0);
+  const [notifyLoading, setNotifyLoading] = useState(false);
+  const [notifyResult, setNotifyResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
   // نموذج إضافة سؤال فردي
   const [formSubject, setFormSubject] = useState<SubjectKey>('ma');
@@ -107,6 +117,30 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
     }
   };
 
+  // إرسال إشعار بريدي للمشتركين بعد الرفع الجماعي
+  const handleNotifySubscribers = async () => {
+    if (lastUploadCount === 0) return;
+    setNotifyLoading(true);
+    setNotifyResult(null);
+    const result = await notifySubscribersNewQuestions({
+      questionCount: lastUploadCount,
+      examName: 'مباراة التعليم (CRMEF)',
+      adminName: user?.fullName || user?.email || 'المشرف',
+    });
+    setNotifyLoading(false);
+    if (result.success) {
+      setNotifyResult({
+        ok: true,
+        msg: result.sent && result.sent > 0
+          ? `✅ تم إرسال الإشعار لـ ${result.sent} مشترك بنجاح!`
+          : result.error || `✅ تم تسجيل الإشعار (سيُرسَل بعد نشر Edge Function)`,
+      });
+      setLastUploadCount(0); // إعادة تعيين بعد الإرسال
+    } else {
+      setNotifyResult({ ok: false, msg: result.error || 'فشل إرسال الإشعار' });
+    }
+  };
+
   // معالجة الرفع الجماعي JSON
   const handleBulkSubmit = async () => {
     if (!bulkJson.trim()) {
@@ -158,6 +192,8 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
 
       setBulkMsg({ type: 'ok', text: `تم رفع ${res.count} سؤالاً بنجاح إلى المنصة!` });
       setBulkJson('');
+      setLastUploadCount(res.count); // تفعيل زر الإشعار البريدي
+      setNotifyResult(null);
       onRefresh();
     } catch (err) {
       setBulkLoading(false);
@@ -605,6 +641,55 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
               <Upload className="w-4 h-4" />
               <span>{bulkLoading ? 'جارٍ الرفع والمعالجة...' : 'بدء رفع الأسئلة للمنصة'}</span>
             </button>
+
+            {/* زر إشعار المشتركين — يظهر بعد نجاح الرفع */}
+            {lastUploadCount > 0 && (
+              <div className="mt-2 p-4 rounded-2xl bg-sky-50 border border-sky-200 space-y-3">
+                <div className="flex items-center gap-2 text-sky-800">
+                  <Bell className="w-5 h-5 text-sky-600 shrink-0" />
+                  <div>
+                    <p className="font-black text-sm">إشعار المشتركين بالأسئلة الجديدة</p>
+                    <p className="text-xs text-sky-700 mt-0.5">
+                      تم رفع <strong>{lastUploadCount}</strong> سؤالاً — هل تريد إرسال إيميل للمشتركين المفعّلين؟
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleNotifySubscribers}
+                  disabled={notifyLoading}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white text-xs font-black cursor-pointer transition-all"
+                >
+                  {notifyLoading ? (
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /><span>جارٍ الإرسال...</span></>
+                  ) : (
+                    <><Bell className="w-3.5 h-3.5" /><span>إرسال إشعار البريد الإلكتروني للمشتركين</span></>
+                  )}
+                </button>
+                {notifyResult && (
+                  <p className={`text-xs font-bold flex items-center gap-1 ${notifyResult.ok ? 'text-emerald-700' : 'text-rose-700'}`}>
+                    {notifyResult.ok ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertCircle className="w-3.5 h-3.5" />}
+                    {notifyResult.msg}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => { setLastUploadCount(0); setNotifyResult(null); }}
+                  className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <BellOff className="w-3 h-3" />
+                  <span>تخطي الإشعار</span>
+                </button>
+              </div>
+            )}
+
+            {/* نتيجة الإشعار منفصلة (بعد تخطي الزر) */}
+            {lastUploadCount === 0 && notifyResult && (
+              <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${notifyResult.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+                {notifyResult.ok ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                {notifyResult.msg}
+              </div>
+            )}
           </div>
         )}
 

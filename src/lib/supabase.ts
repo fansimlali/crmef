@@ -274,3 +274,154 @@ export async function removeQuestion(id: string): Promise<{ success: boolean; er
   saveLocalCustomQuestions(current.filter((q) => q.id !== id));
   return { success: true };
 }
+
+
+// ─── إشعار المشتركين بأسئلة جديدة ───────────────────────────────────────────
+/**
+ * يُرسل إيميل إشعار لجميع المشتركين المفعّلين (subscription_status = 'premium')
+ * عبر Supabase Edge Function notify-subscribers.
+ * يستدعيها المشرف فقط من QuestionManager بعد رفع أسئلة جديدة.
+ */
+export async function notifySubscribersNewQuestions(opts: {
+  questionCount: number;
+  examName?: string;
+  adminName?: string;
+}): Promise<{ success: boolean; sent?: number; error?: string }> {
+  if (!isSupabaseConfigured() || !supabase) {
+    return { success: false, error: 'Supabase غير مهيأ' };
+  }
+
+  try {
+    // 1. جلب إيميلات المشتركين المفعّلين مباشرة
+    const { data: premiumProfiles, error: profErr } = await supabase
+      .from('profiles')
+      .select('email, full_name')
+      .eq('subscription_status', 'premium')
+      .neq('role', 'admin');
+
+    if (profErr) {
+      return { success: false, error: `تعذر جلب قائمة المشتركين: ${profErr.message}` };
+    }
+
+    const recipients = (premiumProfiles || []).filter((p: { email: string | null; full_name: string | null }) => p.email);
+    if (recipients.length === 0) {
+      return { success: true, sent: 0 };
+    }
+
+    // 2. استدعاء Edge Function (إن وُجدت) أو تسجيل الإشعار في جدول notifications_log
+    const { error: fnErr } = await supabase.functions.invoke('notify-new-questions', {
+      body: {
+        recipients: recipients.map((p: { email: string | null; full_name: string | null }) => ({
+          email: p.email,
+          name: p.full_name || p.email,
+        })),
+        questionCount: opts.questionCount,
+        examName: opts.examName || 'مباراة التعليم (CRMEF)',
+        adminName: opts.adminName || 'فريق CRMEF Prep',
+      },
+    });
+
+    if (fnErr) {
+      // Edge Function غير منشورة بعد — نسجّل الطلب في جدول notifications_log للمعالجة اليدوية
+      console.warn('notify-new-questions edge function not available, logging instead:', fnErr.message);
+      await supabase.from('notifications_log').insert({
+        type: 'new_questions',
+        question_count: opts.questionCount,
+        exam_name: opts.examName || 'crmef',
+        recipients_count: recipients.length,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+      }).then(() => {});
+      // نُعيد نجاحاً جزئياً مع تنبيه
+      return {
+        success: true,
+        sent: 0,
+        error: `تم تسجيل الإشعار (${recipients.length} مشترك). Edge Function غير منشورة بعد — سيُرسَل الإيميل بعد نشرها.`,
+      };
+    }
+
+    return { success: true, sent: recipients.length };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'خطأ غير متوقع' };
+  }
+}
+
+// ─── تعدد المباريات (المرحلة 2: القوائم من قاعدة البيانات، ببديل ثابت آمن) ───
+
+export interface SubjectRowConfig {
+  key: string;
+  name: string;
+  cycles: string[];
+  weight: number;
+  isActive: boolean;
+}
+
+export interface ExamRowConfig {
+  id: string;
+  name: string;
+  shortName: string | null;
+  description: string | null;
+  icon: string;
+  color: string;
+  isActive: boolean;
+  questionCount: number;
+}
+
+/** إعدادات المباريات من جدول exams (يشمل عدد الأسئلة لكل مباراة). قائمة فارغة عند الفشل. */
+export async function getExamConfigs(): Promise<{ exams: ExamRowConfig[]; fromDb: boolean }> {
+  if (!supabase) return { exams: [], fromDb: false };
+  try {
+    const { data, error } = await supabase
+      .from('exams')
+      .select('id, slug, name, short_name, description, icon, color, is_active, sort_order, questions(count)')
+      .order('sort_order', { ascending: true });
+    if (error || !data) {
+      console.warn('exams fetch failed, keeping static fallback:', error?.message);
+      return { exams: [], fromDb: false };
+    }
+    const exams: ExamRowConfig[] = data.map((row: Record<string, unknown>) => {
+      const counts = (row.questions as unknown as Array<{ count: number }> | null) ?? [];
+      return {
+        id: String(row.id),
+        name: String(row.name),
+        shortName: (row.short_name as string | null) ?? null,
+        description: (row.description as string | null) ?? null,
+        icon: String(row.icon || 'graduation'),
+        color: String(row.color || 'emerald'),
+        isActive: Boolean(row.is_active),
+        questionCount: counts[0]?.count ?? 0,
+      };
+    });
+    return { exams, fromDb: true };
+  } catch (e) {
+    console.warn('exams fetch exception:', e);
+    return { exams: [], fromDb: false };
+  }
+}
+
+/** مواد مباراة معينة من جدول subjects — فارغة عند الفشل (لا تغيير سلوك). */
+export async function getSubjectConfigs(examId: string): Promise<{ subjects: SubjectRowConfig[]; fromDb: boolean }> {
+  if (!supabase || !examId) return { subjects: [], fromDb: false };
+  try {
+    const { data, error } = await supabase
+      .from('subjects')
+      .select('key, name, cycles, weight, is_active')
+      .eq('exam_id', examId)
+      .order('weight', { ascending: false });
+    if (error || !data || data.length === 0) {
+      console.warn('subjects fetch failed, keeping static fallback:', error?.message);
+      return { subjects: [], fromDb: false };
+    }
+    const subjects: SubjectRowConfig[] = data.map((row: Record<string, unknown>) => ({
+      key: String(row.key),
+      name: String(row.name),
+      cycles: Array.isArray(row.cycles) ? (row.cycles as string[]) : [],
+      weight: Number(row.weight ?? 1),
+      isActive: Boolean(row.is_active),
+    }));
+    return { subjects, fromDb: true };
+  } catch (e) {
+    console.warn('subjects fetch exception:', e);
+    return { subjects: [], fromDb: false };
+  }
+}

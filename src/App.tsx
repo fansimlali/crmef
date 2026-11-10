@@ -29,6 +29,9 @@ const SubscriptionManager = lazy(() =>
 const UserManager = lazy(() =>
   import('./components/UserManager').then((m) => ({ default: m.UserManager }))
 );
+const ExamSelector = lazy(() =>
+  import('./components/ExamSelector').then((m) => ({ default: m.ExamSelector }))
+);
 
 const LazyFallback = ({ label = 'جارٍ التحميل...' }: { label?: string }) => (
   <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-3">
@@ -45,6 +48,9 @@ function AppContent() {
 
   // التبويب النشط
   const [activeTab, setActiveTab] = useState<'quiz' | 'manager' | 'summaries' | 'subscriptions' | 'users'>('quiz');
+
+  // المباراة المختارة — null = لم يختر بعد (يُعرض ExamSelector)
+  const [selectedExam, setSelectedExam] = useState<string | null>(null);
 
   // التحقق من الرابط المباشر /admin/users
   useEffect(() => {
@@ -267,6 +273,7 @@ function AppContent() {
     setCurrentIndex(0);
     setRecords([]);
     setExamQuestions([]);
+    // يبقى selectedExam محفوظاً حتى لا يعود للخطوة 1 — المستخدم يمكنه تغيير المباراة من زر "تغيير المباراة"
   };
 
   // ───── تغيير التبويب مع معالجة خاصة ─────
@@ -417,10 +424,20 @@ function AppContent() {
     // تبويب الاختبار (quiz)
     return (
       <>
-        {quizStatus === 'setup' && (
+        {/* خطوة 1: اختيار المباراة — يظهر فقط عند الدخول الجديد */}
+        {quizStatus === 'setup' && !selectedExam && (
+          <Suspense fallback={<LazyFallback label="جارٍ تحميل قائمة المباريات..." />}>
+            <ExamSelector onSelectExam={(examId) => setSelectedExam(examId)} />
+          </Suspense>
+        )}
+
+        {/* خطوة 2: إعداد الاختبار (بعد اختيار المباراة) */}
+        {quizStatus === 'setup' && selectedExam && (
           <QuizSetup
             questions={allQuestions}
             onStart={handleStartExam}
+            selectedExam={selectedExam}
+            onChangeExam={() => setSelectedExam(null)}
           />
         )}
 
@@ -553,6 +570,8 @@ function AppContent() {
                 activeTab={activeTab}
                 setActiveTab={handleSetActiveTab}
                 onOpenAuth={() => setAuthModalOpen(true)}
+                selectedExam={selectedExam}
+                onChangeExam={() => { setSelectedExam(null); setActiveTab('quiz'); setQuizStatus('setup'); }}
               />
 
               {/* نافذة ترقية الحساب وإرسال وصل الأداء */}

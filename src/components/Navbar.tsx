@@ -8,7 +8,8 @@ import {
   LogIn,
   Crown,
   Users,
-  CreditCard
+  CreditCard,
+  ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -16,12 +17,16 @@ interface NavbarProps {
   activeTab: 'quiz' | 'manager' | 'summaries' | 'subscriptions' | 'users';
   setActiveTab: (tab: 'quiz' | 'manager' | 'summaries' | 'subscriptions' | 'users') => void;
   onOpenAuth: () => void;
+  selectedExam?: string | null;
+  onChangeExam?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   setActiveTab,
   onOpenAuth,
+  selectedExam,
+  onChangeExam,
 }) => {
   const { user, isAdmin, isPremium, logout, subscriptionRequests, setUpgradeModalOpen } = useAuth();
 
@@ -42,12 +47,26 @@ export const Navbar: React.FC<NavbarProps> = ({
             <h1 className="font-extrabold text-base sm:text-lg text-slate-900 leading-tight flex items-center gap-2">
               منصة الاختبار التجريبي
               <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-                CRMEF
+                {selectedExam && selectedExam !== 'crmef' ? selectedExam.toUpperCase() : 'CRMEF'}
               </span>
             </h1>
-            <p className="text-xs text-slate-500 font-medium">
-              مباراة التعليم – الابتدائي والثانوي (إعدادي وتأهيلي)
-            </p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs text-slate-500 font-medium">
+                {selectedExam && selectedExam !== 'crmef'
+                  ? `مباراة: ${selectedExam}`
+                  : 'مباراة التعليم – الابتدائي والثانوي (إعدادي وتأهيلي)'}
+              </p>
+              {onChangeExam && selectedExam && (
+                <button
+                  onClick={onChangeExam}
+                  className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 cursor-pointer"
+                  title="تغيير المباراة"
+                >
+                  <ChevronDown className="w-3 h-3" />
+                  <span>تغيير</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

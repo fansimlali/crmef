@@ -84,6 +84,22 @@ export type SubjectKey =
 
 export type SubscriptionStatus = 'trial' | 'premium' | 'suspended';
 
+// ─── Multi-Exam Support ───────────────────────────────────────────────────────
+export type ExamId = 'crmef' | 'medicine' | 'law' | 'admin' | string;
+
+export interface ExamConfig {
+  id: ExamId;
+  name: string;        // 'مباراة التعليم (CRMEF)'
+  shortName: string;   // 'CRMEF'
+  description: string;
+  icon: string;        // 'graduation' | 'stethoscope' | 'scale' | 'building'
+  color: string;       // 'emerald' | 'blue' | 'purple' | 'orange'
+  isActive: boolean;
+  comingSoon?: boolean;
+  badge?: string;      // '+2,284 سؤال'
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export interface SubscriptionRequest {
   id: string;
   userId: string;
