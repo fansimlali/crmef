@@ -16,11 +16,14 @@ import {
   ExternalLink,
   Bell,
   BellOff,
+  Pencil,
+  CircleDashed,
   Loader2
 } from 'lucide-react';
-import { isSupabaseConfigured, addQuestion, bulkAddQuestions, removeQuestion, validateQuestion, notifySubscribersNewQuestions } from '../lib/supabase';
+import { isSupabaseConfigured, addQuestion, updateQuestion, setQuestionsDraft, bulkAddQuestions, removeQuestion, validateQuestion, notifySubscribersNewQuestions } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { ExamPackageUploader } from './ExamPackageUploader';
+import { ExamDataManager } from './ExamDataManager';
 
 interface QuestionManagerProps {
   questions: Question[];
@@ -28,7 +31,7 @@ interface QuestionManagerProps {
 }
 
 export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onRefresh }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'list' | 'create' | 'bulk' | 'package' | 'supabase'>('list');
+  const [activeSubTab, setActiveSubTab] = useState<'list' | 'create' | 'bulk' | 'package' | 'exams' | 'supabase'>('list');
   const isOnline = isSupabaseConfigured();
   const { user } = useAuth();
 
@@ -57,6 +60,11 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
   // فلترة وبحث الأسئلة
   const [searchQuery, setSearchQuery] = useState('');
   const [filterSubject, setFilterSubject] = useState<string>('all');
+  /** فلتر حالة المراجعة: كل / معتمد رسمياً / تجريبي داخلي (مهلة الاعتماد). */
+  const [filterDraft, setFilterDraft] = useState<'all' | 'official' | 'draft'>('all');
+  /** تعديل سؤال: معرف السؤال المفتوح في نموذج الإضافة (نفس النموذج بأوضاع إضافة/تعديل). */
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftBusy, setDraftBusy] = useState<string | null>(null);
 
   const filteredQuestions = questions.filter((q) => {
     const matchSub = filterSubject === 'all' || q.subject === filterSubject;
@@ -65,10 +73,56 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
       (q.question || '').toLowerCase().includes(term) ||
       (q.topic || '').toLowerCase().includes(term) ||
       (q.explanation || '').toLowerCase().includes(term);
-    return matchSub && matchSearch;
+    // المعتمد رسمياً هو الافتراضي في العرض التفصيلي؟ لا — المشرف يرى الكل؛ الفلتر يبدأ على «الكل».
+    const matchDraft =
+      filterDraft === 'all'
+      || (filterDraft === 'draft' && Boolean(q.is_draft))
+      || (filterDraft === 'official' && !q.is_draft);
+    return matchSub && matchSearch && matchDraft;
   });
 
-  // معالجة إضافة سؤال فردي
+  /** اعتماد سؤال (أو إرجاعه للتجريبي) فوراً ثم تحديث القائمة. */
+  const handleToggleDraft = async (q: Question) => {
+    setDraftBusy(q.id);
+    const res = await setQuestionsDraft([q.id], !q.is_draft);
+    setDraftBusy(null);
+    if (res.success) {
+      await onRefresh();
+    } else {
+      window.alert(`تعذر تغيير الحالة: ${res.error}`);
+    }
+  };
+
+  /** اعتماد رسمي دفعة واحدة لكل الأسئلة التجريبية المعروضة (يحترم فلتر المادة والبحث). */
+  const handleApproveVisibleDrafts = async () => {
+    const drafts = filteredQuestions.filter((q) => q.is_draft).map((q) => q.id);
+    if (drafts.length === 0) return;
+    if (!window.confirm(`اعتماد ${drafts.length} سؤالاً عُرضَت الآن ضمن الفلاتر؟ ستركت للجمهور فوراً.`)) return;
+    setDraftBusy('bulk');
+    const res = await setQuestionsDraft(drafts, false);
+    setDraftBusy(null);
+    if (res.success) {
+      await onRefresh();
+    } else {
+      window.alert(`تعذر الاعتماد: ${res.error}`);
+    }
+  };
+
+  // فتح نفس النموذج في وضع التعديل بتعبيئة مسبقة.
+  const openEditQuestion = (q: Question) => {
+    setEditingId(q.id);
+    setFormSubject(q.subject as SubjectKey);
+    setFormTopic(q.topic || '');
+    setFormQuestion(q.question || '');
+    setFormOpt1(q.correct_answer || '');
+    setFormOpt2(q.options.find((o) => o !== q.correct_answer) || '');
+    setFormOpt3(q.options.filter((o) => o !== q.correct_answer)[1] || '');
+    setFormOpt4(q.options.filter((o) => o !== q.correct_answer)[2] || '');
+    setFormExplanation(q.explanation || '');
+    setActiveSubTab('create');
+  };
+
+  // معالجة الإضافة / التعديل (نفس النموذج بوضعين)
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formTopic.trim() || !formQuestion.trim() || !formOpt1.trim() || !formOpt2.trim()) {
@@ -83,8 +137,13 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
     if (formOpt3.trim()) options.push(formOpt3.trim());
     if (formOpt4.trim()) options.push(formOpt4.trim());
 
+    // في وضع التعديل نحافظ على المعرّف وملخص السلك والمباراة والسلك الأصلية.
+    const original = editingId ? questions.find((q) => q.id === editingId) : undefined;
     const newQ: Question = {
-      id: `${formSubject}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      id: editingId || `${formSubject}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      exam_id: original?.exam_id || 'crmef',
+      is_draft: original?.is_draft || false,
+      cycles: original?.cycles,
       subject: formSubject,
       topic: formTopic.trim(),
       question: formQuestion.trim(),
@@ -92,6 +151,19 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
       correct_answer: formOpt1.trim(),
       explanation: formExplanation.trim() || undefined,
     };
+
+    if (editingId) {
+      const res = await updateQuestion(newQ);
+      setFormLoading(false);
+      if (res.success) {
+        setFormMsg({ type: 'ok', text: 'تم حفظ تعديلات السؤال بنجاح.' });
+        setEditingId(null);
+        await onRefresh();
+      } else {
+        setFormMsg({ type: 'err', text: res.error || 'تعذر تحديث السؤال.' });
+      }
+      return;
+    }
 
     let res: Awaited<ReturnType<typeof addQuestion>>;
     try {
@@ -340,6 +412,17 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
             <span>رفع حزمة مباراة</span>
           </button>
           <button
+            onClick={() => setActiveSubTab('exams')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all cursor-pointer ${
+              activeSubTab === 'exams'
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            }`}
+          >
+            <Database className="w-4 h-4" />
+            <span>بيانات المباريات</span>
+          </button>
+          <button
             onClick={() => setActiveSubTab('supabase')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all cursor-pointer ${
               activeSubTab === 'supabase'
@@ -385,6 +468,35 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
               </select>
             </div>
 
+            {/* فلتر حالة المراجعة + اعتماد دفعة */}
+            <div className="flex items-center gap-2 flex-wrap text-xs font-bold">
+              {(['all', 'draft', 'official'] as const).map((state) => {
+                const label = state === 'all' ? 'الكل' : state === 'draft' ? 'تجريبية داخلي (مهلة الاعتماد)' : 'معتمدة رسمياً';
+                const isActive = filterDraft === state;
+                return (
+                  <button
+                    key={state}
+                    onClick={() => setFilterDraft(state)}
+                    className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                      isActive ? 'bg-slate-900 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+              {filterDraft === 'draft' && filteredQuestions.some((q) => q.is_draft) && (
+                <button
+                  onClick={() => void handleApproveVisibleDrafts()}
+                  disabled={draftBusy === 'bulk'}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black cursor-pointer disabled:opacity-50"
+                >
+                  {draftBusy === 'bulk' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CircleDashed className="w-4 h-4" />}
+                  اعتماد جميع المعروضة ({filteredQuestions.filter((q) => q.is_draft).length})
+                </button>
+              )}
+            </div>
+
             {/* قائمة الأسئلة */}
             <div className="space-y-3">
               {filteredQuestions.length === 0 ? (
@@ -399,19 +511,45 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
                     className="p-4 rounded-2xl border border-slate-200 bg-slate-50/40 hover:bg-white transition-all space-y-2.5"
                   >
                     <div className="flex items-center justify-between text-xs font-bold text-slate-500">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
                           {SUBJECT_NAMES[q.subject] || q.subject}
                         </span>
                         <span>{q.topic}</span>
+                        {q.is_draft && (
+                          <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1">
+                            <CircleDashed className="w-3 h-3" />
+                            تجريبي داخلي — مخفي عن الجمهور
+                          </span>
+                        )}
+                        <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 font-mono">{q.exam_id || 'crmef'}</span>
                       </div>
-                      <button
-                        onClick={() => handleDelete(q.id)}
-                        className="text-slate-400 hover:text-rose-600 transition-colors cursor-pointer p-1"
-                        title="حذف السؤال"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-0.5">
+                        <button
+                          onClick={() => void handleToggleDraft(q)}
+                          disabled={draftBusy === q.id}
+                          title={q.is_draft ? 'اعتماد رسمي (للجمهور)' : 'إرجاع للوضع التجريبي الداخلي'}
+                          className={`transition-colors cursor-pointer p-1 ${
+                            q.is_draft ? 'text-amber-500 hover:text-amber-700' : 'text-emerald-500 hover:text-emerald-700'
+                          }`}
+                        >
+                          {draftBusy === q.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CircleDashed className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={() => openEditQuestion(q)}
+                          title="تعديل السؤال والإجابة"
+                          className="text-slate-400 hover:text-sky-600 transition-colors cursor-pointer p-1"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(q.id)}
+                          className="text-slate-400 hover:text-rose-600 transition-colors cursor-pointer p-1"
+                          title="حذف السؤال"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
 
                     <p className="font-bold text-slate-800 text-sm sm:text-base" dir="auto">
@@ -710,6 +848,13 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
         {/* ======================================================== */}
         {activeSubTab === 'package' && (
           <ExamPackageUploader />
+        )}
+
+        {/* ======================================================== */}
+        {/* تبويب 3.7: بيانات المباريات — تحرير يدوي كامل (العنوان/البطاقة/الاعتماد) */}
+        {/* ======================================================== */}
+        {activeSubTab === 'exams' && (
+          <ExamDataManager />
         )}
 
         {/* ======================================================== */}

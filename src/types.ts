@@ -148,6 +148,7 @@ export interface UserProfile {
 export interface Question {
   id: string;
   exam_id?: string; // المباراة المالكة للسؤال — 'crmef' افتراضياً للمحتوى القديم
+  is_draft?: boolean; // مهلة تجريبية: مخفي عن الجمهور حتى الاعتماد الرسمي من الإدارة
   cycles?: CycleKey[]; // إن لم تُحدد، يتم اشتقاقها من المادة. علوم التربية edu صالحة لجميع الأسلاك!
   subject: SubjectKey;
   topic: string;

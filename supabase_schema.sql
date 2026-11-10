@@ -838,6 +838,444 @@ ON CONFLICT (exam_id, key) DO UPDATE SET
 
 
 -- ============================================================================
+-- المرحلة 2.6 — الخطتان السعريةان ونطاق الاشتراك premium_scope (نسخة من supabase_pricing_tiers.sql)
+-- ============================================================================
+-- ============================================================================
+-- الخطتان السعريةان — نطاق الاشتراك (premium_scope)
+-- الاشتراك الشامل : 100 درهم — يفتح جميع المباريات الحالية (CRMEF + tarbawiyin)
+--                    وكل مباراة ستنزل مستقبلاً.
+-- اشتراك مباراة واحدة : 50 درهم — يفتح بنك أسئلة وملخصات مباراة واحدة فقط.
+--
+-- الآلية: profiles.premium_scope يشير إلى 'all' أو معرّف مباراة
+-- (exam_id). عند الموافقة على طلب يعيّن المشرف النطاق حسب خطة الطلب،
+-- وتُطوّق سياسات RLS على أسئلة/إجابات/ملخصات النطاق آلياً.
+--
+-- المطابقة الآمنة للتهيئة الجديدة مع قواعد البيانات القائمة (ADD IF NOT EXISTS،
+-- CREATE OR REPLACE، DROP+CREATE POLICY)، بدون مساس بالمحتوى القديم:
+-- المشتركون الحاليون يبقون بنطاقهم الشامل 'all' افتراضياً.
+-- ============================================================================
+
+-- ───────────────────────────── 1) أعمدة النطاق ─────────────────────────────
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS premium_scope TEXT NOT NULL DEFAULT 'all';
+
+ALTER TABLE public.subscription_requests ADD COLUMN IF NOT EXISTS plan TEXT NOT NULL DEFAULT 'all';
+ALTER TABLE public.subscription_requests ADD COLUMN IF NOT EXISTS premium_scope TEXT NOT NULL DEFAULT 'all';
+-- المبلغ المسجل للتوثيق (بالدرهم) — الطلبات القديمة بقاءها قيمة الاشتراك الفردي إلزامياً.
+ALTER TABLE public.subscription_requests ADD COLUMN IF NOT EXISTS amount_mad NUMERIC NOT NULL DEFAULT 50;
+
+ALTER TABLE public.subscription_requests DROP CONSTRAINT IF EXISTS subscription_requests_plan_check;
+ALTER TABLE public.subscription_requests ADD CONSTRAINT subscription_requests_plan_check
+  CHECK (plan IN ('all', 'single')) NOT VALID;
+
+-- النطاق إما 'all' أو معرّف مباراة (نص 1-60) — التحقق المرجعي للمباريات
+-- يتم في نافذة الموافقة وجانب الخادم (لا يشترط FK لأن 'all' ليست مباراة).
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_premium_scope_check;
+ALTER TABLE public.profiles ADD CONSTRAINT profiles_premium_scope_check
+  CHECK (premium_scope = 'all' OR char_length(trim(premium_scope)) BETWEEN 1 AND 60) NOT VALID;
+
+-- الطلبات القديمة (قبل الخطط): تُعامل اشتراكاً شاملاً بمبلغ 50 مسجلاً توثيقاً.
+UPDATE public.subscription_requests
+SET plan = 'all', premium_scope = 'all'
+WHERE plan IS NULL OR plan NOT IN ('all', 'single');
+
+-- ───────────────────────────── 2) أسئلة: طوق النطاق ─────────────────────────────
+-- التجريبي: أول 20 لكل مادة في سلكه (كما قبل).
+-- الكامل الشامل: أسئلة سلكه من كل المباريات.
+-- كامل مباراة واحدة (scope مباراة): أسئلة سلكه في مباراته فقط.
+DROP POLICY IF EXISTS "Questions read trial or premium" ON public.questions;
+CREATE POLICY "Questions read trial or premium" ON public.questions
+  FOR SELECT TO authenticated
+  USING (
+    public.is_admin(auth.uid())
+    OR EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid()
+        AND (
+          (is_trial AND p.cycle = ANY(questions.cycles))
+          OR (p.subscription_status = 'premium'
+              AND p.cycle = ANY(questions.cycles)
+              AND (
+                p.role = 'admin'
+                OR (p.premium_scope = 'all')
+                OR (p.premium_scope = questions.exam_id)
+              ))
+        )
+    )
+  );
+
+-- ───────────────────────────── 3) الإجابات المحمية: طوق النطاق ─────────────────────────────
+-- المشرف: الكل. المشترك الكامل الشامل: إجابات كل المباريات.
+-- مشترك مباراة واحدة: إجابات أسئلة مباراته فقط.
+DROP POLICY IF EXISTS "Answers read premium or admin" ON public.question_answers;
+CREATE POLICY "Answers read premium or admin" ON public.question_answers
+  FOR SELECT TO authenticated
+  USING (
+    public.is_admin(auth.uid())
+    OR EXISTS (
+      SELECT 1
+      FROM public.profiles p
+      JOIN public.questions q ON q.id = question_answers.question_id
+      WHERE p.id = auth.uid()
+        AND (
+          p.role = 'admin'
+          OR (
+            p.subscription_status = 'premium'
+            AND (p.premium_scope = 'all' OR p.premium_scope = q.exam_id)
+          )
+        )
+    )
+  );
+
+-- ───────────────────────────── 4) الملخصات المحمية: طوق النطاق ─────────────────────────────
+-- تضاف حانة النطاق فوق قاعدة "حصر السلك" الموجودة: الملخصات لسلك
+-- المستخدم، وفي النطاق المدفوع لمباراته فقط (الشامل يرى الكل).
+DROP POLICY IF EXISTS "summaries read premium or admin" ON public.summaries;
+CREATE POLICY "summaries read premium or admin" ON public.summaries
+  FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid()
+        AND (p.subscription_status = 'premium' OR p.role = 'admin')
+        -- النطاق: الشامل/المشرف يرى كل مباريات، ومشترك مباراة واحدة يراها في مباراته.
+        AND (
+          p.role = 'admin'
+          OR p.premium_scope = 'all'
+          OR p.premium_scope = COALESCE(summaries.exam_id, 'crmef')
+        )
+        -- حصر القراءة في سلك المستخدم (قيم cycle العربية في جدول summaries).
+        AND (
+          p.role = 'admin'
+          OR (p.cycle = 'primary' AND summaries.cycle = 'ابتدائي مزدوج')
+          OR (p.cycle = 'secondary_prep' AND summaries.cycle IN ('ثانوي إعدادي وتأهيلي', 'ثانوي إعدادي'))
+          OR (p.cycle = 'secondary_qual' AND summaries.cycle IN ('ثانوي إعدادي وتأهيلي', 'ثانوي تأهيلي'))
+        )
+    )
+  );
+
+-- ───────────────────────────── 5) الإجابة الخادمية: طوق النطاق ─────────────────────────────
+-- دالة answer_question: نفس منطق RLS — المشترك الكامل الشامل يجيب
+-- عن أسئلة كل المباريات؛ مشترك مباراة واحدة عن أسئلة مباراته فقط.
+-- المطابقة الصامتة للتقدم للتوثيق والمستخدمين المحفوظين (CREATE OR REPLACE).
+CREATE OR REPLACE FUNCTION public.answer_question(
+  p_question_id TEXT,
+  p_chosen_answer TEXT
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid UUID := auth.uid();
+  v_subject TEXT;
+  v_trial BOOLEAN;
+  v_exam TEXT;
+  v_premium BOOLEAN;
+  v_admin BOOLEAN;
+  v_scope TEXT;
+  v_answered INTEGER;
+  v_correct TEXT;
+  v_explanation TEXT;
+  v_is_correct BOOLEAN;
+  v_exists BOOLEAN;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'AUTH_REQUIRED';
+  END IF;
+
+  PERFORM pg_advisory_xact_lock(hashtext(v_uid::text));
+
+  SELECT subject, is_trial, exam_id INTO v_subject, v_trial, v_exam
+  FROM public.questions WHERE id = p_question_id;
+  IF v_subject IS NULL THEN
+    RAISE EXCEPTION 'QUESTION_NOT_FOUND';
+  END IF;
+
+  SELECT correct_answer, explanation INTO v_correct, v_explanation
+  FROM public.question_answers WHERE question_id = p_question_id;
+  IF v_correct IS NULL THEN
+    RAISE EXCEPTION 'ANSWER_NOT_FOUND';
+  END IF;
+
+  SELECT (role = 'admin'), (subscription_status = 'premium'),
+         COALESCE(premium_scope, 'all')
+  INTO v_admin, v_premium, v_scope
+  FROM public.profiles WHERE id = v_uid;
+
+  -- حصر بالسلك المسجل: التجريبي والكامل لا يجيبان إلا عن أسئلة سلكهما.
+  IF NOT COALESCE(v_admin, FALSE) THEN
+    SELECT EXISTS (
+      SELECT 1 FROM public.profiles p
+      JOIN public.questions q ON q.id = p_question_id
+      WHERE p.id = v_uid AND p.cycle = ANY(q.cycles)
+    ) INTO v_exists;
+    IF NOT v_exists THEN
+      RAISE EXCEPTION 'TRIAL_QUESTION_LOCKED';
+    END IF;
+  END IF;
+
+  -- طوق النطاق المدفوع: مشترك مباراة واحدة لا يجيب عن أسئلة مباريات أخرى.
+  IF NOT COALESCE(v_admin, FALSE)
+     AND COALESCE(v_premium, FALSE)
+     AND COALESCE(v_scope, 'all') <> 'all'
+     AND COALESCE(v_scope, 'all') <> COALESCE(v_exam, 'crmef') THEN
+    RAISE EXCEPTION 'PREMIUM_SCOPE_LOCKED';
+  END IF;
+
+  IF NOT COALESCE(v_premium, FALSE) THEN
+    IF NOT v_trial THEN
+      RAISE EXCEPTION 'TRIAL_QUESTION_LOCKED';
+    END IF;
+    SELECT COUNT(*) INTO v_answered
+    FROM public.question_progress qp
+    JOIN public.questions q ON q.id = qp.question_id
+    WHERE qp.user_id = v_uid AND q.subject = v_subject;
+
+    SELECT EXISTS (
+      SELECT 1 FROM public.question_progress
+      WHERE user_id = v_uid AND question_id = p_question_id
+    ) INTO v_exists;
+
+    IF v_answered >= 20 AND NOT v_exists THEN
+      RAISE EXCEPTION 'TRIAL_QUOTA_EXCEEDED';
+    END IF;
+  END IF;
+
+  IF p_chosen_answer IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM public.questions
+    WHERE id = p_question_id
+      AND p_chosen_answer = ANY (ARRAY(SELECT jsonb_array_elements_text(options)))
+  ) THEN
+    RAISE EXCEPTION 'INVALID_ANSWER';
+  END IF;
+
+  v_is_correct := (p_chosen_answer IS NOT NULL AND p_chosen_answer = v_correct);
+
+  INSERT INTO public.question_progress (user_id, question_id, is_correct)
+  VALUES (v_uid, p_question_id, v_is_correct)
+  ON CONFLICT (user_id, question_id)
+  DO UPDATE SET is_correct = EXCLUDED.is_correct, answered_at = NOW();
+
+  RETURN jsonb_build_object(
+    'is_correct', v_is_correct,
+    'correct_answer', v_correct,
+    'explanation', v_explanation
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.answer_question(TEXT, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.answer_question(TEXT, TEXT) TO authenticated;
+
+-- ───────────────────────────── 6) مرجع سريع للتحقق ─────────────────────────────
+-- بعد التنفيذ:
+--   SELECT id, subscription_status, premium_scope FROM public.profiles;
+--   المشتركون الحاليون جميعاً premium_scope = 'all'.
+-- الموافقة من الواجهة اليوم تعيّن النطاق آلياً حسب خطة الطلب.
+
+-- ============================================================================
+-- المرحلة 2.7 — مهلة تجريبية is_draft (نسخة من supabase_staging_and_editing.sql)
+-- ============================================================================
+-- ============================================================================
+-- مهلة تجريبية قبل الاعتماد الرسمي (is_draft) + حاجز الخادم
+-- الأسئلة والملخصات المستوردة في «وضع تجريبي» تبقى تُرى للمشرف فقط،
+-- ولا يراها المشتركون/المجربون ولا تُحسب في المباراة حتى اعتمادها من الواجهة.
+--
+-- المراحل: is_draft = TRUE (تجريبي داخلي) ⟵⟶ FALSE (معتمد رسمياً).
+-- الرفع الجماعي يأخذ الحالة من حقل exam.staging في exam_package.json
+-- (الافتراضي عند غيابه: TRUE أي ظهور تجريبي حتى يقرر المشرف).
+-- المطابقة الآمنة (IF NOT EXISTS / CREATE OR REPLACE) — لا مساس بالمعتمد القديم.
+-- ============================================================================
+
+-- ───────────────────────────── 1) العمودان ─────────────────────────────
+ALTER TABLE public.questions ADD COLUMN IF NOT EXISTS is_draft BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE public.summaries ADD COLUMN IF NOT EXISTS is_draft BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE INDEX IF NOT EXISTS questions_draft_idx ON public.questions (exam_id, is_draft);
+
+-- ───────────────────────────── 2) قراءة الأسئلة: طوق التجريبي ─────────────────────────────
+-- نفس قواعد المرحلة السابقة (تدريبي/مدفوع/نطاق) — مضافاً: غير المشرف
+-- لا يقرأ سؤالاً تجريبياً (is_draft) مهما كانت حالته.
+DROP POLICY IF EXISTS "Questions read trial or premium" ON public.questions;
+CREATE POLICY "Questions read trial or premium" ON public.questions
+  FOR SELECT TO authenticated
+  USING (
+    public.is_admin(auth.uid())
+    OR (
+      NOT questions.is_draft
+      AND EXISTS (
+        SELECT 1 FROM public.profiles p
+        WHERE p.id = auth.uid()
+          AND (
+            (is_trial AND p.cycle = ANY(questions.cycles))
+            OR (p.subscription_status = 'premium'
+                AND p.cycle = ANY(questions.cycles)
+                AND (
+                  p.role = 'admin'
+                  OR (p.premium_scope = 'all')
+                  OR (p.premium_scope = questions.exam_id)
+                ))
+          )
+      )
+    )
+  );
+
+-- ───────────────────────────── 3) قراءة الملخصات: طوق التجريبي ─────────────────────────────
+DROP POLICY IF EXISTS "summaries read premium or admin" ON public.summaries;
+CREATE POLICY "summaries read premium or admin" ON public.summaries
+  FOR SELECT TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid()
+        AND (p.subscription_status = 'premium' OR p.role = 'admin')
+        -- ملخص تجريبي داخلي: للمشرف فقط.
+        AND (p.role = 'admin' OR NOT COALESCE(summaries.is_draft, FALSE))
+        -- النطاق: الشامل يرى الكل، ومشترك مباراة واحدة يراها في مباراته.
+        AND (
+          p.role = 'admin'
+          OR p.premium_scope = 'all'
+          OR p.premium_scope = COALESCE(summaries.exam_id, 'crmef')
+        )
+        -- حصر القراءة في سلك المستخدم (قيم cycle العربية المعيارية).
+        AND (
+          p.role = 'admin'
+          OR (p.cycle = 'primary' AND summaries.cycle = 'ابتدائي مزدوج')
+          OR (p.cycle = 'secondary_prep' AND summaries.cycle IN ('ثانوي إعدادي وتأهيلي', 'ثانوي إعدادي'))
+          OR (p.cycle = 'secondary_qual' AND summaries.cycle IN ('ثانوي إعدادي وتأهيلي', 'ثانوي تأهيلي'))
+        )
+    )
+  );
+
+-- ───────────────────────────── 4) الإجابة الخادمية: طوق التجريبي ─────────────────────────────
+CREATE OR REPLACE FUNCTION public.answer_question(
+  p_question_id TEXT,
+  p_chosen_answer TEXT
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid UUID := auth.uid();
+  v_subject TEXT;
+  v_trial BOOLEAN;
+  v_exam TEXT;
+  v_draft BOOLEAN;
+  v_premium BOOLEAN;
+  v_admin BOOLEAN;
+  v_scope TEXT;
+  v_answered INTEGER;
+  v_correct TEXT;
+  v_explanation TEXT;
+  v_is_correct BOOLEAN;
+  v_exists BOOLEAN;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'AUTH_REQUIRED';
+  END IF;
+
+  PERFORM pg_advisory_xact_lock(hashtext(v_uid::text));
+
+  SELECT subject, is_trial, exam_id, is_draft INTO v_subject, v_trial, v_exam, v_draft
+  FROM public.questions WHERE id = p_question_id;
+  IF v_subject IS NULL THEN
+    RAISE EXCEPTION 'QUESTION_NOT_FOUND';
+  END IF;
+
+  SELECT correct_answer, explanation INTO v_correct, v_explanation
+  FROM public.question_answers WHERE question_id = p_question_id;
+  IF v_correct IS NULL THEN
+    RAISE EXCEPTION 'ANSWER_NOT_FOUND';
+  END IF;
+
+  SELECT (role = 'admin'), (subscription_status = 'premium'),
+         COALESCE(premium_scope, 'all')
+  INTO v_admin, v_premium, v_scope
+  FROM public.profiles WHERE id = v_uid;
+
+  -- غير المشرف لا يجيب عن سؤال تجريبي داخلي (مهلة المراجعة).
+  IF NOT COALESCE(v_admin, FALSE) AND COALESCE(v_draft, FALSE) THEN
+    RAISE EXCEPTION 'TRIAL_QUESTION_LOCKED';
+  END IF;
+
+  -- حصر بالسلك المسجل: التجريبي والكامل لا يجيبان إلا عن أسئلة سلكهما.
+  IF NOT COALESCE(v_admin, FALSE) THEN
+    SELECT EXISTS (
+      SELECT 1 FROM public.profiles p
+      JOIN public.questions q ON q.id = p_question_id
+      WHERE p.id = v_uid AND p.cycle = ANY(q.cycles)
+    ) INTO v_exists;
+    IF NOT v_exists THEN
+      RAISE EXCEPTION 'TRIAL_QUESTION_LOCKED';
+    END IF;
+  END IF;
+
+  -- طوق النطاق المدفوع: مشترك مباراة واحدة لا يجيب عن أسئلة مباريات أخرى.
+  IF NOT COALESCE(v_admin, FALSE)
+     AND COALESCE(v_premium, FALSE)
+     AND COALESCE(v_scope, 'all') <> 'all'
+     AND COALESCE(v_scope, 'all') <> COALESCE(v_exam, 'crmef') THEN
+    RAISE EXCEPTION 'PREMIUM_SCOPE_LOCKED';
+  END IF;
+
+  IF NOT COALESCE(v_premium, FALSE) THEN
+    IF NOT v_trial THEN
+      RAISE EXCEPTION 'TRIAL_QUESTION_LOCKED';
+    END IF;
+    SELECT COUNT(*) INTO v_answered
+    FROM public.question_progress qp
+    JOIN public.questions q ON q.id = qp.question_id
+    WHERE qp.user_id = v_uid AND q.subject = v_subject;
+
+    SELECT EXISTS (
+      SELECT 1 FROM public.question_progress
+      WHERE user_id = v_uid AND question_id = p_question_id
+    ) INTO v_exists;
+
+    IF v_answered >= 20 AND NOT v_exists THEN
+      RAISE EXCEPTION 'TRIAL_QUOTA_EXCEEDED';
+    END IF;
+  END IF;
+
+  IF p_chosen_answer IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM public.questions
+    WHERE id = p_question_id
+      AND p_chosen_answer = ANY (ARRAY(SELECT jsonb_array_elements_text(options)))
+  ) THEN
+    RAISE EXCEPTION 'INVALID_ANSWER';
+  END IF;
+
+  v_is_correct := (p_chosen_answer IS NOT NULL AND p_chosen_answer = v_correct);
+
+  INSERT INTO public.question_progress (user_id, question_id, is_correct)
+  VALUES (v_uid, p_question_id, v_is_correct)
+  ON CONFLICT (user_id, question_id)
+  DO UPDATE SET is_correct = EXCLUDED.is_correct, answered_at = NOW();
+
+  RETURN jsonb_build_object(
+    'is_correct', v_is_correct,
+    'correct_answer', v_correct,
+    'explanation', v_explanation
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.answer_question(TEXT, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.answer_question(TEXT, TEXT) TO authenticated;
+
+-- ───────────────────────────── 5) تحقق سريع ─────────────────────────────
+-- عدد الأسئلة التجريبية (المخفية عن الجمهور) لكل مباراة:
+--   SELECT exam_id, count(*) FROM public.questions WHERE is_draft GROUP BY exam_id;
+-- الاعتماد الرسمي يُجرى من واجهة إدارة الأسئلة (زر التبويب) أو:
+--   UPDATE public.questions SET is_draft = FALSE WHERE exam_id = 'tarbawiyin';
+
+-- ============================================================================
+-- المرحلة 3 (تحديث) — import_exam_package مع الوضع التجريبي staging (نسخة من supabase_import_exam_rpc.sql)
+-- ============================================================================
+-- ============================================================================
 -- المرحلة 3 — دالة رفع حزمة المباراة `import_exam_package(jsonb)`
 -- العقد: SKILL_EXAM_CONTENT.md §1.1 — ملف exam_package.json واحد:
 --   exam + subjects + questions + summaries.
@@ -911,6 +1349,13 @@ BEGIN
   END IF;
   IF v_name = '' OR char_length(v_name) > 160 THEN
     v_errs := v_errs || ' • exam.name: نص مطلوب بحد 160.';
+    v_err_count := v_err_count + 1;
+  END IF;
+
+  -- الوضع التجريبي (اختياري): إجابات/ملخصات تبقى مخفية عن الجمهور حتى الاعتماد.
+  IF p_package->'exam' ? 'staging'
+     AND jsonb_typeof(p_package->'exam'->'staging') IS DISTINCT FROM 'boolean' THEN
+    v_errs := v_errs || ' • exam.staging: يجب أن تكون قيمة منطقية true/false.';
     v_err_count := v_err_count + 1;
   END IF;
 
@@ -1157,8 +1602,11 @@ BEGIN
     name = EXCLUDED.name, cycles = EXCLUDED.cycles, weight = EXCLUDED.weight;
 
   -- 3) الأسئلة (نصوص + خيارات فقط — الإجابات في question_answers).
-  INSERT INTO public.questions (id, cycles, subject, topic, question, options, is_trial, exam_id)
-  SELECT q.id, q.cycles, q.subject, q.topic, q.question, q.options, FALSE, v_slug
+  -- الوضع التجريبي: staging=true (أو غيابه مع حزمة/مباراة جديدة) هو true (يُرى للمشرف
+  -- فقط حتى اعتماده)؛ staging=false يعتمد فوراً؛ غياب staging مع مباراة قائمة لا يغيّر حالتها.
+  INSERT INTO public.questions (id, cycles, subject, topic, question, options, is_trial, is_draft, exam_id)
+  SELECT q.id, q.cycles, q.subject, q.topic, q.question, q.options, FALSE,
+         COALESCE((p_package->'exam'->>'staging')::boolean, TRUE), v_slug
   FROM (
     SELECT qq.id,
            ARRAY(SELECT jsonb_array_elements_text(qq.cycles)) AS cycles,
@@ -1169,7 +1617,10 @@ BEGIN
   ) q
   ON CONFLICT (id) DO UPDATE SET
     cycles = EXCLUDED.cycles, subject = EXCLUDED.subject, topic = EXCLUDED.topic,
-    question = EXCLUDED.question, options = EXCLUDED.options, exam_id = EXCLUDED.exam_id;
+    question = EXCLUDED.question, options = EXCLUDED.options, exam_id = EXCLUDED.exam_id,
+    is_draft = CASE WHEN p_package->'exam' ? 'staging'
+               THEN COALESCE((p_package->'exam'->>'staging')::boolean, TRUE)
+               ELSE public.questions.is_draft END;
 
   -- 4) تظليل العينة المجانية: أول 20 سؤالاً/مادة بترتيب id تصاعدياً.
   UPDATE public.questions q SET is_trial = (x.rn <= 20)
@@ -1187,15 +1638,19 @@ BEGIN
   ON CONFLICT (question_id) DO UPDATE SET
     correct_answer = EXCLUDED.correct_answer, explanation = EXCLUDED.explanation;
 
-  -- 6) الملخصات (إن وُجدت).
+  -- 6) الملخصات (إن وُجدت) — بنفس قاعدة الوضع التجريبي للأسئلة.
   IF jsonb_array_length(v_summaries) > 0 THEN
-    INSERT INTO public.summaries (id, title, category, cycle, read_time, sections, exam_id)
-    SELECT s.id, s.title, s.category, s.cycle, COALESCE(s."readTime", ''), s.sections, v_slug
+    INSERT INTO public.summaries (id, title, category, cycle, read_time, sections, is_draft, exam_id)
+    SELECT s.id, s.title, s.category, s.cycle, COALESCE(s."readTime", ''), s.sections,
+           COALESCE((p_package->'exam'->>'staging')::boolean, TRUE), v_slug
     FROM jsonb_to_recordset(v_summaries)
          AS s(id text, title text, category text, cycle text, "readTime" text, sections jsonb)
     ON CONFLICT (id) DO UPDATE SET
       title = EXCLUDED.title, category = EXCLUDED.category, cycle = EXCLUDED.cycle,
-      read_time = EXCLUDED.read_time, sections = EXCLUDED.sections, exam_id = EXCLUDED.exam_id;
+      read_time = EXCLUDED.read_time, sections = EXCLUDED.sections, exam_id = EXCLUDED.exam_id,
+      is_draft = CASE WHEN p_package->'exam' ? 'staging'
+                 THEN COALESCE((p_package->'exam'->>'staging')::boolean, TRUE)
+                 ELSE public.summaries.is_draft END;
   END IF;
 
   SELECT count(*) INTO v_n_sub FROM public.subjects WHERE exam_id = v_slug;
@@ -1208,6 +1663,8 @@ BEGIN
     'exam_id', v_slug, 'name', v_name,
     'subjects', v_n_sub, 'questions', v_n_q, 'trial',
     (SELECT count(*) FROM public.questions WHERE exam_id = v_slug AND is_trial),
+    'draft',
+    (SELECT count(*) FROM public.questions WHERE exam_id = v_slug AND is_draft),
     'answers', v_n_a, 'summaries', v_n_s);
 END;
 $$;
@@ -1217,6 +1674,9 @@ REVOKE ALL ON FUNCTION public.import_exam_package(jsonb) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.import_exam_package(jsonb) FROM anon;
 GRANT EXECUTE ON FUNCTION public.import_exam_package(jsonb) TO authenticated;
 
+-- ============================================================================
+-- المرحلة 2.5 — ربط ملف المستخدم بالمباراة المختارة profiles.exam_id (نسخة من supabase_set_profile_exam.sql)
+-- ============================================================================
 -- ============================================================================
 -- المرحلة 2.5 — ربط ملف المستخدم بالمباراة المختارة profiles.exam_id
 -- المنطلق: تعدد المباريات (شاشات إدارة المستخدمين والاشتراكات تفلتر حسب
@@ -1257,240 +1717,3 @@ $$;
 REVOKE ALL ON FUNCTION public.set_profile_exam(text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.set_profile_exam(text) FROM anon;
 GRANT EXECUTE ON FUNCTION public.set_profile_exam(text) TO authenticated;
-
--- ============================================================================
--- المرحلة 2.6 — الخطتان السعريةان ونطاق الاشتراك premium_scope (نسخة من supabase_pricing_tiers.sql)
--- ============================================================================
--- ============================================================================
--- الخطتان السعريةان — نطاق الاشتراك (premium_scope)
--- الاشتراك الشامل : 100 درهم — يفتح جميع المباريات الحالية (CRMEF + tarbawiyin)
---                    وكل مباراة ستنزل مستقبلاً.
--- اشتراك مباراة واحدة : 50 درهم — يفتح بنك أسئلة وملخصات مباراة واحدة فقط.
---
--- الآلية: profiles.premium_scope يشير إلى 'all' أو معرّف مباراة
--- (exam_id). عند الموافقة على طلب يعيّن المشرف النطاق حسب خطة الطلب،
--- وتُطوّق سياسات RLS على أسئلة/إجابات/ملخصات النطاق آلياً.
---
--- المطابقة الآمنة للتهيئة الجديدة مع قواعد البيانات القائمة (ADD IF NOT EXISTS،
--- CREATE OR REPLACE، DROP+CREATE POLICY)، بدون مساس بالمحتوى القديم:
--- المشتركون الحاليون يبقون بنطاقهم الشامل 'all' افتراضياً.
--- ============================================================================
-
--- ───────────────────────────── 1) أعمدة النطاق ─────────────────────────────
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS premium_scope TEXT NOT NULL DEFAULT 'all';
-
-ALTER TABLE public.subscription_requests ADD COLUMN IF NOT EXISTS plan TEXT NOT NULL DEFAULT 'all';
-ALTER TABLE public.subscription_requests ADD COLUMN IF NOT EXISTS premium_scope TEXT NOT NULL DEFAULT 'all';
--- المبلغ المسجل للتوثيق (بالدرهم) — الطلبات القديمة بقاءها قيمة الاشتراك الفردي إلزامياً.
-ALTER TABLE public.subscription_requests ADD COLUMN IF NOT EXISTS amount_mad NUMERIC NOT NULL DEFAULT 50;
-
-ALTER TABLE public.subscription_requests DROP CONSTRAINT IF EXISTS subscription_requests_plan_check;
-ALTER TABLE public.subscription_requests ADD CONSTRAINT subscription_requests_plan_check
-  CHECK (plan IN ('all', 'single')) NOT VALID;
-
--- النطاق إما 'all' أو معرّف مباراة (نص 1-60) — التحقق المرجعي للمباريات
--- يتم في نافذة الموافقة وجانب الخادم (لا يشترط FK لأن 'all' ليست مباراة).
-ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_premium_scope_check;
-ALTER TABLE public.profiles ADD CONSTRAINT profiles_premium_scope_check
-  CHECK (premium_scope = 'all' OR char_length(trim(premium_scope)) BETWEEN 1 AND 60) NOT VALID;
-
--- الطلبات القديمة (قبل الخطط): تُعامل اشتراكاً شاملاً بمبلغ 50 مسجلاً توثيقاً.
-UPDATE public.subscription_requests
-SET plan = 'all', premium_scope = 'all'
-WHERE plan IS NULL OR plan NOT IN ('all', 'single');
-
--- ───────────────────────────── 2) أسئلة: طوق النطاق ─────────────────────────────
--- التجريبي: أول 20 لكل مادة في سلكه (كما قبل).
--- الكامل الشامل: أسئلة سلكه من كل المباريات.
--- كامل مباراة واحدة (scope مباراة): أسئلة سلكه في مباراته فقط.
-DROP POLICY IF EXISTS "Questions read trial or premium" ON public.questions;
-CREATE POLICY "Questions read trial or premium" ON public.questions
-  FOR SELECT TO authenticated
-  USING (
-    public.is_admin(auth.uid())
-    OR EXISTS (
-      SELECT 1 FROM public.profiles p
-      WHERE p.id = auth.uid()
-        AND (
-          (is_trial AND p.cycle = ANY(questions.cycles))
-          OR (p.subscription_status = 'premium'
-              AND p.cycle = ANY(questions.cycles)
-              AND (
-                p.role = 'admin'
-                OR (p.premium_scope = 'all')
-                OR (p.premium_scope = questions.exam_id)
-              ))
-        )
-    )
-  );
-
--- ───────────────────────────── 3) الإجابات المحمية: طوق النطاق ─────────────────────────────
--- المشرف: الكل. المشترك الكامل الشامل: إجابات كل المباريات.
--- مشترك مباراة واحدة: إجابات أسئلة مباراته فقط.
-DROP POLICY IF EXISTS "Answers read premium or admin" ON public.question_answers;
-CREATE POLICY "Answers read premium or admin" ON public.question_answers
-  FOR SELECT TO authenticated
-  USING (
-    public.is_admin(auth.uid())
-    OR EXISTS (
-      SELECT 1
-      FROM public.profiles p
-      JOIN public.questions q ON q.id = question_answers.question_id
-      WHERE p.id = auth.uid()
-        AND (
-          p.role = 'admin'
-          OR (
-            p.subscription_status = 'premium'
-            AND (p.premium_scope = 'all' OR p.premium_scope = q.exam_id)
-          )
-        )
-    )
-  );
-
--- ───────────────────────────── 4) الملخصات المحمية: طوق النطاق ─────────────────────────────
--- تضاف حانة النطاق فوق قاعدة "حصر السلك" الموجودة: الملخصات لسلك
--- المستخدم، وفي النطاق المدفوع لمباراته فقط (الشامل يرى الكل).
-DROP POLICY IF EXISTS "summaries read premium or admin" ON public.summaries;
-CREATE POLICY "summaries read premium or admin" ON public.summaries
-  FOR SELECT TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles p
-      WHERE p.id = auth.uid()
-        AND (p.subscription_status = 'premium' OR p.role = 'admin')
-        -- النطاق: الشامل/المشرف يرى كل مباريات، ومشترك مباراة واحدة يراها في مباراته.
-        AND (
-          p.role = 'admin'
-          OR p.premium_scope = 'all'
-          OR p.premium_scope = COALESCE(summaries.exam_id, 'crmef')
-        )
-        -- حصر القراءة في سلك المستخدم (قيم cycle العربية في جدول summaries).
-        AND (
-          p.role = 'admin'
-          OR (p.cycle = 'primary' AND summaries.cycle = 'ابتدائي مزدوج')
-          OR (p.cycle = 'secondary_prep' AND summaries.cycle IN ('ثانوي إعدادي وتأهيلي', 'ثانوي إعدادي'))
-          OR (p.cycle = 'secondary_qual' AND summaries.cycle IN ('ثانوي إعدادي وتأهيلي', 'ثانوي تأهيلي'))
-        )
-    )
-  );
-
--- ───────────────────────────── 5) الإجابة الخادمية: طوق النطاق ─────────────────────────────
--- دالة answer_question: نفس منطق RLS — المشترك الكامل الشامل يجيب
--- عن أسئلة كل المباريات؛ مشترك مباراة واحدة عن أسئلة مباراته فقط.
--- المطابقة الصامتة للتقدم للتوثيق والمستخدمين المحفوظين (CREATE OR REPLACE).
-CREATE OR REPLACE FUNCTION public.answer_question(
-  p_question_id TEXT,
-  p_chosen_answer TEXT
-)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_uid UUID := auth.uid();
-  v_subject TEXT;
-  v_trial BOOLEAN;
-  v_exam TEXT;
-  v_premium BOOLEAN;
-  v_admin BOOLEAN;
-  v_scope TEXT;
-  v_answered INTEGER;
-  v_correct TEXT;
-  v_explanation TEXT;
-  v_is_correct BOOLEAN;
-  v_exists BOOLEAN;
-BEGIN
-  IF v_uid IS NULL THEN
-    RAISE EXCEPTION 'AUTH_REQUIRED';
-  END IF;
-
-  PERFORM pg_advisory_xact_lock(hashtext(v_uid::text));
-
-  SELECT subject, is_trial, exam_id INTO v_subject, v_trial, v_exam
-  FROM public.questions WHERE id = p_question_id;
-  IF v_subject IS NULL THEN
-    RAISE EXCEPTION 'QUESTION_NOT_FOUND';
-  END IF;
-
-  SELECT correct_answer, explanation INTO v_correct, v_explanation
-  FROM public.question_answers WHERE question_id = p_question_id;
-  IF v_correct IS NULL THEN
-    RAISE EXCEPTION 'ANSWER_NOT_FOUND';
-  END IF;
-
-  SELECT (role = 'admin'), (subscription_status = 'premium'),
-         COALESCE(premium_scope, 'all')
-  INTO v_admin, v_premium, v_scope
-  FROM public.profiles WHERE id = v_uid;
-
-  -- حصر بالسلك المسجل: التجريبي والكامل لا يجيبان إلا عن أسئلة سلكهما.
-  IF NOT COALESCE(v_admin, FALSE) THEN
-    SELECT EXISTS (
-      SELECT 1 FROM public.profiles p
-      JOIN public.questions q ON q.id = p_question_id
-      WHERE p.id = v_uid AND p.cycle = ANY(q.cycles)
-    ) INTO v_exists;
-    IF NOT v_exists THEN
-      RAISE EXCEPTION 'TRIAL_QUESTION_LOCKED';
-    END IF;
-  END IF;
-
-  -- طوق النطاق المدفوع: مشترك مباراة واحدة لا يجيب عن أسئلة مباريات أخرى.
-  IF NOT COALESCE(v_admin, FALSE)
-     AND COALESCE(v_premium, FALSE)
-     AND COALESCE(v_scope, 'all') <> 'all'
-     AND COALESCE(v_scope, 'all') <> COALESCE(v_exam, 'crmef') THEN
-    RAISE EXCEPTION 'PREMIUM_SCOPE_LOCKED';
-  END IF;
-
-  IF NOT COALESCE(v_premium, FALSE) THEN
-    IF NOT v_trial THEN
-      RAISE EXCEPTION 'TRIAL_QUESTION_LOCKED';
-    END IF;
-    SELECT COUNT(*) INTO v_answered
-    FROM public.question_progress qp
-    JOIN public.questions q ON q.id = qp.question_id
-    WHERE qp.user_id = v_uid AND q.subject = v_subject;
-
-    SELECT EXISTS (
-      SELECT 1 FROM public.question_progress
-      WHERE user_id = v_uid AND question_id = p_question_id
-    ) INTO v_exists;
-
-    IF v_answered >= 20 AND NOT v_exists THEN
-      RAISE EXCEPTION 'TRIAL_QUOTA_EXCEEDED';
-    END IF;
-  END IF;
-
-  IF p_chosen_answer IS NOT NULL AND NOT EXISTS (
-    SELECT 1 FROM public.questions
-    WHERE id = p_question_id
-      AND p_chosen_answer = ANY (ARRAY(SELECT jsonb_array_elements_text(options)))
-  ) THEN
-    RAISE EXCEPTION 'INVALID_ANSWER';
-  END IF;
-
-  v_is_correct := (p_chosen_answer IS NOT NULL AND p_chosen_answer = v_correct);
-
-  INSERT INTO public.question_progress (user_id, question_id, is_correct)
-  VALUES (v_uid, p_question_id, v_is_correct)
-  ON CONFLICT (user_id, question_id)
-  DO UPDATE SET is_correct = EXCLUDED.is_correct, answered_at = NOW();
-
-  RETURN jsonb_build_object(
-    'is_correct', v_is_correct,
-    'correct_answer', v_correct,
-    'explanation', v_explanation
-  );
-END;
-$$;
-
-REVOKE ALL ON FUNCTION public.answer_question(TEXT, TEXT) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.answer_question(TEXT, TEXT) TO authenticated;
-
--- ───────────────────────────── 6) مرجع سريع للتحقق ─────────────────────────────
--- بعد التنفيذ:
---   SELECT id, subscription_status, premium_scope FROM public.profiles;
---   المشتركون الحاليون جميعاً premium_scope = 'all'.
--- الموافقة من الواجهة اليوم تعيّن النطاق آلياً حسب خطة الطلب.

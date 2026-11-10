@@ -32,6 +32,8 @@ export interface ExamPackage {
     color?: string;
     is_active?: boolean;
     sort_order?: number;
+    /** الوضع التجريبي (المهلة): يبقى السؤال/الملخص مخفياً عن الجمهور حتى الاعتماد من الإدارة. */
+    staging?: boolean;
   };
   subjects: ExamPackageSubject[];
   questions: ExamPackageQuestion[];
@@ -86,6 +88,9 @@ export function validateExamPackage(raw: unknown): PackageValidationResult {
   }
   if (!isNonEmptyStr(ex.name) || ex.name.length > 160) {
     push('exam.name: نص مطلوب بحد 160 حرفاً.');
+  }
+  if (ex.staging !== undefined && typeof ex.staging !== 'boolean') {
+    push('exam.staging: قيمة منطقية true/false (الوضع التجريبي قبل الاعتماد الرسمي).');
   }
 
   // الأسلاك المعلنة (معيارية فقط)

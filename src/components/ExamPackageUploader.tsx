@@ -22,6 +22,8 @@ export const ExamPackageUploader: React.FC = () => {
   const [parseError, setParseError] = useState<string>('');
   const [uploading, setUploading] = useState<boolean>(false);
   const [uploadResult, setUploadResult] = useState<{ success: boolean; summary?: ExamImportSummary; error?: string } | null>(null);
+  /** الوضع التجريبي (المهلة): الأسئلة/الملخصات مخفية عن الجمهور حتى الاعتماد من «بيانات المباريات». */
+  const [stagingMode, setStagingMode] = useState<boolean>(true);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File | null) => {
@@ -55,7 +57,14 @@ export const ExamPackageUploader: React.FC = () => {
     if (!parsed || !validation?.ok || uploading) return;
     setUploading(true);
     setUploadResult(null);
-    const res = await importExamPackage(parsed);
+    // وضع المهلة التجريبية يُحقن في الحزمة قبل الرفع (exam.staging).
+    const pkg = parsed as { exam?: Record<string, unknown> };
+    const withStaging = {
+      ...pkg,
+      exam: { ...(pkg.exam || {}), staging: stagingMode },
+    };
+    setParsed(withStaging);
+    const res = await importExamPackage(withStaging);
     setUploadResult(res);
     setUploading(false);
     if (res.success) reset();
@@ -76,6 +85,26 @@ export const ExamPackageUploader: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* الوضع التجريبي (المهلة): مخفي عن الجمهور حتى الاعتماد من الإدارة */}
+      <label className="flex items-start gap-3 p-4 rounded-2xl bg-amber-50 border border-amber-200 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={stagingMode}
+          onChange={(e) => setStagingMode(e.target.checked)}
+          className="w-4 h-4 accent-amber-600 mt-0.5 shrink-0"
+        />
+        <div className="text-xs font-bold text-amber-900 leading-relaxed">
+          <span className="block">
+            وضع المهلة التجريبية (مُفعّل افتراضياً): تُرفع الأسئلة والملخصات <b>خفية عن الجمهور</b>،
+            وتراها أنت وحدها في شاشة الإدارة لحين اعتمادها رسمياً من تبويب «بيانات المباريات»
+            أو من زر الاعتماد في «استعراض الأسئلة».
+          </span>
+          <span className="block mt-1 text-amber-700">
+            إلغاء التعليم = اعتماد رسمي فوري عند الرفع (تظهر للمترشحين مباشرة).
+          </span>
+        </div>
+      </label>
 
       {/* اختيار الملف */}
       <label className="block cursor-pointer group">

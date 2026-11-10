@@ -75,6 +75,13 @@ BEGIN
     v_err_count := v_err_count + 1;
   END IF;
 
+  -- الوضع التجريبي (اختياري): إجابات/ملخصات تبقى مخفية عن الجمهور حتى الاعتماد.
+  IF p_package->'exam' ? 'staging'
+     AND jsonb_typeof(p_package->'exam'->'staging') IS DISTINCT FROM 'boolean' THEN
+    v_errs := v_errs || ' • exam.staging: يجب أن تكون قيمة منطقية true/false.';
+    v_err_count := v_err_count + 1;
+  END IF;
+
   IF NOT (p_package->'exam'->'cycles' IS NOT NULL
           AND jsonb_typeof(p_package->'exam'->'cycles') = 'array'
           AND jsonb_array_length(p_package->'exam'->'cycles') > 0) THEN
@@ -318,8 +325,11 @@ BEGIN
     name = EXCLUDED.name, cycles = EXCLUDED.cycles, weight = EXCLUDED.weight;
 
   -- 3) الأسئلة (نصوص + خيارات فقط — الإجابات في question_answers).
-  INSERT INTO public.questions (id, cycles, subject, topic, question, options, is_trial, exam_id)
-  SELECT q.id, q.cycles, q.subject, q.topic, q.question, q.options, FALSE, v_slug
+  -- الوضع التجريبي: staging=true (أو غيابه مع حزمة/مباراة جديدة) هو true (يُرى للمشرف
+  -- فقط حتى اعتماده)؛ staging=false يعتمد فوراً؛ غياب staging مع مباراة قائمة لا يغيّر حالتها.
+  INSERT INTO public.questions (id, cycles, subject, topic, question, options, is_trial, is_draft, exam_id)
+  SELECT q.id, q.cycles, q.subject, q.topic, q.question, q.options, FALSE,
+         COALESCE((p_package->'exam'->>'staging')::boolean, TRUE), v_slug
   FROM (
     SELECT qq.id,
            ARRAY(SELECT jsonb_array_elements_text(qq.cycles)) AS cycles,
@@ -330,7 +340,10 @@ BEGIN
   ) q
   ON CONFLICT (id) DO UPDATE SET
     cycles = EXCLUDED.cycles, subject = EXCLUDED.subject, topic = EXCLUDED.topic,
-    question = EXCLUDED.question, options = EXCLUDED.options, exam_id = EXCLUDED.exam_id;
+    question = EXCLUDED.question, options = EXCLUDED.options, exam_id = EXCLUDED.exam_id,
+    is_draft = CASE WHEN p_package->'exam' ? 'staging'
+               THEN COALESCE((p_package->'exam'->>'staging')::boolean, TRUE)
+               ELSE public.questions.is_draft END;
 
   -- 4) تظليل العينة المجانية: أول 20 سؤالاً/مادة بترتيب id تصاعدياً.
   UPDATE public.questions q SET is_trial = (x.rn <= 20)
@@ -348,15 +361,19 @@ BEGIN
   ON CONFLICT (question_id) DO UPDATE SET
     correct_answer = EXCLUDED.correct_answer, explanation = EXCLUDED.explanation;
 
-  -- 6) الملخصات (إن وُجدت).
+  -- 6) الملخصات (إن وُجدت) — بنفس قاعدة الوضع التجريبي للأسئلة.
   IF jsonb_array_length(v_summaries) > 0 THEN
-    INSERT INTO public.summaries (id, title, category, cycle, read_time, sections, exam_id)
-    SELECT s.id, s.title, s.category, s.cycle, COALESCE(s."readTime", ''), s.sections, v_slug
+    INSERT INTO public.summaries (id, title, category, cycle, read_time, sections, is_draft, exam_id)
+    SELECT s.id, s.title, s.category, s.cycle, COALESCE(s."readTime", ''), s.sections,
+           COALESCE((p_package->'exam'->>'staging')::boolean, TRUE), v_slug
     FROM jsonb_to_recordset(v_summaries)
          AS s(id text, title text, category text, cycle text, "readTime" text, sections jsonb)
     ON CONFLICT (id) DO UPDATE SET
       title = EXCLUDED.title, category = EXCLUDED.category, cycle = EXCLUDED.cycle,
-      read_time = EXCLUDED.read_time, sections = EXCLUDED.sections, exam_id = EXCLUDED.exam_id;
+      read_time = EXCLUDED.read_time, sections = EXCLUDED.sections, exam_id = EXCLUDED.exam_id,
+      is_draft = CASE WHEN p_package->'exam' ? 'staging'
+                 THEN COALESCE((p_package->'exam'->>'staging')::boolean, TRUE)
+                 ELSE public.summaries.is_draft END;
   END IF;
 
   SELECT count(*) INTO v_n_sub FROM public.subjects WHERE exam_id = v_slug;
@@ -369,6 +386,8 @@ BEGIN
     'exam_id', v_slug, 'name', v_name,
     'subjects', v_n_sub, 'questions', v_n_q, 'trial',
     (SELECT count(*) FROM public.questions WHERE exam_id = v_slug AND is_trial),
+    'draft',
+    (SELECT count(*) FROM public.questions WHERE exam_id = v_slug AND is_draft),
     'answers', v_n_a, 'summaries', v_n_s);
 END;
 $$;

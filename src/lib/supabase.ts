@@ -101,6 +101,7 @@ export async function getQuestions(isAdmin = false): Promise<Question[]> {
     mergedMap.set(row.id, {
       id: row.id,
       exam_id: row.exam_id || 'crmef',
+      is_draft: Boolean(row.is_draft) || false,
       subject: row.subject as SubjectKey,
       topic: row.topic || '',
       question: row.question,
@@ -194,6 +195,75 @@ export async function addQuestion(question: Question): Promise<{ success: boolea
   const current = getLocalCustomQuestions().filter((q) => q.id !== question.id);
   current.push(question);
   saveLocalCustomQuestions(current);
+  return { success: true };
+}
+
+/** تحديث سؤال موجود (نص + خيارات + سلك + إجابة/شرح) — التحرير اليدوي من الإدارة. */
+export async function updateQuestion(question: Question): Promise<{ success: boolean; error?: string }> {
+  const validationError = validateQuestion(question);
+  if (validationError) return { success: false, error: validationError };
+  if (!isSupabaseConfigured() || !supabase) return { success: false, error: 'خدمة الأسئلة غير مهيأة.' };
+
+  const client = supabase;
+  const { error } = await client.from('questions').upsert({
+    id: question.id,
+    subject: question.subject,
+    topic: question.topic,
+    question: question.question,
+    options: question.options,
+    is_draft: Boolean(question.is_draft),
+    ...(question.exam_id ? { exam_id: question.exam_id } : {}),
+    cycles: question.cycles || (question.subject === 'edu'
+      ? ['primary', 'secondary_prep', 'secondary_qual']
+      : question.subject.startsWith('sec_')
+      ? ['secondary_prep', 'secondary_qual']
+      : ['primary']),
+  });
+  if (error) return { success: false, error: `فشل تحديث نص السؤال: ${error.message}` };
+
+  const { error: answerError } = await client.from('question_answers').upsert({
+    question_id: question.id,
+    correct_answer: question.correct_answer,
+    explanation: question.explanation || '',
+  });
+  if (answerError) return { success: false, error: `حُفظ النص لكن فشل حفظ الإجابة: ${answerError.message}` };
+  return { success: true };
+}
+
+/** تغيير حالة المهلة التجريبية (الاعتماد الرسمي أو إرجاعها) لأسئلة محددة. */
+export async function setQuestionsDraft(ids: string[], isDraft: boolean): Promise<{ success: boolean; count?: number; error?: string }> {
+  if (!isSupabaseConfigured() || !supabase) return { success: false, error: 'خدمة الأسئلة غير مهيأة.' };
+  if (ids.length === 0) return { success: true, count: 0 };
+  const chunkSize = 500;
+  let count = 0;
+  for (let i = 0; i < ids.length; i += chunkSize) {
+    const chunk = ids.slice(i, i + chunkSize);
+    const { error } = await supabase.from('questions')
+      .update({ is_draft: isDraft })
+      .in('id', chunk);
+    if (error) return { success: false, count, error: error.message };
+    count += chunk.length;
+  }
+  return { success: true, count };
+}
+
+/** اعتماد (أو إرجاع للتجريبي) كل أسئلة مباراة دفعة واحدة. */
+export async function setExamDraft(examId: string, isDraft: boolean): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured() || !supabase) return { success: false, error: 'خدمة الأسئلة غير مهيأة.' };
+  const scope: string[] = [];
+  const { data: rows } = await supabase.from('questions').select('id').eq('exam_id', examId);
+  (rows || []).forEach((r: { id: string }) => scope.push(r.id));
+  return setQuestionsDraft(scope, isDraft);
+}
+
+/** اعتماد (أو إرجاع) كل أسئلة مادة داخل مباراة. */
+export async function setSubjectDraft(examId: string, subjectKey: string, isDraft: boolean): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured() || !supabase) return { success: false, error: 'خدمة الأسئلة غير مهيأة.' };
+  const { error } = await supabase.from('questions')
+    .update({ is_draft: isDraft })
+    .eq('exam_id', examId)
+    .eq('subject', subjectKey);
+  if (error) return { success: false, error: error.message };
   return { success: true };
 }
 
@@ -425,6 +495,110 @@ export async function getSubjectConfigs(examId: string): Promise<{ subjects: Sub
     console.warn('subjects fetch exception:', e);
     return { subjects: [], fromDb: false };
   }
+}
+
+// ─── التحرير اليدوي لبيانات المباريات (إدارة الأسئلة ← تبويب بيانات المباريات) ───
+
+export interface ExamRowFull {
+  id: string;
+  slug: string;
+  name: string;
+  shortName: string | null;
+  description: string | null;
+  icon: string;
+  color: string;
+  isActive: boolean;
+  sortOrder: number;
+  questionCount: number;
+  draftCount: number;
+}
+
+/** كل صفوف المباريات (شاملة غير النشطة) بعدد أسئلتها والأسئلة التجريبية — للمشرف. */
+export async function getExamsAdmin(): Promise<{ exams: ExamRowFull[]; error?: string }> {
+  if (!isSupabaseConfigured() || !supabase) return { exams: [], error: 'خدمة قاعدة البيانات غير مهيأة.' };
+  const { data, error } = await supabase
+    .from('exams')
+    .select('id, slug, name, short_name, description, icon, color, is_active, sort_order')
+    .order('sort_order', { ascending: true });
+  if (error || !data) return { exams: [], error: error?.message };
+
+  const { data: qCounts } = await supabase
+    .from('questions')
+    .select('exam_id, is_draft');
+  const byExam: Record<string, { total: number; draft: number }> = {};
+  (qCounts || []).forEach((q: { exam_id: string; is_draft: boolean }) => {
+    const ex = q.exam_id || 'crmef';
+    byExam[ex] = byExam[ex] || { total: 0, draft: 0 };
+    byExam[ex].total += 1;
+    if (q.is_draft) byExam[ex].draft += 1;
+  });
+
+  return {
+    exams: data.map((row: Record<string, unknown>) => {
+      const c = byExam[String(row.id)] || { total: 0, draft: 0 };
+      return {
+        id: String(row.id),
+        slug: String(row.slug || row.id),
+        name: String(row.name || row.id),
+        shortName: (row.short_name as string | null) ?? null,
+        description: (row.description as string | null) ?? null,
+        icon: String(row.icon || 'book'),
+        color: String(row.color || 'purple'),
+        isActive: Boolean(row.is_active),
+        sortOrder: Number(row.sort_order ?? 50),
+        questionCount: c.total,
+        draftCount: c.draft,
+      };
+    }),
+  };
+}
+
+export interface ExamPatch {
+  name?: string;
+  shortName?: string | null;
+  description?: string | null;
+  icon?: string;
+  color?: string;
+  isActive?: boolean;
+}
+
+/** تحديث بيانات المباراة (العنوان والوصف والأيقونة والنشاط). */
+export async function updateExam(examId: string, patch: ExamPatch): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured() || !supabase) return { success: false, error: 'خدمة قاعدة البيانات غير مهيأة.' };
+  const row: Record<string, unknown> = {};
+  if (patch.name !== undefined) row.name = patch.name.trim();
+  if (patch.shortName !== undefined) row.short_name = patch.shortName === null ? null : patch.shortName.trim();
+  if (patch.description !== undefined) row.description = patch.description === null ? null : patch.description.trim();
+  if (patch.icon !== undefined) row.icon = patch.icon;
+  if (patch.color !== undefined) row.color = patch.color;
+  if (patch.isActive !== undefined) row.is_active = patch.isActive;
+  if (Object.keys(row).length === 0) return { success: true };
+  const { error } = await supabase.from('exams').update(row).eq('id', examId);
+  return error ? { success: false, error: error.message } : { success: true };
+}
+
+/** حذف مباراة بناعتها الكاملة (أسئلة + إجابات + ملخصات + مواد + الصف). متاح للمشرف فقط عبر RLS. */
+export async function deleteExam(examId: string): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured() || !supabase) return { success: false, error: 'خدمة قاعدة البيانات غير مهيأة.' };
+  // 1) معرفات أسئلة المباراة لحذف إجاباتها أولاً (قيد FK).
+  const { data: qIds } = await supabase.from('questions').select('id').eq('exam_id', examId);
+  const ids = (qIds || []).map((r: { id: string }) => r.id);
+  for (let i = 0; i < ids.length; i += 500) {
+    const chunk = ids.slice(i, i + 500);
+    if (chunk.length === 0) break;
+    const { error } = await supabase.from('question_answers').delete().in('question_id', chunk);
+    if (error) return { success: false, error: `تعذر حذف الإجابات: ${error.message}` };
+    const { error: qErr } = await supabase.from('questions').delete().in('id', chunk);
+    if (qErr) return { success: false, error: `تعذر حذف الأسئلة: ${qErr.message}` };
+  }
+  // 2) الملخصات ثم المواد ثم الصف نفسه.
+  const { error: sErr } = await supabase.from('summaries').delete().eq('exam_id', examId);
+  if (sErr) return { success: false, error: `تعذر حذف الملخصات: ${sErr.message}` };
+  const { error: subErr } = await supabase.from('subjects').delete().eq('exam_id', examId);
+  if (subErr) return { success: false, error: `تعذر حذف المواد: ${subErr.message}` };
+  const { error: examErr } = await supabase.from('exams').delete().eq('id', examId);
+  if (examErr) return { success: false, error: `تعذر حذف المباراة: ${examErr.message}` };
+  return { success: true };
 }
 
 // ─── ربط ملف المستخدم بالمباراة المختارة (المستخدم ليفس المباريات المنفردة السلك) ───
