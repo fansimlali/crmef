@@ -22,6 +22,12 @@ interface SignupExamOption {
   name: string;
 }
 
+/** قائمة احتياطية (تعذّر قراءة القاعدة) — تُعرض مباراتان أساسيتان. */
+const FALLBACK_SIGNUP_EXAMS: SignupExamOption[] = [
+  { id: 'crmef', name: 'مباراة التعليم' },
+  { id: 'tarbawiyin', name: 'مباراة أطر المختصين' },
+];
+
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMode = 'login' }) => {
   const { login, signup, resetPassword } = useAuth();
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>( defaultMode);
@@ -44,15 +50,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMo
     getExamConfigs()
       .then(({ exams, fromDb }) => {
         if (!alive) return;
-        const list = fromDb
+        // القراءة قد تُصفَّر بـ RLS قبل تطبيق سياسة القراءة العامة — نستعمل الاحتياطية عندها.
+        const fromDbList = fromDb
           ? exams.filter((e) => e.isActive).map((e) => ({ id: e.id, name: e.name || e.shortName || e.id }))
-          : [{ id: 'crmef', name: 'مباراة التعليم' }];
-        if (list.length > 0) {
-          setExamOptions(list);
-          // نُبقي أول مباراة مسالك (إن وُجدت) افتراضياً لأنها تحتاج اختيار مسلك.
-          const trackExam = list.find((e) => isTrackExam(e.id, e.name));
-          setExamId((prev) => (list.some((e) => e.id === prev) ? prev : trackExam?.id || list[0].id));
-        }
+          : [];
+        const list = fromDbList.length > 0 ? fromDbList : FALLBACK_SIGNUP_EXAMS;
+        setExamOptions(list);
+        // نُبقي أول مباراة مسالك (إن وُجدت) افتراضياً لأنها تحتاج اختيار مسلك.
+        const trackExam = list.find((e) => isTrackExam(e.id, e.name));
+        setExamId((prev) => (list.some((e) => e.id === prev) ? prev : trackExam?.id || list[0].id));
       })
       .catch(() => { /* القائمة الثابتة تكفي */ });
     return () => { alive = false; };

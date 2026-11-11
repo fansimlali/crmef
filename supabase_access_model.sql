@@ -20,6 +20,15 @@
 -- ───────────────────────── 1) عمود المسالك لكل مباراة ─────────────────────────
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS exam_tracks JSONB NOT NULL DEFAULT '{}'::jsonb;
 
+-- ───────────────────────── 1-ب) قراءة المباريات النشطة للزائر قبل التسجيل ─────────────────────────
+-- بدون هذه السياسة لا يستطيع الزائر (غير مسجل) رؤية قائمة المباريات في نافذة
+-- التسجيل، فيقتصر الاختيار على المباراة الافتراضية. تُقرأ المباريات النشطة فقط
+-- (لا بيانات مستخدمين ولا محتوى مدفوع).
+DROP POLICY IF EXISTS "exams read active public" ON public.exams;
+CREATE POLICY "exams read active public" ON public.exams
+  FOR SELECT TO anon, authenticated
+  USING (is_active);
+
 -- قيمة صالحة: كائن JSON (خريطة مباراة → سلك)
 DO $$
 BEGIN
