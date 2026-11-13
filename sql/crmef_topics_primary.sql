@@ -21,7 +21,9 @@ UPDATE public.questions SET topic = 'الفهم والمهارات' WHERE subjec
 UPDATE public.questions SET topic = 'أنواع الجملة' WHERE subject = 'ar' AND topic = 'النحو والإعراب';
 -- اللغة العربية (تخصص): «فهم النص» → «الفهم والمهارات»
 UPDATE public.questions SET topic = 'الفهم والمهارات' WHERE subject = 'ar' AND topic = 'فهم النص';
--- اللغة العربية (تخصص): «قواعد متنوعة» → «بنية الكلمة»
+-- اللغة العربية (تخصص): «قواعد متنوعة» → «أنواع الجملة» (فصل بالكلمات المفتاحية)
+UPDATE public.questions SET topic = 'أنواع الجملة' WHERE subject = 'ar' AND topic = 'قواعد متنوعة' AND question ILIKE ANY (ARRAY['%جملة%','%مبتدأ%','%خبر%','%فاعل%','%مفعول%','%إعراب%','%نحو%','%فاعل%']);
+-- اللغة العربية (تخصص): «قواعد متنوعة» → «بنية الكلمة» (فصل بالكلمات المفتاحية)
 UPDATE public.questions SET topic = 'بنية الكلمة' WHERE subject = 'ar' AND topic = 'قواعد متنوعة';
 
 -- اللغة الفرنسية (تخصص): «Accords» → «Morphosyntaxe»
@@ -76,7 +78,9 @@ UPDATE public.questions SET topic = 'Ecologie générale' WHERE subject = 'sc' A
 UPDATE public.questions SET topic = 'خارج التوصيف' WHERE subject = 'sc' AND topic = 'الحركة والقوة والطاقة';
 -- العلوم (تخصص): «الكائنات الحية» → «Biologie»
 UPDATE public.questions SET topic = 'Biologie' WHERE subject = 'sc' AND topic = 'الكائنات الحية';
--- العلوم (تخصص): «الكهرباء والضوء» → «Électricité et Magnétisme»
+-- العلوم (تخصص): «الكهرباء والضوء» → «Optique et Vision» (فصل بالكلمات المفتاحية)
+UPDATE public.questions SET topic = 'Optique et Vision' WHERE subject = 'sc' AND topic = 'الكهرباء والضوء' AND question ILIKE ANY (ARRAY['%عدسة%','% lenses%','%مرآة%','%مربع%','%مثلث%','%انكسار%','%الوان%','%ألوان%','%التشتت%','%الضوء%','%ظل%','% image%','%visage%','%مTracing%']) AND question NOT ILIKE ANY (ARRAY['%مقاومة%','%ohm%','%أوم%','%تيار%','%مولد%','%مكثف%','%مغناطيس%','%مغناطيسي%','%بطارية%','%قاطع%','%متوازي%','%التوتر%','%دارة%','%مفتاح%']);
+-- العلوم (تخصص): «الكهرباء والضوء» → «Électricité et Magnétisme» (فصل بالكلمات المفتاحية)
 UPDATE public.questions SET topic = 'Électricité et Magnétisme' WHERE subject = 'sc' AND topic = 'الكهرباء والضوء';
 -- العلوم (تخصص): «المادة وتحولاتها» → «Organisation de la matière»
 UPDATE public.questions SET topic = 'Organisation de la matière' WHERE subject = 'sc' AND topic = 'المادة وتحولاتها';
@@ -97,7 +101,9 @@ UPDATE public.questions SET topic = 'الديدكتيك العام' WHERE subjec
 UPDATE public.questions SET topic = 'الديدكتيك العام' WHERE subject = 'dar' AND topic = 'تحليل الأخطاء وعلاجها';
 -- ديداكتيك اللغة العربية: «تخطيط الحصة» → «الديدكتيك العام»
 UPDATE public.questions SET topic = 'الديدكتيك العام' WHERE subject = 'dar' AND topic = 'تخطيط الحصة';
--- ديداكتيك اللغة العربية: «تدريس القراءة والكتابة» → «ديدكتيك القراءة»
+-- ديداكتيك اللغة العربية: «تدريس القراءة والكتابة» → «ديدكتيك الكتابة» (فصل بالكلمات المفتاحية)
+UPDATE public.questions SET topic = 'ديدكتيك الكتابة' WHERE subject = 'dar' AND topic = 'تدريس القراءة والكتابة' AND question ILIKE ANY (ARRAY['%كتابه%','%الكتابة%','%إنشائي%','%تعبيري%','%خط%','%قلم%','%خطوط%','%رسالة%','%حكاية%','%وصف%']);
+-- ديداكتيك اللغة العربية: «تدريس القراءة والكتابة» → «ديدكتيك القراءة» (فصل بالكلمات المفتاحية)
 UPDATE public.questions SET topic = 'ديدكتيك القراءة' WHERE subject = 'dar' AND topic = 'تدريس القراءة والكتابة';
 -- ديداكتيك اللغة العربية: «تقويم ودعم اللغة العربية» → «الديدكتيك العام»
 UPDATE public.questions SET topic = 'الديدكتيك العام' WHERE subject = 'dar' AND topic = 'تقويم ودعم اللغة العربية';
@@ -156,7 +162,9 @@ UPDATE public.questions SET topic = 'Concepts de base en didactique' WHERE subje
 UPDATE public.questions SET topic = 'Concepts de base en didactique' WHERE subject = 'dfr' AND topic = 'تحليل الأخطاء وعلاجها';
 -- ديداكتيك اللغة الفرنسية: «تخطيط الحصة» → «Concepts de base en didactique»
 UPDATE public.questions SET topic = 'Concepts de base en didactique' WHERE subject = 'dfr' AND topic = 'تخطيط الحصة';
--- ديداكتيك اللغة الفرنسية: «تدريس القراءة والكتابة» → «Compréhension de l’écrit / Lecture»
+-- ديداكتيك اللغة الفرنسية: «تدريس القراءة والكتابة» → «Production de l'écrit» (فصل بالكلمات المفتاحية)
+UPDATE public.questions SET topic = 'Production de l''écrit' WHERE subject = 'dfr' AND topic = 'تدريس القراءة والكتابة' AND question ILIKE ANY (ARRAY['%écrit%','%ecrit%','%rédaction%','%redaction%','%production%','% Production%']);
+-- ديداكتيك اللغة الفرنسية: «تدريس القراءة والكتابة» → «Compréhension de l’écrit / Lecture» (فصل بالكلمات المفتاحية)
 UPDATE public.questions SET topic = 'Compréhension de l’écrit / Lecture' WHERE subject = 'dfr' AND topic = 'تدريس القراءة والكتابة';
 -- ديداكتيك اللغة الفرنسية: «وضعيات تطبيقية» → «Concepts de base en didactique»
 UPDATE public.questions SET topic = 'Concepts de base en didactique' WHERE subject = 'dfr' AND topic = 'وضعيات تطبيقية';

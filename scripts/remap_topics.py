@@ -284,6 +284,36 @@ SUBJECT_TITLES = {
 }
 
 
+# ════════════════════════════════════════════════════════════════════
+# 3) قواعد الفصل بالكلمات المفتاحية: مواضيع تختلط فيها مجالان رسميان
+#    → نوزّع الأسئلة على المجالين حسب مضمون السؤال (WHERE على نص السؤال).
+#    (كل قاعدة: (المادة, الموضوع) → [(المجال الجديد, شرط SQL))])
+# ════════════════════════════════════════════════════════════════════
+SPLIT_RULES = {
+    ('sc', 'الكهرباء والضوء'): [
+        ('Optique et Vision',
+         "question ILIKE ANY (ARRAY['%عدسة%','% lenses%','%مرآة%','%مربع%','%مثلث%','%انكسار%','%الوان%','%ألوان%','%التشتت%','%الضوء%','%ظل%','% image%','%visage%','%مTracing%'])"
+         " AND question NOT ILIKE ANY (ARRAY['%مقاومة%','%ohm%','%أوم%','%تيار%','%مولد%','%مكثف%','%مغناطيس%','%مغناطيسي%','%بطارية%','%قاطع%','%متوازي%','%التوتر%','%دارة%','%مفتاح%'])"),
+        ('Électricité et Magnétisme', "TRUE"),
+    ],
+    ('dar', 'تدريس القراءة والكتابة'): [
+        ('ديدكتيك الكتابة',
+         "question ILIKE ANY (ARRAY['%كتابه%','%الكتابة%','%إنشائي%','%تعبيري%','%خط%','%قلم%','%خطوط%','%رسالة%','%حكاية%','%وصف%'])"),
+        ('ديدكتيك القراءة', "TRUE"),
+    ],
+    ('dfr', 'تدريس القراءة والكتابة'): [
+        ("Production de l'écrit",
+         "question ILIKE ANY (ARRAY['%écrit%','%ecrit%','%rédaction%','%redaction%','%production%','% Production%'])"),
+        ("Compréhension de l’écrit / Lecture", "TRUE"),
+    ],
+    ('ar', 'قواعد متنوعة'): [
+        ('أنواع الجملة',
+         "question ILIKE ANY (ARRAY['%جملة%','%مبتدأ%','%خبر%','%فاعل%','%مفعول%','%إعراب%','%نحو%','%فاعل%'])"),
+        ('بنية الكلمة', "TRUE"),
+    ],
+}
+
+
 def build_map_norm():
     out = {}
     for subj, m in MAP.items():
@@ -294,6 +324,26 @@ def build_map_norm():
                 print(f'⚠️ تصادم في {subj}: «{k}» و«{[x for x in m if norm_key(x)==nk][0]}»')
             d[nk] = v
         out[subj] = d
+    return out
+
+
+def compute_targets(groups, total=100):
+    """توزيع مستهدف لكل مجال فرعي:
+       - الوزن المطبوع إن وُجد.
+       -若无 وزن مطبوع: متوسط أوزان محوره (لتقدير نصيبه).
+       - يُطبَّع المجموع على 100%."""
+    eff = {}
+    for grp, items in groups.items():
+        printed = [w for _n, w, _d in items if w]
+        avg = (sum(printed) / len(printed)) if printed else 0
+        for n, w, _d in items:
+            eff[n] = w if w else avg
+    s = sum(eff.values())
+    if not s:
+        return {}
+    out = {}
+    for n, w in eff.items():
+        out[n] = round(total * w / s)
     return out
 
 
@@ -338,18 +388,25 @@ def main():
                 unmapped.append(t)
 
         rep.append(f'\n## {SUBJECT_TITLES.get(subj, subj)}  (`{subj}`)\n')
-        printed = [(n, w) for _g, items in groups.items() for n, w, _d in items]
-        wsum = sum(w for _n, w in printed if w)
+        targets = compute_targets(groups, sum(cur.values()) or 100)
+        # نجمع الأوزان الرسمية لكل مجال فرعي (لعرضها)
+        off_meta = {}
         for grp, items in groups.items():
-            rep.append(f'\n**{grp}**\n')
-            rep.append('| المجال الفرعي الرسمي | الوزن المطبوع | أسئلة الآن | المستهدف (من 100) | الحالة |')
-            rep.append('|---|---|---|---|---|')
+            for n, w, d in items:
+                off_meta[n] = (w, d)
+        rep.append('| المجال الفرعي الرسمي | الوزن المطبوع | الآن | المستهدف | **ينقص للتوليد** |')
+        rep.append('|---|---|---|---|---|')
+        plan_total = 0
+        for grp, items in groups.items():
+            rep.append(f'| **{grp}** | | | | |')
             for name, w, _d in items:
                 c = counts.get(name, 0)
-                target = round(100 * w / wsum) if w and wsum else None
-                status = '✅' if c else '⚪ فجوة (لا أسئلة)'
-                rep.append(f'| {name} | {w if w else "—"}% | {c} | {target if target is not None else "—"} | {status} |')
-            rep.append('')
+                tg = targets.get(name, 0)
+                missing = max(0, tg - c)
+                plan_total += missing
+                rep.append(f'| {name} | {w if w else "—"}% | {c} | {tg} | '
+                           f'{"**" + str(missing) + "**" if missing else "—"} |')
+        rep.append(f'\n> **خطة التوليد لهذه المادة: {plan_total} سؤالاً جديداً**\n')
 
         off_prog = [t for t in cur if mapping.get(norm_key(t)) == 'خارج التوصيف']
         if off_prog:
@@ -366,6 +423,16 @@ def main():
         for t in sorted(cur):
             target = mapping.get(norm_key(t))
             if not target:
+                continue
+            rules = SPLIT_RULES.get((subj, t))
+            if rules:
+                # فصل بالكلمات المفتاحية: كل قاعدة تلتقط أسئلتها، و«TRUE» تلتقط الباقي.
+                for new_topic, cond in rules:
+                    sql.append(f"-- {SUBJECT_TITLES.get(subj, subj)}: «{t}» → «{new_topic}» (فصل بالكلمات المفتاحية)")
+                    sql.append(f"UPDATE public.questions SET topic = '{esc(new_topic)}' "
+                               f"WHERE subject = '{subj}' AND topic = '{esc(t)}'"
+                               + (f" AND {cond};" if cond != 'TRUE' else ";"))
+                total += cur[t]
                 continue
             sql.append(f"-- {SUBJECT_TITLES.get(subj, subj)}: «{t}» → «{target}»")
             sql.append(f"UPDATE public.questions SET topic = '{esc(target)}' "
@@ -385,6 +452,22 @@ def main():
     sql.append("--   GROUP BY subject, topic;")
 
     rep.insert(3, f'\n**أسئلة مشمولة بالتوحيد: {total} من {len(questions)}**\n')
+    rep.append('\n---\n\n## ملخّص خطة التوليد\n')
+    rep.append('| المادة | أسئلة الآن | المطلوب | ينقص (توليد جديد) |')
+    rep.append('|---|---|---|---|')
+    for subj in OFFICIAL:
+        cur = by_subject_topic.get(subj, {})
+        groups = OFFICIAL[subj]
+        mapping = MAPN.get(subj, {})
+        counts = defaultdict(int)
+        for t, c in cur.items():
+            tgt = mapping.get(norm_key(t))
+            if tgt:
+                counts[tgt] += c
+        targets = compute_targets(groups, sum(cur.values()) or 100)
+        missing = sum(max(0, targets.get(n, 0) - counts.get(n, 0))
+                       for _g, items in groups.items() for n, _w, _d in items)
+        rep.append(f'| {SUBJECT_TITLES.get(subj, subj)} | {sum(cur.values())} | {sum(cur.values())} | **{missing}** |')
 
     os.makedirs(os.path.dirname(sql_path), exist_ok=True)
     with io.open(sql_path, 'w', encoding='utf-8') as f:
