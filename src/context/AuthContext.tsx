@@ -71,6 +71,9 @@ interface ProfileRow {
   premium_scope: string | null;
   /** المسلك/السلك المختار لكل مباراة: { exam_id: cycle_key } */
   exam_tracks: Record<string, string> | null;
+  premium_until?: string | null;
+  premium_source?: string | null;
+  referral_reward_granted_at?: string | null;
 }
 
 interface SubscriptionRow {
@@ -156,11 +159,19 @@ function buildProfile(authUser: User, row?: ProfileRow | null): UserProfile {
     role: row?.role === 'admin' ? 'admin' : 'user',
     subscriptionStatus: row?.subscription_status === 'premium' ? 'premium' : 'trial',
     premiumScope: row?.premium_scope || 'all',
+    premiumUntil: row?.premium_until ?? null,
+    premiumSource: normalizePremiumSource(row?.premium_source),
+    referralRewardGrantedAt: row?.referral_reward_granted_at ?? null,
     cycle: normalizeCycle(row?.cycle ?? authUser.user_metadata?.cycle),
     // المسلك/السلك المختار لكل مباراة (مباراة → سلك). يسقط إلى `cycle` عند غيابه.
     examTracks: normalizeExamTracks(row?.exam_tracks),
     sessionId: generateSecureSessionId(),
   };
+}
+
+/** مصدر الاشتراك المعروف فقط؛ أي قيمة أخرى تُهمَل. */
+function normalizePremiumSource(value: unknown): UserProfile['premiumSource'] {
+  return value === 'paid' || value === 'referral' || value === 'admin' ? value : null;
 }
 
 /** خريطة المسالك per exam: تُقبل القيم المعروفة فقط (وإلا تُهمَل). */
@@ -218,7 +229,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, full_name, role, subscription_status, cycle, premium_scope, exam_tracks')
+        .select('id, email, full_name, role, subscription_status, cycle, premium_scope, exam_tracks, premium_until, premium_source, referral_reward_granted_at')
         .eq('id', authUser.id)
         .maybeSingle();
 
@@ -500,6 +511,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             prev.subscriptionStatus === fresh.subscriptionStatus &&
             prev.cycle === fresh.cycle &&
             prev.premiumScope === fresh.premiumScope &&
+            prev.premiumUntil === fresh.premiumUntil &&
+            prev.premiumSource === fresh.premiumSource &&
+            prev.referralRewardGrantedAt === fresh.referralRewardGrantedAt &&
             JSON.stringify(prev.examTracks || {}) === JSON.stringify(fresh.examTracks || {})
           ) {
             return prev;
@@ -1275,7 +1289,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         loading,
         isAdmin: user?.role === 'admin',
-        isPremium: user?.role === 'admin' || user?.subscriptionStatus === 'premium',
+        isPremium:
+          user?.role === 'admin' ||
+          (user?.subscriptionStatus === 'premium' &&
+            (!user.premiumUntil || new Date(user.premiumUntil).getTime() > Date.now())),
         login,
         signup,
         logout,

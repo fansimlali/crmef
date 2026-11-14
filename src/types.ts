@@ -175,6 +175,8 @@ export interface SubscriptionRequest {
   reviewedAt?: string;
 }
 
+export type PremiumSource = 'paid' | 'referral' | 'admin';
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -186,7 +188,54 @@ export interface UserProfile {
   cycle?: CycleKey;
   /** المسلك/السلك المختار لكل مباراة: { exam_id: cycle_key } — يسقط إلى `cycle` عند غيابه. */
   examTracks?: Record<string, string>;
+  /** تاريخ انتهاء الاشتراك (null = قديم/غير مؤقت). */
+  premiumUntil?: string | null;
+  /** مصدر الاشتراك: مدفوع، مكافأة إحالة، أو منح إداري. */
+  premiumSource?: PremiumSource | null;
+  /** تاريخ منح مكافأة الإحالة (مرة واحدة لكل حساب). */
+  referralRewardGrantedAt?: string | null;
   sessionId?: string;
+}
+
+// ─── برنامج الإحالات ─────────────────────────────────────────────────────────
+export type ReferralStatus = 'pending' | 'qualified' | 'rejected';
+
+/** ملخص إحالات المستخدم الحالي (من RPC my_referral_summary). */
+export interface ReferralSummary {
+  referralCode: string;
+  qualifiedCount: number;
+  pendingCount: number;
+  rejectedCount: number;
+  requiredCount: number;
+  remainingCount: number;
+  rewardGrantedAt: string | null;
+  premiumUntil: string | null;
+  premiumSource: PremiumSource | null;
+  subscriptionStatus: 'premium' | 'trial';
+}
+
+/** إحالة كما يراها صاحب الرابط (بريد مُقنّع). */
+export interface MyReferral {
+  referredEmail: string;
+  status: ReferralStatus;
+  createdAt: string;
+  qualifiedAt: string | null;
+}
+
+/** إحالة كما يراها المشرف (بيانات كاملة للمراجعة). */
+export interface AdminReferral extends MyReferral {
+  referredId: string;
+  referrerId: string;
+  referrerEmail: string;
+  referrerName: string;
+  referredName: string;
+  referrerCode: string | null;
+  referrerSubscriptionStatus: SubscriptionStatus;
+  referrerPremiumUntil: string | null;
+  rewardGrantedAt: string | null;
+  rejectedAt: string | null;
+  rejectionReason: string | null;
+  riskFlags: Record<string, boolean>;
 }
 
 /**

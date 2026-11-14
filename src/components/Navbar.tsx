@@ -9,14 +9,17 @@ import {
   Crown,
   Users,
   CreditCard,
-  ChevronDown
+  ChevronDown,
+  Gift
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { ExamTitle } from '../types';
 
 interface NavbarProps {
-  activeTab: 'quiz' | 'manager' | 'summaries' | 'subscriptions' | 'users';
-  setActiveTab: (tab: 'quiz' | 'manager' | 'summaries' | 'subscriptions' | 'users') => void;
+  activeTab: 'quiz' | 'manager' | 'summaries' | 'subscriptions' | 'users' | 'referrals';
+  setActiveTab: (
+    tab: 'quiz' | 'manager' | 'summaries' | 'subscriptions' | 'users' | 'referrals'
+  ) => void;
   onOpenAuth: () => void;
   selectedExam?: string | null;
   examInfo?: ExamTitle | null;
@@ -101,6 +104,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <FileText className="w-3.5 h-3.5 text-emerald-600" />
               <span>الملخصات {isPremium ? '(متاحة ⭐)' : '(محمية)'}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('referrals')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                activeTab === 'referrals'
+                  ? 'bg-white text-amber-800 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="ادعُ أصدقاءك واحصل على مكافأة الاشتراك"
+            >
+              <Gift className="w-3.5 h-3.5 text-amber-500" />
+              <span>الإحالات</span>
             </button>
 
             {/* لوحة المستخدمين والمشتركين (Task 3 للمشرف فقط) */}
