@@ -8,10 +8,12 @@
  *     أول 20 سؤالاً/مادة is_triangle تلقائياً.
  *  3) بطاقة المباراة (باسمها وتخصصاتها كما في الملف) تظهر فوراً — بلا SQL ولا نشر كود.
  */
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { FileJson, Upload, Loader2, CheckCircle2, XCircle, Database, AlertTriangle } from 'lucide-react';
 import { validateExamPackage } from '../lib/examPackage';
 import type { PackageValidationResult } from '../lib/examPackage';
+import { getCategoryName, getSubcategoryName } from '../data/examCategories';
+import { getTracksOfExam } from '../data/trackMap';
 import { importExamPackage } from '../lib/supabase';
 import type { ExamImportSummary } from '../lib/supabase';
 
@@ -24,7 +26,27 @@ export const ExamPackageUploader: React.FC = () => {
   const [uploadResult, setUploadResult] = useState<{ success: boolean; summary?: ExamImportSummary; error?: string } | null>(null);
   /** الوضع التجريبي (المهلة): الأسئلة/الملخصات مخفية عن الجمهور حتى الاعتماد من «بيانات المباريات». */
   const [stagingMode, setStagingMode] = useState<boolean>(true);
+  /** المسلك/الأسلاك المختارة لكل مادة: { subjectKey: [cycleKey, ...] } */
+  const [subjectTracks, setSubjectTracks] = useState<Record<string, string[]>>({});
   const fileRef = useRef<HTMLInputElement>(null);
+
+  /** المسالك المتاحة لهذه الحزمة (من خريطة المسالك الرسمية، أو من الحزمة نفسها). */
+  const availableTracks = useMemo(() => {
+    const pkg = parsed as { exam?: { slug?: string; cycles?: Array<{ id: string; name: string }> } } | null;
+    const slug = pkg?.exam?.slug || '';
+    const fromMap = getTracksOfExam(slug);
+    if (fromMap.length > 0) return fromMap;
+    return (pkg?.exam?.cycles || []).map((c) => ({ id: c.id, name: c.name, subjects: [] }));
+  }, [parsed]);
+
+  /** تبديل مسلك مادة (متعدد الاختيار). */
+  const toggleSubjectTrack = (subjectKey: string, trackId: string) => {
+    setSubjectTracks((prev) => {
+      const cur = prev[subjectKey] || [];
+      const next = cur.includes(trackId) ? cur.filter((c) => c !== trackId) : [...cur, trackId];
+      return { ...prev, [subjectKey]: next };
+    });
+  };
 
   const handleFile = async (file: File | null) => {
     setFileName('');
@@ -32,6 +54,7 @@ export const ExamPackageUploader: React.FC = () => {
     setValidation(null);
     setParseError('');
     setUploadResult(null);
+    setSubjectTracks({});
     if (!file) return;
     setFileName(file.name);
     try {
@@ -39,6 +62,11 @@ export const ExamPackageUploader: React.FC = () => {
       const json: unknown = JSON.parse(text);
       setParsed(json);
       setValidation(validateExamPackage(json));
+      // تهيئة المسالك الافتراضية من الحزمة نفسها.
+      const subs = (json as { subjects?: Array<{ key: string; cycles?: string[] }> }).subjects || [];
+      const init: Record<string, string[]> = {};
+      subs.forEach((s) => { init[s.key] = Array.isArray(s.cycles) ? [...s.cycles] : []; });
+      setSubjectTracks(init);
     } catch (err: unknown) {
       setParseError(err instanceof Error ? `JSON غير صالح: ${err.message}` : 'JSON غير صالح.');
     }
@@ -58,10 +86,19 @@ export const ExamPackageUploader: React.FC = () => {
     setUploading(true);
     setUploadResult(null);
     // وضع المهلة التجريبية يُحقن في الحزمة قبل الرفع (exam.staging).
-    const pkg = parsed as { exam?: Record<string, unknown> };
+    const pkg = parsed as {
+      exam?: Record<string, unknown>;
+      subjects?: Array<{ key: string; cycles?: string[] }>;
+    };
+    // المسالك المختارة لكل مادة تُكتب في subjects[].cycles (المرجع لأسئلة المادة).
+    const subjects = (pkg.subjects || []).map((s) => {
+      const chosen = subjectTracks[s.key];
+      return chosen && chosen.length > 0 ? { ...s, cycles: chosen } : s;
+    });
     const withStaging = {
       ...pkg,
       exam: { ...(pkg.exam || {}), staging: stagingMode },
+      ...(subjects.length > 0 ? { subjects } : {}),
     };
     setParsed(withStaging);
     const res = await importExamPackage(withStaging);
@@ -155,6 +192,17 @@ export const ExamPackageUploader: React.FC = () => {
                   {validation.examName}
                 </span>
               )}
+              {validation.category && (
+                <span className="text-xs px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 font-black">
+                  {getCategoryName(validation.category)}
+                  {validation.subCategory ? ` — ${getSubcategoryName(validation.category, validation.subCategory)}` : ''}
+                </span>
+              )}
+              {validation.organizingEntity && (
+                <span className="text-xs px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-bold">
+                  {validation.organizingEntity}
+                </span>
+              )}
             </div>
 
             {/* إحصائيات */}
@@ -181,15 +229,41 @@ export const ExamPackageUploader: React.FC = () => {
               </div>
             </div>
 
-            {/* تفصيل المواد */}
+            {/* تفصيل المواد + منتقي المسالك لكل مادة */}
             {validation.stats.perSubject.length > 0 && (
-              <div className="mt-3 text-xs font-bold text-slate-600 space-y-1">
+              <div className="mt-3 text-xs font-bold text-slate-600 space-y-2">
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  المسلك يحدّد أين تظهر أسئلة المادة (ويُستعمل أيضاً في حساب نتيجة الاختبار).
+                  اختر المسلك/الأسلاك لكل مادة — تُحفظ في الحزمة قبل الرفع، وأسئلة المادة
+                  تأخذ مسلك مادتها تلقائياً.
+                </p>
                 {validation.stats.perSubject.map((s) => (
-                  <div key={s.key} className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-100">
-                    <span className="truncate">{s.name || s.key}</span>
-                    <span className="shrink-0 text-slate-500">
-                      {s.count > 0 ? `${s.count} سؤالاً (${s.trial} مجاني)` : 'قيد التحضير (بلا أسئلة)'}
-                    </span>
+                  <div key={s.key} className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-100 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate">{s.name || s.key}</span>
+                      <span className="shrink-0 text-slate-500">
+                        {s.count > 0 ? `${s.count} سؤالاً (${s.trial} مجاني)` : 'قيد التحضير (بلا أسئلة)'}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {availableTracks.map((t) => {
+                        const active = (subjectTracks[s.key] || []).includes(t.id);
+                        return (
+                          <button
+                            type="button"
+                            key={t.id}
+                            onClick={() => toggleSubjectTrack(s.key, t.id)}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-black transition-colors cursor-pointer ${
+                              active
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                            }`}
+                          >
+                            {t.name}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -249,6 +323,15 @@ export const ExamPackageUploader: React.FC = () => {
               {uploadResult.summary && (
                 <div className="text-xs font-bold text-emerald-700 space-y-1">
                   <div>المباراة: {uploadResult.summary.name} (id: {uploadResult.summary.exam_id})</div>
+                  {uploadResult.summary.category && (
+                    <div>
+                      القطاع: {getCategoryName(uploadResult.summary.category)}
+                      {uploadResult.summary.sub_category
+                        ? ` — ${getSubcategoryName(uploadResult.summary.category, uploadResult.summary.sub_category)}`
+                        : ''}
+                      {typeof uploadResult.summary.tracks === 'number' ? ` • مسالك: ${uploadResult.summary.tracks}` : ''}
+                    </div>
+                  )}
                   <div>مواد: {uploadResult.summary.subjects} • أسئلة: {uploadResult.summary.questions} • عيّنة مجانية: {uploadResult.summary.trial} • إجابات محمية: {uploadResult.summary.answers} • ملخصات: {uploadResult.summary.summaries}</div>
                   <div className="text-emerald-600">استعد شاشة المباريات لرؤية البطاقة الجديدة بعدد أسئلتها الحقيقي.</div>
                 </div>

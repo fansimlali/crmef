@@ -11,6 +11,16 @@
 -- ملاحظة: RLS قراءة الملخصات يقيّد بقيم cycle العربية المعيارية — للإطارات
 --   الجديدة ذات أسماء cycle مخصصة، يبقى رؤيتها للمشرف/المشترك حتى تشديد RLS
 --   المتزامن مع تعدد المباريات (موثق في §8).
+--
+-- ── تحديث المرحلة 1 (القطاعات + المسالك العامة) ─────────────────────────────
+--   1) `exam.cycles` لم يعد مقيّداً بالمفاتيح التعليمية الثلاثة: صار «مسالك
+--      المباراة» (أ方针نـد: nursing، customs…) — يُقيَّد فقط بأن يكون مفتاحاً
+--      لاتينياً فريداً داخل المباراة، وبأن تنتمي إليه كل `subjects[].cycles`
+--      و`questions[].cycles`.
+--   2) حقول جديدة اختيارية في `exam`: category / sub_category / organizing_entity
+--      — تُكتب في `exams` (و`category` يجب أن يكون قطاعاً معروفاً في جدول
+--      `categories`، و`sub_category` يجب أن ينتمي إليه).
+--   3) مسالك المباراة تُسجَّل في `exam_tracks` عند كل رفع (مصدر واحد للحقيقة).
 -- ============================================================================
 
 DROP FUNCTION IF EXISTS public.import_exam_package(jsonb);
@@ -25,11 +35,14 @@ DECLARE
   v_slug         text;
   v_name         text;
   v_desc         text;
+  v_category     text;
+  v_sub_category text;
+  v_org_entity   text;
   v_summaries    jsonb;
   v_rec          record;
   v_sec          record;
   v_par          jsonb;
-  v_cycle_ids    text := '|';   -- معرفات أسلاك الحزمة (معيارية فقط)
+  v_cycle_ids    text := '|';   -- معرفات مسالك الحزمة (مسالك هذه المباراة)
   v_cycle_names  text := '|';   -- أسمائها المعروضة (للملخصات)
   v_sub_keys     text := '|';   -- مفاتيح المواد المعلنة
   v_q_ids        text := '|';   -- معرفات الأسئلة (فريدية عامة)
@@ -52,6 +65,14 @@ BEGIN
     RAISE EXCEPTION 'رفع حزم المباريات متاح للمشرف فقط.';
   END IF;
 
+  -- شرط بنيوي: أعمدة قطاع المباراة + جدول القطاعات (المرحلة 1).
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'exams' AND column_name = 'category'
+  ) OR to_regclass('public.categories') IS NULL THEN
+    RAISE EXCEPTION 'بنية المرحلة 1 غير مُطبَّقة: نفّذ supabase_phase1_categories_tracks.sql ثم sql/seed_categories.sql قبل رفع أي حزمة.';
+  END IF;
+
   IF p_package IS NULL OR jsonb_typeof(p_package) <> 'object' THEN
     RAISE EXCEPTION 'الحزمة غير صالحة: كائن JSON مطلوب.';
   END IF;
@@ -65,6 +86,9 @@ BEGIN
   v_slug    := lower(trim(COALESCE(p_package->'exam'->>'slug', '')));
   v_name    := trim(COALESCE(p_package->'exam'->>'name', ''));
   v_desc    := COALESCE(p_package->'exam'->>'description', '');
+  v_category := lower(trim(COALESCE(p_package->'exam'->>'category', '')));
+  v_sub_category := lower(trim(COALESCE(p_package->'exam'->>'sub_category', '')));
+  v_org_entity := trim(COALESCE(p_package->'exam'->>'organizing_entity', ''));
 
   IF v_slug NOT SIMILAR TO '[a-z0-9_]{3,40}' THEN
     v_errs := v_errs || ' • exam.slug: 3-40 حرفاً من [a-z0-9_] فقط.';
@@ -72,6 +96,39 @@ BEGIN
   END IF;
   IF v_name = '' OR char_length(v_name) > 160 THEN
     v_errs := v_errs || ' • exam.name: نص مطلوب بحد 160.';
+    v_err_count := v_err_count + 1;
+  END IF;
+
+  -- القطاع والتصنيف الفرعي (تصنيف مباريات الوظيفة العمومية) ────────────────
+  -- اختياريان في السطر (للتوافق مع الحزم القديمة)، لكن إن وُجدا فيجب أن يكونا
+  -- معروفين: category قطاع مُسجَّل، وsub_category تصنيف فرعي داخله.
+  IF v_category <> '' THEN
+    IF v_category NOT SIMILAR TO '[a-z0-9_]{2,40}' THEN
+      v_errs := v_errs || ' • exam.category: مفتاح قطاع من [a-z0-9_] فقط.';
+      v_err_count := v_err_count + 1;
+    ELSIF NOT EXISTS (SELECT 1 FROM public.categories WHERE key = v_category) THEN
+      v_errs := v_errs || ' • exam.category: قطاع غير معروف (' || v_category ||
+                ') — شغّل sql/seed_categories.sql أولاً.';
+      v_err_count := v_err_count + 1;
+    END IF;
+  END IF;
+
+  IF v_sub_category <> '' THEN
+    IF v_category = '' THEN
+      v_errs := v_errs || ' • exam.sub_category: يتطلب تحديد exam.category.';
+      v_err_count := v_err_count + 1;
+    ELSIF NOT EXISTS (
+      SELECT 1 FROM public.category_subcategories
+      WHERE category_key = v_category AND key = v_sub_category
+    ) THEN
+      v_errs := v_errs || ' • exam.sub_category: تصنيف فرعي غير موجود في القطاع (' ||
+                v_category || '/' || v_sub_category || ').';
+      v_err_count := v_err_count + 1;
+    END IF;
+  END IF;
+
+  IF char_length(v_org_entity) > 200 THEN
+    v_errs := v_errs || ' • exam.organizing_entity: نص مطلوب بحد 200.';
     v_err_count := v_err_count + 1;
   END IF;
 
@@ -87,14 +144,20 @@ BEGIN
           AND jsonb_array_length(p_package->'exam'->'cycles') > 0) THEN
     v_errs := v_errs || ' • exam.cycles: مصفوفة واحدة على الأقل مطلوبة.';
     v_err_count := v_err_count + 1;
+  ELSIF jsonb_array_length(p_package->'exam'->'cycles') > 8 THEN
+    v_errs := v_errs || ' • exam.cycles: 8 مسالك كحد أقصى.';
+    v_err_count := v_err_count + 1;
   ELSE
     FOR v_rec IN SELECT e.value, e.ord
                  FROM jsonb_array_elements(p_package->'exam'->'cycles') WITH ORDINALITY AS e(value, ord)
     LOOP
       v_id := lower(trim(COALESCE(v_rec.value->>'id', '')));
       v_nm := trim(COALESCE(v_rec.value->>'name', ''));
-      IF v_id NOT IN ('primary', 'secondary_prep', 'secondary_qual') THEN
-        v_errs := v_errs || ' • cycles[' || (v_rec.ord - 1) || '].id خارج المعيار (primary/secondary_prep/secondary_qual).';
+      IF v_id NOT SIMILAR TO '[a-z0-9_]{2,30}' THEN
+        v_errs := v_errs || ' • cycles[' || (v_rec.ord - 1) || '].id: مفتاح مسلك من [a-z0-9_] فقط.';
+        v_err_count := v_err_count + 1;
+      ELSIF position('|' || v_id || '|' IN v_cycle_ids) > 0 THEN
+        v_errs := v_errs || ' • cycles[' || (v_rec.ord - 1) || '].id: مفتاح مكرر (' || v_id || ').';
         v_err_count := v_err_count + 1;
       ELSIF v_nm = '' OR char_length(v_nm) > 60 THEN
         v_errs := v_errs || ' • cycles[' || (v_rec.ord - 1) || '].name: نص مطلوب بحد 60.';
@@ -300,16 +363,37 @@ BEGIN
   -- الكتابة الذرّية (كل شيء أو لا شيء) ────────────────────────
 
   -- 1) المباراة (الرفع يُحدّث ولا يكرر — نفس slug).
-  INSERT INTO public.exams (id, slug, name, description, icon, color, is_active, sort_order)
-  VALUES (v_slug, v_slug, v_name, v_desc,
+  INSERT INTO public.exams (id, slug, name, short_name, description, icon, color, is_active, sort_order,
+                            category, sub_category, organizing_entity)
+  VALUES (v_slug, v_slug, v_name,
+          NULLIF(trim(COALESCE(p_package->'exam'->>'short_name', '')), ''),
+          v_desc,
           COALESCE(p_package->'exam'->>'icon', 'book'),
           COALESCE(p_package->'exam'->>'color', 'purple'),
           TRUE,
-          COALESCE((p_package->'exam'->>'sort_order')::int, 50))
+          COALESCE((p_package->'exam'->>'sort_order')::int, 50),
+          NULLIF(v_category, ''), NULLIF(v_sub_category, ''), NULLIF(v_org_entity, ''))
   ON CONFLICT (id) DO UPDATE SET
-    name = EXCLUDED.name, description = EXCLUDED.description,
+    name = EXCLUDED.name,
+    short_name = COALESCE(EXCLUDED.short_name, public.exams.short_name),
+    description = EXCLUDED.description,
     icon = EXCLUDED.icon, color = EXCLUDED.color,
-    is_active = TRUE, sort_order = EXCLUDED.sort_order;
+    is_active = TRUE, sort_order = EXCLUDED.sort_order,
+    -- القطاع: لا يُمحى إن لم تأتِه الحزمة (يبقى مصنَّفاً كما هو).
+    category = COALESCE(EXCLUDED.category, public.exams.category),
+    -- التصنيف الفرعي: يُصفَّر إذا تغيّر القطاع، وإلا يُحفظ القائم.
+    sub_category = CASE
+      WHEN COALESCE(EXCLUDED.category, public.exams.category) IS DISTINCT FROM public.exams.category
+        THEN EXCLUDED.sub_category
+      ELSE COALESCE(EXCLUDED.sub_category, public.exams.sub_category)
+    END,
+    organizing_entity = COALESCE(EXCLUDED.organizing_entity, public.exams.organizing_entity);
+
+  -- 1.b) مسالك المباراة (exam_tracks) — تُعاد بناؤها من الحزمة عند كل رفع.
+  DELETE FROM public.exam_tracks WHERE exam_id = v_slug;
+  INSERT INTO public.exam_tracks (exam_id, key, name, sort_order)
+  SELECT v_slug, lower(trim(c.value->>'id')), trim(c.value->>'name'), (c.ord - 1) * 10
+  FROM jsonb_array_elements(p_package->'exam'->'cycles') WITH ORDINALITY AS c(value, ord);
 
   -- 2) المواد.
   INSERT INTO public.subjects (exam_id, key, name, cycles, weight)
@@ -353,6 +437,12 @@ BEGIN
   ) x
   WHERE x.id = q.id;
 
+  -- 4-ب) مسلك الأسئلة = مسلك مادتها (المرجع من جدول subjects) — يمنع تخلّف المسالك.
+  UPDATE public.questions q SET cycles = s.cycles
+  FROM public.subjects s
+  WHERE s.exam_id = v_slug AND s.key = q.subject
+    AND q.exam_id = v_slug AND q.cycles IS DISTINCT FROM s.cycles;
+
   -- 5) الإجابات المفصولة (جدول محمي).
   INSERT INTO public.question_answers (question_id, correct_answer, explanation)
   SELECT a.id, a.correct_answer, COALESCE(a.explanation, '')
@@ -384,6 +474,9 @@ BEGIN
 
   RETURN jsonb_build_object(
     'exam_id', v_slug, 'name', v_name,
+    'category', NULLIF(v_category, ''),
+    'sub_category', NULLIF(v_sub_category, ''),
+    'tracks', (SELECT count(*) FROM public.exam_tracks WHERE exam_id = v_slug),
     'subjects', v_n_sub, 'questions', v_n_q, 'trial',
     (SELECT count(*) FROM public.questions WHERE exam_id = v_slug AND is_trial),
     'draft',

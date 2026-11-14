@@ -135,7 +135,31 @@ $$;
 REVOKE ALL ON FUNCTION public.set_profile_track(TEXT, TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.set_profile_track(TEXT, TEXT) TO authenticated;
 
--- ───────────────────────── 4) قراءة الأسئلة: نموذج «مباراة + مسلك» ─────────────────────────
+-- ───────────────────────── 4) أسئلة المادة تتبع مسالكها تلقائياً ─────────────────────────
+-- ارتباط المسلك بالمادة هو المرجع: عند تغيير material.cycles تُحدَّث أسئلتها آلياً،
+-- فتكفي عملية واحدة (تعيين المادة إلى مسلك) بدل تحديث كل سؤال على حدة.
+CREATE OR REPLACE FUNCTION public.sync_subject_cycles_to_questions()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.cycles IS DISTINCT FROM OLD.cycles THEN
+    UPDATE public.questions
+    SET cycles = NEW.cycles
+    WHERE subject = NEW.key AND exam_id = NEW.exam_id;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_sync_subject_cycles ON public.subjects;
+CREATE TRIGGER trg_sync_subject_cycles
+AFTER UPDATE OF cycles ON public.subjects
+FOR EACH ROW EXECUTE FUNCTION public.sync_subject_cycles_to_questions();
+
+-- ───────────────────────── 5) قراءة الأسئلة: نموذج «مباراة + مسلك» ─────────────────────────
 DROP POLICY IF EXISTS "Questions read trial or premium" ON public.questions;
 CREATE POLICY "Questions read trial or premium" ON public.questions
   FOR SELECT TO authenticated
@@ -162,7 +186,7 @@ CREATE POLICY "Questions read trial or premium" ON public.questions
     )
   );
 
--- ───────────────────────── 5) قراءة الإجابات: نفس النموذج + حاجز المهلة التجريبية ─────────────────────────
+-- ───────────────────────── 6) قراءة الإجابات: نفس النموذج + حاجز المهلة التجريبية ─────────────────────────
 DROP POLICY IF EXISTS "Answers read premium or admin" ON public.question_answers;
 CREATE POLICY "Answers read premium or admin" ON public.question_answers
   FOR SELECT TO authenticated
@@ -183,7 +207,7 @@ CREATE POLICY "Answers read premium or admin" ON public.question_answers
     )
   );
 
--- ───────────────────────── 6) قراءة الملخصات: نطاق + مسلك ─────────────────────────
+-- ───────────────────────── 7) قراءة الملخصات: نطاق + مسلك ─────────────────────────
 -- ملخصات المباريات غير التعليمية (مسالك) تُقرأ ضمن نطاق الاشتراك بلا قيد
 -- أسماء الأسلاك (أسماؤها ليست من نظام الأسلاك)، وبقيت مطابقة لمباراة crmef.
 DROP POLICY IF EXISTS "summaries read premium or admin" ON public.summaries;
@@ -210,7 +234,7 @@ CREATE POLICY "summaries read premium or admin" ON public.summaries
     )
   );
 
--- ───────────────────────── 7) الإجابة الخادمية: نفس النموذج ─────────────────────────
+-- ───────────────────────── 8) الإجابة الخادمية: نفس النموذج ─────────────────────────
 CREATE OR REPLACE FUNCTION public.answer_question(
   p_question_id TEXT,
   p_chosen_answer TEXT
@@ -331,7 +355,7 @@ $$;
 REVOKE ALL ON FUNCTION public.answer_question(TEXT, TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.answer_question(TEXT, TEXT) TO authenticated;
 
--- ───────────────────────── 8) اعتماد الاشتراك الجزئي يكتب المسلك ─────────────────────────
+-- 8) الإجابة الخادمية الجزئي يكتب المسلك ─────────────────────────
 -- عند الموافقة على طلب «مباراة واحدة» يُسجَّل المسلك المطلوب في profiles.exam_tracks
 -- (عبر RPC آمن بدل UPDATE مباشر — لأن سياسات profiles تحديثها للمشرف فقط).
 CREATE OR REPLACE FUNCTION public.apply_subscription_scope(
@@ -364,6 +388,6 @@ $$;
 REVOKE ALL ON FUNCTION public.apply_subscription_scope(UUID, TEXT, TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.apply_subscription_scope(UUID, TEXT, TEXT) TO authenticated;
 
--- ───────────────────────── 9) تحقق سريع بعد التنفيذ ─────────────────────────
+-- 9) اعتماد الاشتراك بعد التنفيذ ─────────────────────────
 --   SELECT id, email, cycle, exam_id, exam_tracks, premium_scope FROM public.profiles LIMIT 10;
 --   SELECT count(*) FROM public.questions WHERE exam_id = 'tarbawiyin';
