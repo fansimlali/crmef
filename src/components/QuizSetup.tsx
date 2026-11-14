@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import type { SubjectKey, Question, CycleKey, ExamTitle } from '../types';
 import { SUBJECT_NAMES, getSubjectWeight, getCyclesForExam, isTrackExam } from '../types';
-import { getSubjectConfigs } from '../lib/supabase';
+import { getSubjectConfigs, setProfileTrack } from '../lib/supabase';
 import type { SubjectRowConfig } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { 
-  Play, 
-  Sparkles, 
-  Target, 
-  Scale, 
-  GraduationCap, 
+import {
+  Play,
+  Sparkles,
+  Target,
+  Scale,
+  GraduationCap,
   CheckCircle2,
   HelpCircle,
   Crown,
   Lock,
   AlertTriangle,
-  ChevronRight
+  ChevronRight,
+  Route
 } from 'lucide-react';
 
 interface QuizSetupProps {
@@ -33,12 +34,13 @@ interface QuizSetupProps {
 }
 
 export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, selectedExam, examInfo, onChangeExam }) => {
-  const { 
-    user, 
-    isAdmin, 
-    isPremium, 
-    answeredQuestionIds, 
-    setUpgradeModalOpen 
+  const {
+    user,
+    isAdmin,
+    isPremium,
+    answeredQuestionIds,
+    setUpgradeModalOpen,
+    refreshProfile
   } = useAuth();
 
   // مباراة منظمة بمسالك (بدل الأسلاك التعليمية)؟ — مثل مباراة أطر المختصين.
@@ -53,22 +55,31 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
   // مجاني: مسلك واحد (ما اختاره عند التسجيل) وبنفس الكوطة.
   const premiumScope = user?.premiumScope || 'all';
   const isFullPremium = isAdmin || (isPremium && premiumScope === 'all');
-  // المسلك الفعّال للمستخدم في هذه المباراة: من خريطة المسالك per exam، وإلا سلكه العام.
-  const userCycle = (user?.examTracks?.[selectedExam || ''] as CycleKey | undefined) || user?.cycle || null;
+  const isPartialPremium = isPremium && !isFullPremium;
 
-  // هل يقصر خطته/اشتراكه على مسلك واحد في هذه المباراة؟
-  const trackLocked = !isFullPremium && Boolean(userCycle);
+  // المسلك الذي اختاره صراحةً لهذه المباراة (من خريطة المسالك per exam).
+  const chosenTrackForExam = (user?.examTracks?.[selectedExam || ''] as CycleKey | undefined) || null;
+  // المسلك الفعّال: الاختيار الصريح، وإلا سلكه العام (اختيار مسلك واحد لمباراة أخرى).
+  const userCycle = chosenTrackForExam || user?.cycle || null;
+
+  // هل اختار مسلكاً لهذه المباراة من قبل؟ (القفل: المجاني يختار مرة واحدة)
+  const hasChosenTrack = Boolean(chosenTrackForExam);
+  // المشترك الجزئي/الشامل: يُقصر على مسلك واحد (ما اختاره).
+  const trackLocked = (isPartialPremium || hasChosenTrack) && Boolean(userCycle);
 
   // المسالك المتاحة لهذا المستخدم في هذه المباراة.
   const visibleCycles = trackLocked
     ? cycleDefs.filter((c) => c.id === userCycle)
     : cycleDefs;
 
+  // في المباريات ذات المسالك: المستخدم المجاني الذي لم يختر مسلكاً بعد يختار واحداً (مرة واحدة).
+  const canPickTrack = trackMode && !isFullPremium && !hasChosenTrack && Boolean(user);
+
   // إذا كان المستخدم مسجلاً وله سلك محدد، نقفل السلك تلقائياً على سلكه
   // (في المباريات ذات المسالك: المشترك الشامل وحده يختار بحرية).
   const effectiveCycles = trackLocked
     ? visibleCycles
-    : user && !isAdmin && userCycle && !trackMode
+    : user && !isAdmin && userCycle && !trackMode && !isPartialPremium
     ? visibleCycles.filter((c) => c.id === userCycle)
     : visibleCycles;
 
@@ -360,10 +371,22 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
             </div>
           )}
 
+          {/* اختيار المسلك لأول مرة في هذه المباراة (يُثبَّت بعدها) */}
+          {canPickTrack && (
+            <div className="mb-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-start gap-2">
+              <Route className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <span className="leading-relaxed">
+                اختر <strong>{levelWord}</strong> الذي تريد التحضير له في هذه المباراة — سيُثبَّت في حسابك
+                (مع الكوطة المجانية: 20 سؤالاً لكل {subjectWord}).
+              </span>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {effectiveCycles.map((c) => {
               const isSelected = selectedCycle === c.id;
-              const isLockedByAccount = user && !isAdmin && userCycle && userCycle !== c.id && !isFullPremium;
+              const isLockedByAccount =
+                !isFullPremium && !canPickTrack && Boolean(userCycle) && userCycle !== c.id;
               const isAvailable = c.available && !isLockedByAccount;
 
               return (
@@ -371,9 +394,18 @@ export const QuizSetup: React.FC<QuizSetupProps> = ({ questions, onStart, select
                   type="button"
                   key={c.id}
                   onClick={() => {
-                    if (isAvailable) {
-                      setSelectedCycle(c.id);
-                      setSelectedSubject('all');
+                    if (!isAvailable) return;
+                    setSelectedCycle(c.id);
+                    setSelectedSubject('all');
+                    // تثبيت المسلك في الخادم (مرة واحدة للمجاني).
+                    if (canPickTrack && selectedExam) {
+                      void setProfileTrack(selectedExam, c.id).then((res) => {
+                        if (!res.success) {
+                          window.alert(res.error || 'تعذّر تثبيت المسلك.');
+                        } else {
+                          refreshProfile?.();
+                        }
+                      });
                     }
                   }}
                   disabled={!isAvailable}

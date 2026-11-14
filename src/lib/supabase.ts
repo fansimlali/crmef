@@ -436,16 +436,31 @@ export interface ExamRowConfig {
   color: string;
   isActive: boolean;
   questionCount: number;
+  /** القطاع (الجهة المالكة) — تصنيف مباريات الوظيفة العمومية. */
+  category: string | null;
+  /** التصنيف الفرعي داخل القطاع. */
+  subCategory: string | null;
+  /** الجهة المعلنة كما وردت في الإعلان. */
+  organizingEntity: string | null;
 }
 
 /** إعدادات المباريات من جدول exams (يشمل عدد الأسئلة لكل مباراة). قائمة فارغة عند الفشل. */
 export async function getExamConfigs(): Promise<{ exams: ExamRowConfig[]; fromDb: boolean }> {
   if (!supabase) return { exams: [], fromDb: false };
   try {
-    const { data, error } = await supabase
+    // الأعمدة الجديدة (المرحلة 1: category/sub_category/organizing_entity) تتطلّب
+    // supabase_phase1_categories_tracks.sql. لو لم تُنفَّذ بعد، نعيد الاستعلام
+    // بدون هذه الأعمدة حتى لا تنكسر قائمة المباريات (تراجع آمن بلا توقّف).
+    const full = await supabase
       .from('exams')
-      .select('id, slug, name, short_name, description, icon, color, is_active, sort_order, questions(count)')
+      .select('id, slug, name, short_name, description, icon, color, is_active, sort_order, category, sub_category, organizing_entity, questions(count)')
       .order('sort_order', { ascending: true });
+    const { data, error } = full.error
+      ? await supabase
+          .from('exams')
+          .select('id, slug, name, short_name, description, icon, color, is_active, sort_order, questions(count)')
+          .order('sort_order', { ascending: true })
+      : full;
     if (error || !data) {
       console.warn('exams fetch failed, keeping static fallback:', error?.message);
       return { exams: [], fromDb: false };
@@ -461,12 +476,36 @@ export async function getExamConfigs(): Promise<{ exams: ExamRowConfig[]; fromDb
         color: String(row.color || 'emerald'),
         isActive: Boolean(row.is_active),
         questionCount: counts[0]?.count ?? 0,
+        category: (row.category as string | null) ?? null,
+        subCategory: (row.sub_category as string | null) ?? null,
+        organizingEntity: (row.organizing_entity as string | null) ?? null,
       };
     });
     return { exams, fromDb: true };
   } catch (e) {
     console.warn('exams fetch exception:', e);
     return { exams: [], fromDb: false };
+  }
+}
+
+/** مسالك مباراة معيّنة (exam_tracks) — أسماء العرض مرتّبة. */
+export interface ExamTrackRow {
+  key: string;
+  name: string;
+}
+
+export async function getExamTracks(examId: string): Promise<ExamTrackRow[]> {
+  if (!supabase || !examId) return [];
+  try {
+    const { data, error } = await supabase
+      .from('exam_tracks')
+      .select('key, name')
+      .eq('exam_id', examId)
+      .order('sort_order', { ascending: true });
+    if (error || !data) return [];
+    return (data as Array<{ key: string; name: string }>).map((t) => ({ key: t.key, name: t.name }));
+  } catch {
+    return [];
   }
 }
 
@@ -613,10 +652,44 @@ export async function setProfileExam(examId: string): Promise<void> {
   }
 }
 
+/**
+ * تثبيت مسلك المستخدم داخل مباراة معيّنة.
+ * - المجاني: مسموح مرة واحدة لكل مباراة (بند «المسلك ثابت من التسجيل») — بعدها يرفض الخادم.
+ * - المشترك (جزئي/شامل): تغيير المسلك متاح.
+ * ملاحظة: التثبيت يتمّ في الخادم، والواجهة تعكس النتيجة فوراً.
+ */
+export async function setProfileTrack(
+  examId: string,
+  cycle: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!supabase || !examId || !cycle) return { success: false, error: 'معطيات ناقصة.' };
+  try {
+    const { error } = await supabase.rpc('set_profile_track', {
+      p_exam_id: examId,
+      p_cycle: cycle,
+    });
+    if (error) {
+      const msg = error.message || '';
+      if (msg.includes('TRACK_LOCKED')) {
+        return { success: false, error: 'المسلك ثابت في هذه المباراة (يُحدَّد مرة واحدة).' };
+      }
+      return { success: false, error: msg };
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'تعذّر تثبيت المسلك.' };
+  }
+}
+
 // ─── المرحلة 3: رفع حزمة مباراة (exam_package.json) عبر RPC خادمي للمشرف فقط ───
 export interface ExamImportSummary {
   exam_id: string;
   name: string;
+  /** القطاع (تصنيف مباريات الوظيفة العمومية) — المرحلة 1. */
+  category?: string | null;
+  sub_category?: string | null;
+  /** عدد المسالك المسجَّلة للمباراة. */
+  tracks?: number;
   subjects: number;
   questions: number;
   trial: number;

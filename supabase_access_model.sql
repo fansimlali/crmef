@@ -92,6 +92,7 @@ DECLARE
   v_status TEXT;
   v_scope TEXT;
   v_role TEXT;
+  v_has_track BOOLEAN;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'AUTH_REQUIRED';
@@ -113,8 +114,15 @@ BEGIN
   INTO v_status, v_scope, v_role
   FROM public.profiles WHERE id = v_uid;
 
+  -- هل اختار المستخدم مسلكاً لهذه المباراة من قبل؟
+  SELECT (exam_tracks ? v_exam) INTO v_has_track
+  FROM public.profiles WHERE id = v_uid;
+
   IF v_role <> 'admin' AND NOT (v_status = 'premium' AND (v_scope = 'all' OR v_scope = v_exam)) THEN
-    RAISE EXCEPTION 'TRACK_LOCKED';
+    -- مجاني: يختار مسلكاً واحداً لكل مباراة، ثم يُقفل (حماية الكوطة).
+    IF COALESCE(v_has_track, FALSE) THEN
+      RAISE EXCEPTION 'TRACK_LOCKED';
+    END IF;
   END IF;
 
   UPDATE public.profiles

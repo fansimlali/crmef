@@ -9,6 +9,7 @@ import {
   resetLoginAttempts
 } from '../lib/security';
 import { logReceiptUploadAttempt, recordUpgradeClick } from '../lib/receiptLogger';
+import { getStoredReferralCode, getSignupFingerprint, clearStoredReferralCode } from '../lib/referral';
 
 /** هل أكّد المستخدم بريده؟ (إلزامي للدخول — لا دخول ببريد غير مؤكَّد). */
 function isEmailConfirmed(authUser: User): boolean {
@@ -50,6 +51,8 @@ interface AuthContextType {
   suspendSubscription: (requestId: string) => Promise<boolean>;
   deleteSubscription: (requestId: string) => Promise<boolean>;
   deleteUserAccount: (userId: string) => Promise<{ success: boolean; error?: string }>;
+  /** إعادة تحميل ملف المستخدم من الخادم (بعد تثبيت المسلك أو تغيّر الصلاحيات). */
+  refreshProfile: () => Promise<void>;
   // نافذة الترقية
   upgradeModalOpen: boolean;
   setUpgradeModalOpen: (open: boolean) => void;
@@ -264,6 +267,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  // ───────────────────────────── مزامنة الاستحقاقات ─────────────────────────────
+  // تُطبّق مهلة premium_until فور الدخول حتى لو لم تكن مهمة pg_cron مفعّلة،
+  // وتعيد تقييم أهلية الإحالة (بعد تأكيد البريد مثلاً).
+  const syncServerEntitlements = useCallback(async () => {
+    if (!supabase) return;
+    try {
+      await Promise.all([
+        supabase.rpc('refresh_my_subscription'),
+        supabase.rpc('refresh_my_referral_status'),
+      ]);
+    } catch {
+      /* قاعدة قديمة بلا الهجرة: نتجاهل بهدوء */
+    }
+  }, []);
+
   // ───────────────────────────── تحميل التقدم ─────────────────────────────
   const loadUserProgress = useCallback(async (userId: string) => {
     // ذاكرة محلية للعرض السريع، والمصدر الموثوق هو question_progress في Supabase.
@@ -396,6 +414,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             return;
           }
+          await syncServerEntitlements();
           const profile = await loadProfile(data.session.user);
           if (cancelled) return;
           setUser(profile);
@@ -412,7 +431,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       cancelled = true;
     };
-  }, [loadProfile, loadUserProgress]);
+  }, [loadProfile, loadUserProgress, syncServerEntitlements]);
 
   // تحديث الجلسة عند تأكيد البريد أو تجديد الرمز أو تغيير الحالة في تبويب آخر.
   useEffect(() => {
@@ -425,6 +444,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await client.auth.signOut();
             return;
           }
+          await syncServerEntitlements();
           const profile = await loadProfile(session.user);
           setUser(profile);
           await loadUserProgress(profile.id);
@@ -436,13 +456,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       listener?.subscription?.unsubscribe();
     };
-  }, [loadProfile, loadUserProgress]);
+  }, [loadProfile, loadUserProgress, syncServerEntitlements]);
 
   // تحديث طلبات الاشتراك كلما تغيّر المستخدم أو دوره
   useEffect(() => {
     if (user) void refreshSubscriptions(user);
     else setSubscriptionRequests([]);
   }, [user, refreshSubscriptions]);
+
+  /**
+   * إعادة تحميل ملف المستخدم من الخادم (يُستخدم بعد تثبيت المسلك أو تغيّر الصلاحيات).
+   */
+  const refreshProfile = useCallback(async (): Promise<void> => {
+    if (!isSupabaseConfigured() || !supabase) return;
+    try {
+      const { data } = await supabase.auth.getSession();
+      const sessUser = data?.session?.user;
+      if (!sessUser) return;
+      const fresh = await loadProfile(sessUser);
+      if (fresh) setUser(fresh);
+    } catch (err) {
+      console.warn('refreshProfile error:', err);
+    }
+  }, [loadProfile]);
 
   // انعكاس الترقية فوراً: إعادة جلب الملف دورياً وعند عودة التركيز.
   useEffect(() => {
@@ -626,6 +662,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
+      // الإحالة تُقرأ من التخزين المحلي (التقطها main.tsx من ?ref=).
+      // تُرسل داخل raw_user_meta_data ليقرأها trigger handle_new_user على الخادم.
+      const referralCode = getStoredReferralCode();
+      const signupFingerprint = getSignupFingerprint();
+
       const { data, error } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
@@ -637,6 +678,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             full_name: fullName.trim(),
             cycle: normalizeCycle(cycle),
             ...(examId ? { exam_id: String(examId).trim().toLowerCase() } : {}),
+            ...(referralCode ? { ref_code: referralCode } : {}),
+            // بصمة جهاز اختيارية: تُستخدم علماً للمراجعة فقط، لا تمنع التسجيل.
+            ...(signupFingerprint ? { signup_fingerprint: signupFingerprint } : {}),
           },
         },
       });
@@ -649,6 +693,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
         return { success: false, error: translateAuthError('user already registered') };
       }
+
+      // تم إنشاء الحساب فعلاً؛ ننظّف الكود المحلي حتى لا يُنسب حساب لاحق
+      // في نفس المتصفح إلى نفس الرابط بالخطأ.
+      if (referralCode) clearStoredReferralCode();
 
       // إذا كان تأكيد البريد معطلاً في إعدادات Supabase، تُعاد جلسة مباشرة:
       // نُكمل تسجيل الدخول بدل إظهار رسالة "تفقد بريدك" بلا جدوى.
@@ -1242,6 +1290,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         suspendSubscription,
         deleteSubscription,
         deleteUserAccount,
+        refreshProfile,
         upgradeModalOpen,
         setUpgradeModalOpen: handleSetUpgradeModalOpen,
         passwordRecoveryOpen,
